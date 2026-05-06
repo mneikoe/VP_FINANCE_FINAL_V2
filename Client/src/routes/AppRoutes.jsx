@@ -115,6 +115,10 @@ import CRMRelationshipActivities from "../Components/CRM/CRMRelationshipActiviti
 import MarketingDocumentsPage from "../Components/Departments/Marketing/MarketingDocumentsPage";
 import AccountantLayout from "../Components/Departments/AccountantDashboard/AccountantLayout"
 import AccountantDashboard from "../Components/Departments/AccountantDashboard/AccountantDashboard";
+import SalaryTable from "../Components/Departments/AccountantDashboard/SalaryTable";
+import IncentiveTable from "../Components/Departments/AccountantDashboard/IncentiveTable";
+import CommissionIncentiveTable from "../Components/Departments/AccountantDashboard/CommissionIncentiveTable";
+import RewardIncentiveTable from "../Components/Departments/AccountantDashboard/RewardIncentiveTable";
 import AddBank from "../Components/Departments/Masters/AddBank";
 import IncomeHead from "../Components/Departments/AccountDepartment/IncomeHead/IncomeHead"
 import ExpensesHead from "../Components/Departments/AccountDepartment/ExpensesHead/ExpensesHead"
@@ -211,6 +215,9 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<AccountantDashboard />} />
         <Route path="income-head" element={<IncomeHead />} />
         <Route path="expenses-head" element={<ExpensesHead />} />
+        <Route path="salary" element={<SalaryTable />} />
+        <Route path="incentive/commission" element={<CommissionIncentiveTable />} />
+        <Route path="incentive/reward" element={<RewardIncentiveTable />} />
         <Route path="reports" element={<Reports />} />
         <Route path="office-purchase" element={<OfficePurchase />} />
         <Route path="banks" element={<AddBank />} />

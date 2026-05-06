@@ -8,6 +8,8 @@ import {
   FiFileText,
   FiChevronDown,
   FiLogOut,
+  FiUsers,
+  FiAward,
 } from "react-icons/fi";
 import { Landmark } from "lucide-react";
 
@@ -63,9 +65,57 @@ const AccountantLayout = () => {
               <FiDollarSign /> Income
             </button>
 
-            <button onClick={() => navigate("/accountant/expenses-head")} className={navBtn}>
-              <FiCreditCard /> Expenses
-            </button>
+            {/* Expenses Dropdown */}
+            <div className="relative">
+              <button onClick={() => toggle("expenses")} className={navBtn}>
+                <FiCreditCard /> Expenses <FiChevronDown />
+              </button>
+
+              {open === "expenses" && (
+                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg p-2 w-48 z-50">
+                  <Link
+                    to="/accountant/expenses-head"
+                    onClick={close}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                  >
+                    <FiCreditCard className="text-xs" /> Expenses Head
+                  </Link>
+                  <Link
+                    to="/accountant/salary"
+                    onClick={close}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                  >
+                    <FiUsers className="text-xs" /> Salary
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Incentive Dropdown (Independent or moved? User said "Incentive heading banao dropdown me") */}
+            <div className="relative">
+              <button onClick={() => toggle("incentive_main")} className={navBtn}>
+                <FiAward /> Incentive <FiChevronDown />
+              </button>
+
+              {open === "incentive_main" && (
+                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg p-2 w-56 z-50">
+                   <Link
+                    to="/accountant/incentive/commission"
+                    onClick={close}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                  >
+                    <FiAward className="text-xs" /> Commission Based
+                  </Link>
+                  <Link
+                    to="/accountant/incentive/reward"
+                    onClick={close}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
+                  >
+                    <FiAward className="text-xs" /> Reward Based
+                  </Link>
+                </div>
+              )}
+            </div>
 
             <button onClick={() => navigate("/accountant/office-purchase")} className={navBtn}>
               <FiShoppingCart /> Purchase

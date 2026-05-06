@@ -89,6 +89,8 @@ const incomeExpenseAccountRoute = require("./Routes/IncomeExpenseAccountRoute");
 const incomeExpenseRoutes = require("./Routes/IncomeExpenseRoute");
 const IncomeExpenseReportRoute = require("./Routes/IncomeExpenseReportRoute");
 const NotificationRoute = require("./Routes/NotificationRoute");
+const SalaryRoute = require("./Routes/SalaryRoute");
+const IncentiveRoute = require("./Routes/IncentiveRoute");
 // STATIC FILES
 app.use(
   "/vacancy-images",
@@ -177,7 +179,12 @@ app.use("/api/income-expense-accounts", incomeExpenseAccountRoute);
 app.use("/api/income-expense", incomeExpenseRoutes);
 app.use("/api/IncomeExpenseReport", IncomeExpenseReportRoute);
 app.use("/api/notifications", NotificationRoute);
+<<<<<<< Updated upstream
 app.use("/api/email", require("./Routes/emailRoutes"));
+=======
+app.use("/api/salary", SalaryRoute);
+app.use("/api/incentives", IncentiveRoute);
+>>>>>>> Stashed changes
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
