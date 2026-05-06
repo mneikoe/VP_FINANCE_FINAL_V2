@@ -35,9 +35,9 @@ const dbUrl = process.env.dbUrl;
 console.log("DB URL:", process.env.dbUrl);
 mongoose.
   connect(process.env.dbUrl, {
-  tls: true,
-  serverSelectionTimeoutMS: 5000,
-})
+    tls: true,
+    serverSelectionTimeoutMS: 5000,
+  })
   .then(() => {
     console.log(`✅ DB Connected Successfully`);
   })
@@ -179,12 +179,9 @@ app.use("/api/income-expense-accounts", incomeExpenseAccountRoute);
 app.use("/api/income-expense", incomeExpenseRoutes);
 app.use("/api/IncomeExpenseReport", IncomeExpenseReportRoute);
 app.use("/api/notifications", NotificationRoute);
-<<<<<<< Updated upstream
 app.use("/api/email", require("./Routes/emailRoutes"));
-=======
 app.use("/api/salary", SalaryRoute);
 app.use("/api/incentives", IncentiveRoute);
->>>>>>> Stashed changes
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));
