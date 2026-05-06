@@ -74,7 +74,7 @@ const Dashbord = () => {
           text-transform: uppercase !important;
           letter-spacing: 0.5px !important;
           font-weight: 600 !important;
-          color: #64748b !important;
+          color: #4676baff !important;
         }
         .ant-statistic-content-value {
           font-weight: 700 !important;
