@@ -2,6 +2,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../Layout/Layout";
+import Dashbord from "../Components/Dashbord/Dashbord";
 import DashboardCards from "../Components/Dashbord/DashboardCards";
 import ActiveLeadsPage from "../Components/EmployeeDashboard/TelecallerDashboard/ActiveLeadsPage";
 import BusyOnAnotherCallPage from "../Components/EmployeeDashboard/TelecallerDashboard/BusyOnAnotherCallPage";
@@ -224,7 +225,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardCards />} />
+        <Route index element={<Dashbord />} />
         {/* Masters - Only OA */}
         <Route path="/task-assign" element={<TaskAssign />} />
         <Route path="/appointment-assign" element={<RMAssignment />} />

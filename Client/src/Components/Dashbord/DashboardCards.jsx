@@ -76,16 +76,15 @@ const DashboardCards = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "0" }}>
       <Row gutter={[16, 16]}>
         {cardsData.map((card, index) => (
           <Col xs={24} sm={12} md={8} lg={8} xl={4} key={index}>
             <Card
-              hoverable
+              bordered={false}
               style={{
-                borderRadius: 12,
-                border: "1px solid #f0f0f0",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                borderRadius: 16,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
                 height: "100%",
               }}
               bodyStyle={{ padding: "20px" }}
