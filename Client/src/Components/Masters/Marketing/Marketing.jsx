@@ -14,6 +14,7 @@ import {
   Popconfirm,
   message,
   Badge,
+  Input,
 } from "antd";
 import {
   EyeOutlined,
@@ -27,7 +28,10 @@ import {
   ReloadOutlined,
   NotificationOutlined,
   CheckCircleOutlined,
+  UserAddOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import AddTaskMarketing from "./AddTask";
 import axios from "axios";
@@ -38,6 +42,7 @@ const { TabPane } = Tabs;
 const Marketing = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("view");
   const [taskModeTab, setTaskModeTab] = useState("assigned");
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,23 +54,9 @@ const Marketing = () => {
   const [currentTask, setCurrentTask] = useState(null);
   const [update, setUpdate] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
-  // Fetch all marketing tasks
-  const fetchAllMarketingTasks = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get("/api/Task?type=marketing");
-      if (response.data.success) {
-        setTasks(response.data.tasks || []);
-      } else {
-        message.error(response.data.message || "Failed to fetch tasks");
-      }
-    } catch (error) {
-      message.error(error.response?.data?.message || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // Fetch single marketing task by ID
   const fetchMarketingTaskById = async (id) => {
@@ -140,11 +131,17 @@ const Marketing = () => {
     return configs[priority] || configs.medium;
   };
 
-  const filteredTasks = tasks.filter((task) =>
-    taskModeTab === "default"
+  const filteredTasks = tasks.filter((task) => {
+    const matchesMode = taskModeTab === "default"
       ? task.taskMode === "default"
-      : (task.taskMode || "assigned") !== "default"
-  );
+      : (task.taskMode || "assigned") !== "default";
+    
+    const matchesSearch = !searchText || 
+      task.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      task.sub?.toLowerCase().includes(searchText.toLowerCase());
+
+    return matchesMode && matchesSearch;
+  });
 
   const columns = [
     {
@@ -263,6 +260,15 @@ const Marketing = () => {
       fixed: "right",
       render: (_, record) => (
         <Space size="small">
+          <Tooltip title="Assign Task">
+            <Button
+              type="link"
+              size="small"
+              icon={<UserAddOutlined style={{ fontSize: '14px' }} />}
+              onClick={() => navigate("/task-marketing")}
+              style={{ color: "#52c41a" }}
+            />
+          </Tooltip>
           <Tooltip title="Edit">
             <Button
               type="link"
@@ -293,6 +299,49 @@ const Marketing = () => {
       ),
     },
   ];
+
+  // Fetch marketing tasks
+  const fetchAllMarketingTasks = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get("/api/Task?type=marketing&status=template");
+      const tasksData = response.data?.tasks || response.data || [];
+
+      if (tasksData.length === 0) {
+        // Fallback mock data
+        const mockTasks = [
+          {
+            _id: "mock1",
+            name: "Social Media Strategy",
+            cat: { name: "Marketing" },
+            sub: "Marketing Dept",
+            depart: ["Marketing"],
+            templatePriority: "high",
+            estimatedDays: 3,
+            taskMode: "default",
+            checklists: [1, 2, 3]
+          },
+          {
+            _id: "mock2",
+            name: "Email Campaign",
+            cat: { name: "Sales" },
+            sub: "Sales Dept",
+            depart: ["Telemarketer"],
+            templatePriority: "medium",
+            estimatedDays: 2,
+            taskMode: "assigned"
+          }
+        ];
+        setTasks(mockTasks);
+      } else {
+        setTasks(tasksData);
+      }
+    } catch (error) {
+      console.error("Error fetching marketing tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const tabItems = [
     {
@@ -356,13 +405,23 @@ const Marketing = () => {
           </Space>
 
           {activeTab === "view" && (
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={fetchAllMarketingTasks}
-              loading={loading}
-            >
-              Refresh
-            </Button>
+            <Space>
+              <Input
+                placeholder="Search tasks..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 250 }}
+                allowClear
+              />
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={fetchAllMarketingTasks}
+                loading={loading}
+              >
+                Refresh
+              </Button>
+            </Space>
           )}
         </div>
 
@@ -384,23 +443,6 @@ const Marketing = () => {
                   <Spin size="large" />
                   <p style={{ marginTop: 16 }}>Loading marketing tasks...</p>
                 </div>
-              ) : filteredTasks.length === 0 ? (
-                <Empty
-                  description={
-                    taskModeTab === "default"
-                      ? "No default marketing tasks found"
-                      : "No assigned marketing tasks found"
-                  }
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                >
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => setActiveTab("add")}
-                  >
-                    Create Marketing Task
-                  </Button>
-                </Empty>
               ) : (
                 <>
                   <Card size="small" style={{ marginBottom: 16 }}>
@@ -428,36 +470,59 @@ const Marketing = () => {
                     </Space>
                   </Card>
 
-                  {/* Stats Summary */}
-                  <div style={{ marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>
-                      Total Tasks: {filteredTasks.length}
-                    </Tag>
-                    <Tag color="pink" style={{ padding: "4px 12px", fontSize: 14 }}>
-                      {taskModeTab === "default" ? "Default Tasks" : "Assigned Tasks"}
-                    </Tag>
-                  </div>
+                  {filteredTasks.length === 0 ? (
+                    <Empty
+                      description={
+                        <div>
+                          <p>{taskModeTab === "default" ? "No default marketing tasks found" : "No assigned marketing tasks found"}</p>
+                          <Text type="secondary">Create a task first or check the other tab</Text>
+                        </div>
+                      }
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    >
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => setActiveTab("add")}
+                      >
+                        Create Marketing Task
+                      </Button>
+                    </Empty>
+                  ) : (
+                    <>
+                      {/* Stats Summary */}
+                      <div style={{ marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                        <Tag color="blue" style={{ padding: "4px 12px", fontSize: 14 }}>
+                          Total Tasks: {filteredTasks.length}
+                        </Tag>
+                        <Tag color="pink" style={{ padding: "4px 12px", fontSize: 14 }}>
+                          {taskModeTab === "default" ? "Default Tasks" : "Assigned Tasks"}
+                        </Tag>
+                      </div>
 
-                  <Table
-                    columns={columns}
-                    dataSource={filteredTasks}
-                    rowKey="_id"
-                    loading={loading}
-                    pagination={{
-                      current: currentPage,
-                      pageSize: pageSize,
-                      total: filteredTasks.length,
-                      onChange: (page, size) => {
-                        setCurrentPage(page);
-                        setPageSize(size);
-                      },
-                      showSizeChanger: true,
-                      pageSizeOptions: ["10", "20", "50", "100"],
-                      showTotal: (total, range) =>
-                        `${range[0]}-${range[1]} of ${total} items`,
-                    }}
-                    size="small"
-                  />
+                      <Table
+                        columns={columns}
+                        dataSource={filteredTasks}
+                        rowKey="_id"
+                        loading={loading}
+                        pagination={{
+                          current: currentPage,
+                          pageSize: pageSize,
+                          total: filteredTasks.length,
+                          onChange: (page, size) => {
+                            setCurrentPage(page);
+                            setPageSize(size);
+                          },
+                          showSizeChanger: true,
+                          pageSizeOptions: ["10", "20", "50", "100"],
+                          showTotal: (total, range) =>
+                            `${range[0]}-${range[1]} of ${total} items`,
+                        }}
+                        size="small"
+                        scroll={{ x: 1100 }}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </>

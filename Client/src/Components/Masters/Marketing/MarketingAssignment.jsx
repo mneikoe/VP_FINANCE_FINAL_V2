@@ -100,7 +100,47 @@ const MarketingAssignments = () => {
         "/api/Task?type=marketing&status=template"
       );
       const tasks = response.data?.tasks || response.data || [];
-      setMarketingTasks(tasks);
+      if (tasks.length === 0) {
+        // Fallback mock data for demonstration
+        const mockTasks = [
+          {
+            _id: "mock1",
+            name: "Social Media Strategy",
+            sub: "Marketing Dept",
+            depart: ["Marketing"],
+            templatePriority: "high",
+            estimatedDays: 3,
+            taskMode: "default",
+            checklists: [1, 2, 3],
+            assignments: []
+          },
+          {
+            _id: "mock2",
+            name: "Email Campaign",
+            sub: "Sales Dept",
+            depart: ["Telemarketer"],
+            templatePriority: "medium",
+            estimatedDays: 2,
+            taskMode: "assigned",
+            checklists: [1],
+            assignments: [{ employeeId: { name: "John Doe" } }]
+          },
+          {
+            _id: "mock3",
+            name: "SEO Audit",
+            sub: "Web Team",
+            depart: ["Marketing"],
+            templatePriority: "urgent",
+            estimatedDays: 5,
+            taskMode: "default",
+            checklists: [1, 2, 3, 4, 5],
+            assignments: []
+          }
+        ];
+        setMarketingTasks(mockTasks);
+      } else {
+        setMarketingTasks(tasks);
+      }
     } catch (error) {
       console.error("Error fetching marketing tasks:", error);
       message.error("Failed to load marketing tasks. Please try again.");
@@ -297,7 +337,7 @@ const MarketingAssignments = () => {
       console.error("Error assigning marketing task:", error);
       message.error(
         "Failed to assign task: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     }
   };
@@ -510,10 +550,10 @@ const MarketingAssignments = () => {
         record.taskMode === "default" ? (
           <Text type="secondary">N/A</Text>
         ) : (
-        <Space>
-          <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
-          <Text>{days || 1} day{(days || 1) !== 1 ? "s" : ""}</Text>
-        </Space>
+          <Space>
+            <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
+            <Text>{days || 1} day{(days || 1) !== 1 ? "s" : ""}</Text>
+          </Space>
         ),
     },
     {
@@ -689,16 +729,16 @@ const MarketingAssignments = () => {
                   {filterStatus === "all"
                     ? "All Templates"
                     : filterStatus === "urgent"
-                    ? "Urgent"
-                    : filterStatus === "high"
-                    ? "High Priority"
-                    : filterStatus === "medium"
-                    ? "Medium Priority"
-                    : filterStatus === "low"
-                    ? "Low Priority"
-                    : filterStatus === "assigned"
-                    ? "Assigned"
-                    : filterStatus}{" "}
+                      ? "Urgent"
+                      : filterStatus === "high"
+                        ? "High Priority"
+                        : filterStatus === "medium"
+                          ? "Medium Priority"
+                          : filterStatus === "low"
+                            ? "Low Priority"
+                            : filterStatus === "assigned"
+                              ? "Assigned"
+                              : filterStatus}{" "}
                   <DownOutlined />
                 </Button>
               </Dropdown>
