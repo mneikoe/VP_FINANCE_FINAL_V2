@@ -13,6 +13,8 @@ const storage = multer.diskStorage({
     // Different folders for different file types
     if (file.fieldname === "certificateFile") {
       uploadPath = path.join(__dirname, "../uploads/internship/certificates");
+    } else if (file.fieldname === "activityFile") {
+      uploadPath = path.join(__dirname, "../uploads/internship/activities");
     } else if (file.fieldname === "resume") {
       uploadPath = path.join(__dirname, "../uploads/internship/resumes");
     } else if (file.fieldname === "transcript") {
@@ -569,6 +571,96 @@ router.get("/:id/download-certificate", async (req, res) => {
     });
   } catch (error) {
     console.error("Error downloading certificate:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+});
+
+// @route   POST /api/internships/:id/upload-activity
+// @desc    Upload internship activity PDF
+router.post(
+  "/:id/upload-activity",
+  upload.single("activityFile"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select an activity file to upload",
+        });
+      }
+
+      const internship = await Internship.findById(req.params.id);
+
+      if (!internship) {
+        return res.status(404).json({
+          success: false,
+          message: "Internship application not found",
+        });
+      }
+
+      internship.activityFile = `/uploads/internship/activities/${req.file.filename}`;
+      internship.activityFileName = req.file.originalname;
+
+      await internship.save();
+
+      res.json({
+        success: true,
+        message: "Activity report uploaded successfully",
+        data: {
+          activityFile: internship.activityFile,
+          activityFileName: internship.activityFileName,
+        },
+      });
+    } catch (error) {
+      console.error("Error uploading activity report:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error uploading activity report",
+      });
+    }
+  }
+);
+
+// @route   GET /api/internships/:id/download-activity
+// @desc    Download activity report file
+router.get("/:id/download-activity", async (req, res) => {
+  try {
+    const internship = await Internship.findById(req.params.id);
+
+    if (!internship || !internship.activityFile) {
+      return res.status(404).json({
+        success: false,
+        message: "Activity report not found",
+      });
+    }
+
+    const filePath = path.join(__dirname, "..", internship.activityFile);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "Activity report file not found on server",
+      });
+    }
+
+    const fileName =
+      internship.activityFileName ||
+      `Activity-${internship.fullName.replace(/\s+/g, "-")}.pdf`;
+
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        console.error("Error downloading activity file:", err);
+        res.status(500).json({
+          success: false,
+          message: "Error downloading activity report",
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error downloading activity report:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",

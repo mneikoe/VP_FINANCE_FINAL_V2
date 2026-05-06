@@ -1,530 +1,473 @@
 import React, { useState, useEffect } from "react";
 import {
+  Modal,
   Form,
+  Input,
+  DatePicker,
+  Select,
   Row,
   Col,
-  Button,
   Tabs,
-  Tab,
-  Container,
+  Button,
+  Divider,
+  Space,
+  Typography,
+  message,
+  Table,
+  Badge,
   Alert,
-  Modal,
-} from "react-bootstrap";
-import axios from "axios";
+  Descriptions,
+  Tag,
+} from "antd";
 import {
-  FaTimes,
-  FaUser,
-  FaBriefcase,
-  FaUniversity,
-  FaBell,
-} from "react-icons/fa";
+  UserOutlined,
+  BankOutlined,
+  SolutionOutlined,
+  ToolOutlined,
+  HistoryOutlined,
+  PlusOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
+import axios from "axios";
+import dayjs from "dayjs";
+
+const { Text, Title } = Typography;
+const { TextArea } = Input;
+const { TabPane } = Tabs;
 
 const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
-  const [formData, setFormData] = useState({
-    // Personal
-    name: "",
-    gender: "",
-    dob: "",
-    marriageDate: "",
-    mobileNo: "",
-    emailId: "",
-    panNo: "",
-    aadharNo: "",
-    presentAddress: "",
-    permanentAddress: "",
-    homeTown: "",
-    familyContactPerson: "",
-    familyContactMobile: "",
-    emergencyContactPerson: "",
-    emergencyContactMobile: "",
-
-    // Official
-    designation: "",
-    employeeCode: "",
-    officeMobile: "",
-    officeEmail: "",
-    password: "123456",
-    confirmPassword: "123456",
-    allottedLoginId: "",
-    allocatedWorkArea: "",
-    dateOfJoining: new Date().toISOString().split("T")[0],
-    dateOfTermination: "",
-    salaryOnJoining: "",
-    expenses: "",
-    incentives: "",
-    officeKit: "",
-    offerLetter: "",
-    undertaking: "",
-    trackRecord: "",
-    drawerKeyName: "",
-    drawerKeyNumber: "",
-    officeKey: "",
-    allotmentDate: "",
-    role: "", // Role field
-
-    // Bank
-    bankName: "",
-    accountNo: "",
-    ifscCode: "",
-    micr: "",
-
-    // Alerts
-    onFirstJoining: "",
-    onSixMonthCompletion: "",
-    onTwelveMonthCompletion: "",
-  });
-
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [activeTab, setActiveTab] = useState("personal");
+  const [activeTab, setActiveTab] = useState("1");
 
-  // Role options with designations
-  const roleOptions = [
-    {
-      value: "Telecaller",
-      label: "📞 Telecaller",
-      designation: "Telecaller Executive",
-    },
-    {
-      value: "Telemarketer",
-      label: "💼 Telemarketer",
-      designation: "Telemarketing Executive",
-    },
-    { value: "OE", label: "👨‍💼 OE", designation: "Operation Executive" },
-    { value: "HR", label: "👥 HR", designation: "HR Executive" },
-    { value: "RM", label: "🤵 RM", designation: "Relationship Manager" },
-  ];
-
-  // Generate employee code
-  const generateEmployeeCode = (role) => {
-    const roleCodes = {
-      Telecaller: "TC",
-      Telemarketer: "TM",
-      OE: "OE",
-      HR: "HR",
-      RM: "RM",
-    };
-
-    const roleCode = roleCodes[role] || "EMP";
-    const randomNum = Math.floor(100 + Math.random() * 900);
-    return `${roleCode}${randomNum}`;
+  // Initial State for Office Kit
+  const defaultItems = {
+    oneTime: ["Office Key", "Uniform Set", "Mobile Sim Card", "Drawer Key", "ID Card", "Laptop/Tablet"],
+    yearly: ["Visiting Card", "Executive Folder/Bag", "Servicing Form & Application", "Dummy Portfolio File", "Proposal Form & Related Paper", "Daily Working Sheet", "Calculator"],
+    monthly: ["Customer List", "Birth list, Anniversary List", "Outstanding Due list", "Maturity Due list & SB Due list", "GIC, Health, MF Due List"]
   };
 
-  // Auto-fill form from candidate data
+  const initAllotment = (items) => items.map(item => ({
+    particular: item,
+    allotmentDate: dayjs(),
+    condition: "New",
+    quantity: 1,
+    enabled: false
+  }));
+
+  const [oneTimeKit, setOneTimeKit] = useState(initAllotment(defaultItems.oneTime));
+  const [yearlyKit, setYearlyKit] = useState(initAllotment(defaultItems.yearly));
+  const [monthlyKit, setMonthlyKit] = useState(initAllotment(defaultItems.monthly));
+
+  const roleOptions = [
+    { value: "Telecaller", label: "Telecaller", code: "TC", designation: "Telecaller Executive" },
+    { value: "Telemarketer", label: "Telemarketer", code: "TM", designation: "Telemarketing Executive" },
+    { value: "OE", label: "OE (Operation Executive)", code: "OE", designation: "Operation Executive" },
+    { value: "HR", label: "HR", code: "HR", designation: "HR Executive" },
+    { value: "RM", label: "RM (Relationship Manager)", code: "RM", designation: "Relationship Manager" },
+    { value: "OA", label: "OA (Office Assistant)", code: "OA", designation: "Office Assistant" },
+    { value: "Accountant", label: "Accountant", code: "AC", designation: "Accountant" },
+  ];
+
   useEffect(() => {
     if (candidate) {
-      const generatedCode = generateEmployeeCode("Employee"); // Default role
-
-      setFormData((prev) => ({
-        ...prev,
-        // Personal details from candidate
-        name: candidate.candidateName || "",
-        mobileNo: candidate.mobileNo || "",
-        emailId: candidate.email || "",
-        designation: candidate.appliedFor?.designation || "",
-
-        // Auto-generated fields
-        employeeCode: generatedCode,
-        allottedLoginId: generatedCode,
-        dateOfJoining: new Date().toISOString().split("T")[0],
-
-        // Additional candidate data if available
-        presentAddress: candidate.location || "",
-        permanentAddress: candidate.nativePlace || "",
-        salaryOnJoining: candidate.salaryExpectation || "",
-      }));
+      form.setFieldsValue({
+        name: candidate.candidateName,
+        mobileNo: candidate.mobileNo,
+        emailId: candidate.email,
+        presentAddress: candidate.location,
+        permanentAddress: candidate.nativePlace,
+        salaryOnJoining: candidate.salaryExpectation,
+        dateOfJoining: dayjs(),
+        password: "123456",
+        role: "Telecaller"
+      });
+      handleRoleChange("Telecaller");
     }
   }, [candidate]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleRoleChange = (roleValue) => {
+    const role = roleOptions.find(r => r.value === roleValue);
+    if (role) {
+      const code = `${role.code}${Math.floor(1000 + Math.random() * 9000)}`;
+      form.setFieldsValue({
+        employeeCode: code,
+        allottedLoginId: code,
+        designation: role.designation
+      });
+    }
   };
 
-  // Auto-generate employee code and designation when role is selected
-  useEffect(() => {
-    if (formData.role) {
-      const generatedCode = generateEmployeeCode(formData.role);
-      const selectedRole = roleOptions.find(
-        (role) => role.value === formData.role
-      );
-      const designation = selectedRole
-        ? selectedRole.designation
-        : formData.role;
+  const handleKitChange = (type, index, field, value) => {
+    const setters = { oneTime: setOneTimeKit, yearly: setYearlyKit, monthly: setMonthlyKit };
+    const states = { oneTime: oneTimeKit, yearly: yearlyKit, monthly: monthlyKit };
+    
+    const newKit = [...states[type]];
+    newKit[index][field] = value;
+    setters[type](newKit);
+  };
 
-      setFormData((prev) => ({
-        ...prev,
-        employeeCode: generatedCode,
-        allottedLoginId: generatedCode,
-        designation: designation,
-      }));
+  const columns = (type) => [
+    {
+      title: 'Select',
+      dataIndex: 'enabled',
+      width: 70,
+      render: (val, _, index) => <input type="checkbox" checked={val} onChange={(e) => handleKitChange(type, index, 'enabled', e.target.checked)} />
+    },
+    { title: 'Particular', dataIndex: 'particular', width: 200 },
+    {
+      title: 'Date',
+      dataIndex: 'allotmentDate',
+      render: (val, _, index) => (
+        <DatePicker size="small" value={val} onChange={(date) => handleKitChange(type, index, 'allotmentDate', date)} />
+      )
+    },
+    {
+      title: 'Condition',
+      dataIndex: 'condition',
+      render: (val, _, index) => (
+        <Select size="small" value={val} style={{ width: 100 }} onChange={(v) => handleKitChange(type, index, 'condition', v)}>
+          <Select.Option value="New">New</Select.Option>
+          <Select.Option value="Used">Used</Select.Option>
+        </Select>
+      )
+    },
+    {
+      title: 'Qty',
+      dataIndex: 'quantity',
+      render: (val, _, index) => (
+        <Input size="small" type="number" value={val} style={{ width: 60 }} onChange={(e) => handleKitChange(type, index, 'quantity', e.target.value)} />
+      )
     }
-  }, [formData.role]);
+  ];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    // Validation
-    if (!formData.role) {
-      setError("Please select a role");
-      setLoading(false);
-      return;
-    }
-
-    if (!formData.name) {
-      setError("Name is required");
-      setLoading(false);
-      return;
-    }
-
-    if (!formData.emailId) {
-      setError("Email is required");
-      setLoading(false);
-      return;
-    }
-
-    if (!formData.mobileNo) {
-      setError("Mobile number is required");
-      setLoading(false);
-      return;
-    }
-
+  const handleSubmit = async () => {
     try {
-      console.log("📤 Sending employee data:", formData);
+      const values = await form.validateFields();
+      setLoading(true);
 
-      // Use the same API endpoint as EmployeeAddForm
-      const response = await axios.post("/api/employee/addEmployee", formData);
+      // Prepare structured Office Kit data
+      const officeKitAllotment = {
+        oneTime: oneTimeKit.filter(k => k.enabled).map(({ enabled, ...rest }) => ({ ...rest, allotmentDate: rest.allotmentDate.toDate() })),
+        yearly: yearlyKit.filter(k => k.enabled).map(({ enabled, ...rest }) => ({ ...rest, allotmentDate: rest.allotmentDate.toDate() })),
+        monthly: monthlyKit.filter(k => k.enabled).map(({ enabled, ...rest }) => ({ ...rest, allotmentDate: rest.allotmentDate.toDate() }))
+      };
 
-      console.log("✅ API Response:", response.data);
+      // Prepare Recruitment Details
+      const recruitmentDetails = {
+        candidateId: candidate._id,
+        appliedDate: candidate.appliedDate,
+        interviewDate: candidate.interviewDate,
+        interviewPlace: candidate.interviewPlace,
+        totalMarks: candidate.totalMarks,
+        resume: candidate.resume,
+        offerLetter: {
+            path: candidate.offerLetterDetails?.file?.path,
+            sentDate: candidate.offerLetterDetails?.sentDate
+        },
+        joiningLetter: {
+            path: candidate.joiningLetterDetails?.file?.path,
+            sentDate: candidate.joiningLetterDetails?.sentDate,
+            joiningDate: candidate.joiningLetterDetails?.joiningDate
+        }
+      };
 
-      if (response.data && response.data.success) {
-        setSuccess(
-          `Employee added successfully! Login: ${formData.employeeCode} / 123456`
-        );
+      const payload = {
+        ...values,
+        officeKitAllotment,
+        recruitmentDetails,
+        dateOfJoining: values.dateOfJoining.toDate(),
+      };
 
-        // Also update candidate status to "Added as Employee"
+      const response = await axios.post("/api/employee/addEmployee", payload);
+
+      if (response.data.success) {
+        // Update candidate status
         await axios.put(`/api/addcandidate/${candidate._id}/stage`, {
           currentStage: "Added as Employee",
-          currentStatus: "Added as Employee",
+          currentStatus: "Added as Employee"
         });
-
-        setTimeout(() => {
-          onEmployeeAdded();
-        }, 2000);
-      } else {
-        setError(response.data.message || "Failed to add employee");
+        
+        message.success(`Employee added successfully! Code: ${payload.employeeCode}`);
+        onEmployeeAdded();
       }
-    } catch (err) {
-      console.error("❌ API Error:", err);
-      setError(err.response?.data?.message || "Error adding employee");
+    } catch (error) {
+      console.error("Error adding employee:", error);
+      message.error(error.response?.data?.message || "Failed to add employee");
     } finally {
       setLoading(false);
     }
   };
 
-  const renderFields = (fields) =>
-    fields.map((field, i) => (
-      <Col md={4} key={i}>
-        <Form.Group className="mb-3">
-          <Form.Label>
-            {field.label}
-            {field.required && <span className="text-danger">*</span>}
-          </Form.Label>
-          {field.type === "select" ? (
-            <Form.Select
-              name={field.name}
-              value={formData[field.name]}
-              onChange={handleChange}
-              disabled={loading || field.disabled}
-              required={field.required}
-            >
-              <option value="">Select {field.label}</option>
-              {field.options?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Form.Select>
-          ) : (
-            <Form.Control
-              type={field.type || "text"}
-              as={field.as}
-              rows={field.rows}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={handleChange}
-              disabled={loading || field.disabled}
-              required={field.required}
-              placeholder={field.placeholder}
-            />
-          )}
-          {field.helpText && (
-            <Form.Text className="text-muted">{field.helpText}</Form.Text>
-          )}
-        </Form.Group>
-      </Col>
-    ));
-
-  const personalFields = [
-    {
-      label: "Role",
-      name: "role",
-      type: "select",
-      required: true,
-      options: roleOptions,
-      helpText: "Select employee role",
-    },
-    {
-      label: "Employee Code",
-      name: "employeeCode",
-      disabled: true,
-      helpText: "Auto-generated employee code",
-    },
-    {
-      label: "Designation",
-      name: "designation",
-      disabled: true,
-      helpText: "Auto-filled based on role",
-    },
-    {
-      label: "Full Name",
-      name: "name",
-      required: true,
-      placeholder: "Enter full name",
-    },
-    {
-      label: "Email ID",
-      name: "emailId",
-      type: "email",
-      required: true,
-      placeholder: "Enter email address",
-    },
-    {
-      label: "Mobile No",
-      name: "mobileNo",
-      required: true,
-      placeholder: "Enter mobile number",
-    },
-    {
-      label: "Gender",
-      name: "gender",
-      type: "select",
-      options: [
-        { value: "Male", label: "Male" },
-        { value: "Female", label: "Female" },
-        { value: "Other", label: "Other" },
-      ],
-    },
-    { label: "Date of Birth", name: "dob", type: "date" },
-    { label: "Marriage Date", name: "marriageDate", type: "date" },
-    { label: "PAN No", name: "panNo" },
-    { label: "Aadhar No", name: "aadharNo" },
-    {
-      label: "Present Address",
-      name: "presentAddress",
-      as: "textarea",
-      rows: 2,
-    },
-    {
-      label: "Permanent Address",
-      name: "permanentAddress",
-      as: "textarea",
-      rows: 2,
-    },
-    { label: "Home Town", name: "homeTown" },
-    { label: "Family Contact Person", name: "familyContactPerson" },
-    { label: "Family Contact Mobile", name: "familyContactMobile" },
-    { label: "Emergency Contact Person", name: "emergencyContactPerson" },
-    { label: "Emergency Contact Mobile", name: "emergencyContactMobile" },
-  ];
-
-  const officialFields = [
-    {
-      label: "Allotted Login ID",
-      name: "allottedLoginId",
-      disabled: true,
-      helpText: "Same as Employee Code",
-    },
-    { label: "Office Mobile", name: "officeMobile" },
-    { label: "Office Email", name: "officeEmail", type: "email" },
-    {
-      label: "Password",
-      name: "password",
-      type: "password",
-      disabled: true,
-      helpText: "Default password: 123456",
-    },
-    {
-      label: "Confirm Password",
-      name: "confirmPassword",
-      type: "password",
-      disabled: true,
-    },
-    { label: "Allocated Work Area", name: "allocatedWorkArea" },
-    { label: "Date of Joining", name: "dateOfJoining", type: "date" },
-    { label: "Date of Termination", name: "dateOfTermination", type: "date" },
-    { label: "Salary On Joining", name: "salaryOnJoining" },
-    { label: "Expenses", name: "expenses" },
-    { label: "Incentives", name: "incentives" },
-    { label: "Office Kit", name: "officeKit" },
-    { label: "Offer Letter", name: "offerLetter" },
-    { label: "Undertaking", name: "undertaking" },
-    { label: "Track Record", name: "trackRecord" },
-    { label: "Drawer Key Name", name: "drawerKeyName" },
-    { label: "Drawer Key Number", name: "drawerKeyNumber" },
-    { label: "Office Key", name: "officeKey" },
-    { label: "Allotment Date", name: "allotmentDate", type: "date" },
-  ];
-
-  const bankFields = [
-    { label: "Bank Name", name: "bankName" },
-    { label: "Account Number", name: "accountNo" },
-    { label: "IFSC Code", name: "ifscCode" },
-    { label: "MICR", name: "micr" },
-  ];
-
-  const alertFields = [
-    {
-      label: "On First Joining",
-      name: "onFirstJoining",
-      as: "textarea",
-      rows: 3,
-    },
-    {
-      label: "On Six Month Completion",
-      name: "onSixMonthCompletion",
-      as: "textarea",
-      rows: 3,
-    },
-    {
-      label: "On Twelve Month Completion",
-      name: "onTwelveMonthCompletion",
-      as: "textarea",
-      rows: 3,
-    },
-  ];
-
   return (
     <Modal
-      show={true}
-      onHide={onClose}
-      size="xl"
+      title={<Space><CheckCircleOutlined style={{ color: '#52c41a' }} /> Finalize Hiring & Allotment: {candidate.candidateName}</Space>}
+      open={true}
+      onCancel={onClose}
+      width={1000}
       centered
-      backdrop="static"
-      style={{ zIndex: 1050 }}
+      onOk={handleSubmit}
+      confirmLoading={loading}
+      okText="Add as Employee"
+      okButtonProps={{ size: 'large', style: { background: '#52c41a', borderColor: '#52c41a' } }}
     >
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <FaUser className="me-2" />
-          Add Employee: {candidate.candidateName}
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
-        {error && <Alert variant="danger">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
+        {/* TAB 1: OFFICIAL DETAILS */}
+        <TabPane tab={<span><SolutionOutlined /> Official & Role</span>} key="1">
+          <Form form={form} layout="vertical" className="mt-3">
+             <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="role" label="Employee Role" rules={[{ required: true }]}>
+                    <Select onChange={handleRoleChange}>
+                      {roleOptions.map(r => <Select.Option key={r.value} value={r.value}>{r.label}</Select.Option>)}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="employeeCode" label="Employee Code">
+                    <Input disabled prefix={<Badge status="processing" />} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="designation" label="Designation">
+                    <Input disabled />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="dateOfJoining" label="Date of Joining" rules={[{ required: true }]}>
+                    <DatePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="salaryOnJoining" label="Salary (Monthly)">
+                    <Input placeholder="e.g. 15000" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="allottedLoginId" label="Login ID">
+                    <Input disabled />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="dateOfTermination" label="Date of Termination">
+                    <DatePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="expenses" label="Expenses">
+                    <Input placeholder="Monthly expenses" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="incentives" label="Incentives">
+                    <Input placeholder="Incentive structure" />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={12}>
+                   <Form.Item name="officeMobile" label="Office Mobile">
+                      <Input />
+                   </Form.Item>
+                </Col>
+                <Col span={12}>
+                   <Form.Item name="officeEmail" label="Office Email">
+                      <Input type="email" />
+                   </Form.Item>
+                </Col>
+             </Row>
+             <Divider orientation="left">Personal Info (Verified)</Divider>
+             <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
+                    <Input prefix={<UserOutlined />} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="mobileNo" label="Mobile No" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="emailId" label="Email ID" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="gender" label="Gender">
+                    <Select>
+                      <Select.Option value="Male">Male</Select.Option>
+                      <Select.Option value="Female">Female</Select.Option>
+                      <Select.Option value="Other">Other</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="dob" label="Date of Birth">
+                    <DatePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="marriageDate" label="Marriage Date">
+                    <DatePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="panNo" label="PAN No">
+                    <Input placeholder="Enter PAN" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="aadharNo" label="Aadhar No">
+                    <Input placeholder="Enter Aadhar Number" />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="presentAddress" label="Present Address">
+                    <TextArea rows={2} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="permanentAddress" label="Permanent Address">
+                    <TextArea rows={2} />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="homeTown" label="Home Town">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="familyContactPerson" label="Family Contact Person">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="familyContactMobile" label="Family Contact Mobile">
+                    <Input />
+                  </Form.Item>
+                </Col>
+             </Row>
+             <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="emergencyContactPerson" label="Emergency Contact Person">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="emergencyContactMobile" label="Emergency Contact Mobile">
+                    <Input />
+                  </Form.Item>
+                </Col>
+             </Row>
+          </Form>
+        </TabPane>
 
-        <Alert variant="info" className="mb-3">
-          <strong>Auto-filled from Candidate:</strong>
-          <br />
-          Name: <strong>{candidate.candidateName}</strong> | Mobile:{" "}
-          <strong>{candidate.mobileNo}</strong> | Designation:{" "}
-          <strong>{candidate.appliedFor?.designation}</strong>
-        </Alert>
+        {/* TAB 2: OFFICE KIT ALLOTMENT */}
+        <TabPane tab={<span><ToolOutlined /> Office Kit Allotment</span>} key="2">
+          <div style={{ maxHeight: '500px', overflowY: 'auto', padding: '10px' }}>
+            <Alert message="Select items from the list below to allot them to the employee." type="info" showIcon className="mb-3" />
+            
+            <Title level={5}><Badge status="warning" /> One-Time Allotment (Office Authorities)</Title>
+            <Table 
+                dataSource={oneTimeKit} 
+                columns={columns('oneTime')} 
+                pagination={false} 
+                size="small" 
+                rowKey="particular"
+                bordered
+                className="mb-4"
+            />
 
-        <Form onSubmit={handleSubmit}>
-          <Tabs
-            activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k)}
-            className="mb-3"
-          >
-            {/* PERSONAL DETAILS TAB */}
-            <Tab
-              eventKey="personal"
-              title={
-                <>
-                  <FaUser className="me-1" /> Personal
-                </>
-              }
-            >
-              <div className="p-3">
-                <Row>{renderFields(personalFields)}</Row>
-              </div>
-            </Tab>
+            <Title level={5}><Badge status="processing" /> Yearly Allotment (Appliances & Stationary)</Title>
+            <Table 
+                dataSource={yearlyKit} 
+                columns={columns('yearly')} 
+                pagination={false} 
+                size="small" 
+                rowKey="particular"
+                bordered
+                className="mb-4"
+            />
 
-            {/* OFFICIAL DETAILS TAB */}
-            <Tab
-              eventKey="official"
-              title={
-                <>
-                  <FaBriefcase className="me-1" /> Official
-                </>
-              }
-            >
-              <div className="p-3">
-                <Alert variant="info" className="mb-3">
-                  <strong>Default Login Credentials:</strong>
-                  <br />
-                  Employee Code: <strong>{formData.employeeCode}</strong>
-                  <br />
-                  Password: <strong>123456</strong>
-                </Alert>
-                <Row>{renderFields(officialFields)}</Row>
-              </div>
-            </Tab>
-
-            {/* BANK DETAILS TAB */}
-            <Tab
-              eventKey="bank"
-              title={
-                <>
-                  <FaUniversity className="me-1" /> Bank
-                </>
-              }
-            >
-              <div className="p-3">
-                <Row>{renderFields(bankFields)}</Row>
-              </div>
-            </Tab>
-
-            {/* ALERTS TAB */}
-            <Tab
-              eventKey="alerts"
-              title={
-                <>
-                  <FaBell className="me-1" /> Alerts
-                </>
-              }
-            >
-              <div className="p-3">
-                <Row>{renderFields(alertFields)}</Row>
-              </div>
-            </Tab>
-          </Tabs>
-
-          <div className="text-center mt-4">
-            <Button
-              type="submit"
-              variant="success"
-              disabled={loading}
-              size="lg"
-              className="px-5"
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2"></span>
-                  Adding Employee...
-                </>
-              ) : (
-                "✅ Add as Employee"
-              )}
-            </Button>
+            <Title level={5}><Badge status="success" /> Monthly Allotment (Kinds of Data)</Title>
+            <Table 
+                dataSource={monthlyKit} 
+                columns={columns('monthly')} 
+                pagination={false} 
+                size="small" 
+                rowKey="particular"
+                bordered
+            />
           </div>
-        </Form>
-      </Modal.Body>
+        </TabPane>
+
+        {/* TAB 3: BANK DETAILS */}
+        <TabPane tab={<span><BankOutlined /> Bank Details</span>} key="3">
+           <Form form={form} layout="vertical" className="mt-3">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="bankName" label="Bank Name">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="accountNo" label="Account Number">
+                    <Input />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="ifscCode" label="IFSC Code">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="micr" label="MICR Code">
+                    <Input />
+                  </Form.Item>
+                </Col>
+              </Row>
+           </Form>
+        </TabPane>
+
+        {/* TAB 4: RECRUITMENT TRAIL */}
+        <TabPane tab={<span><HistoryOutlined /> Recruitment Audit Trail</span>} key="4">
+           <div className="p-3">
+              <Alert message="This data is automatically imported from the recruitment lifecycle." type="success" showIcon className="mb-3" />
+              <Descriptions bordered column={2} size="small">
+                <Descriptions.Item label="Application Date">{candidate.appliedDate ? dayjs(candidate.appliedDate).format("DD MMM YYYY") : "N/A"}</Descriptions.Item>
+                <Descriptions.Item label="Candidate ID">{candidate._id}</Descriptions.Item>
+                <Descriptions.Item label="Interview Date">{candidate.interviewDate ? dayjs(candidate.interviewDate).format("DD MMM YYYY") : "N/A"}</Descriptions.Item>
+                <Descriptions.Item label="Evaluation Score"><Badge count={candidate.totalMarks || 0} color="#faad14" /></Descriptions.Item>
+                <Descriptions.Item label="Offer Letter Sent">
+                    {candidate.offerLetterDetails?.sentDate ? dayjs(candidate.offerLetterDetails.sentDate).format("DD MMM YYYY") : <Tag color="default">Not Sent</Tag>}
+                </Descriptions.Item>
+                <Descriptions.Item label="Joining Letter Sent">
+                    {candidate.joiningLetterDetails?.sentDate ? dayjs(candidate.joiningLetterDetails.sentDate).format("DD MMM YYYY") : <Tag color="default">Not Sent</Tag>}
+                </Descriptions.Item>
+              </Descriptions>
+           </div>
+        </TabPane>
+      </Tabs>
+
+      <style>{`
+        .ant-modal-body { padding: 12px 24px 24px 24px; }
+        .ant-table-thead > tr > th { background: #fafafa !important; font-weight: 600 !important; }
+      `}</style>
     </Modal>
   );
 };

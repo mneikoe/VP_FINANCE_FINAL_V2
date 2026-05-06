@@ -121,6 +121,11 @@ const candidateSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    interviewPlace: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
     // Application Details
     appliedFor: {

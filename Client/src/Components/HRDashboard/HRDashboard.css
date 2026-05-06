@@ -424,78 +424,64 @@
   }
 }
 
-/* HRDashboard.css ya App.css mein yeh add karo */
-.hr-dashboard * {
-  color: black !important;
+/* HR Dashboard Base Layout Styles */
+.hr-dashboard-layout {
+  min-height: 100vh;
 }
 
-/* Table headers ko visible karo */
-.hr-dashboard th {
-  color: black !important;
+.hr-sidebar-logo {
+  height: 64px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hr-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+}
+
+.hr-header {
+  padding: 0 24px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  z-index: 1;
+}
+
+.hr-content {
+  margin: 24px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  min-height: 280px;
+}
+
+/* Ant Design Table Overrides for HR Dashboard */
+.hr-dashboard-layout .ant-table-thead > tr > th {
+  background-color: #FFCC00 !important;
+  color: #000 !important;
   font-weight: bold !important;
-  background-color: #f8f9fa !important;
 }
 
-.hr-dashboard .table-light th {
-  background-color: #f8f9fa !important;
-  color: black !important;
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-/* Form labels ko dark karo */
-.hr-dashboard .form-label {
-  color: black !important;
-  font-weight: 600 !important;
-}
-
-.hr-dashboard label {
-  color: black !important;
-  font-weight: 500 !important;
-}
-
-/* Card headers ko visible karo */
-.hr-dashboard .card-header {
-  color: white !important;
-  font-weight: bold !important;
-}
-
-.hr-dashboard .bg-primary .card-header,
-.hr-dashboard .bg-success .card-header,
-.hr-dashboard .bg-info .card-header,
-.hr-dashboard .bg-warning .card-header,
-.hr-dashboard .bg-secondary .card-header {
-  color: white !important;
-}
-
-/* Button text white rahe */
-.hr-dashboard .btn {
-  color: white !important;
-}
-
-.hr-dashboard .btn-outline-primary {
-  color: #0d6efd !important;
-  border-color: #0d6efd !important;
-}
-
-.hr-dashboard .btn-outline-success {
-  color: #198754 !important;
-  border-color: #198754 !important;
-}
-
-.hr-dashboard .btn-outline-warning {
-  color: #ffc107 !important;
-  border-color: #ffc107 !important;
-}
-
-.hr-dashboard .text-muted {
-  color: #6c757d !important;
-}
-
-/* Badge text visible karo */
-.hr-dashboard .badge {
-  color: white !important;
-}
-
-.hr-dashboard .bg-light {
-  background-color: #f8f9fa !important;
-  color: black !important;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

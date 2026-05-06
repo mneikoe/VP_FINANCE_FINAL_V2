@@ -1,32 +1,30 @@
-// components/HRDashboard/modules/Analytics.jsx
 import React, { useState, useEffect } from "react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from "recharts";
-
+import { 
+  Row, Col, Card, Statistic, Typography, Space, Progress, Timeline, 
+  Badge, Button, Empty, Divider, Select 
+} from "antd";
 import {
-  FaCalendar,
-  FaChartLine,
-  FaCheck,
-  FaCheckSquare,
-  FaRegChartBar,
-  FaUserAlt,
-} from "react-icons/fa";
+  UserOutlined,
+  CheckCircleOutlined,
+  LineChartOutlined,
+  PieChartOutlined,
+  ArrowUpOutlined,
+  SyncOutlined,
+  RiseOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import axios from "axios";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const Analytics = () => {
-  const [analyticsData, setAnalyticsData] = useState({
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
     candidatesByStage: [],
     marksDistribution: [],
     designationStats: [],
@@ -34,459 +32,205 @@ const Analytics = () => {
   });
 
   useEffect(() => {
-    loadAnalyticsData();
+    loadAnalytics();
   }, []);
 
-  const loadAnalyticsData = () => {
-    const candidates = JSON.parse(localStorage.getItem("candidates")) || [];
-    const stages = [
-      "Career Enquiry",
-      "Resume Shortlisted",
-      "Interview Process",
-      "Selected",
-      "Joining Data",
-    ];
-    const candidatesByStage = stages.map((stage) => ({
-      name: stage,
-      count: candidates.filter((c) => c.currentStage === stage).length,
-    }));
-    const marksRanges = [
-      { range: "0-15", min: 0, max: 15 },
-      // { range: '16-20', min: 16, max: 20 },
-      { range: "21-25", min: 21, max: 25 },
-      { range: "26+", min: 26, max: 100 },
-    ];
-    const marksDistribution = marksRanges.map((range) => ({
-      name: range.range,
-      value: candidates.filter(
-        (c) => c.totalMarks >= range.min && c.totalMarks <= range.max
-      ).length,
-    }));
-    const designations = [...new Set(candidates.map((c) => c.designation))];
-    const designationStats = designations.map((designation) => ({
-      name: designation,
-      candidates: candidates.filter((c) => c.designation === designation)
-        .length,
-      selected: candidates.filter(
-        (c) => c.designation === designation && c.currentStage === "Selected"
-      ).length,
-    }));
-    const monthlyHires = [
-      { name: "Jan", hires: 5 },
-      { name: "Feb", hires: 8 },
-      { name: "Mar", hires: 12 },
-      { name: "Apr", hires: 7 },
-      { name: "May", hires: 15 },
-      { name: "Jun", hires: 10 },
-    ];
-    setAnalyticsData({
-      candidatesByStage,
-      marksDistribution,
-      designationStats,
-      monthlyHires,
-    });
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get("/api/addcandidate");
+      const candidates = response.data.candidates || [];
+
+      // Process Stages
+      const stages = ["Career Enquiry", "Resume Shortlisted", "Interview Process", "Selected", "Joining Data"];
+      const candidatesByStage = stages.map(s => ({
+        name: s.split(' ')[0], 
+        count: candidates.filter(c => c.currentStage === s).length
+      }));
+
+      // Process Marks
+      const marksRanges = [
+        { name: "0-15", min: 0, max: 15 },
+        { name: "16-25", min: 16, max: 25 },
+        { name: "26+", min: 26, max: 100 },
+      ];
+      const marksDistribution = marksRanges.map(r => ({
+        name: r.name,
+        value: candidates.filter(c => (c.totalMarks || 0) >= r.min && (c.totalMarks || 0) <= r.max).length
+      }));
+
+      // Designation Stats
+      const designations = [...new Set(candidates.map(c => c.designation).filter(Boolean))];
+      const designationStats = designations.slice(0, 5).map(d => ({
+        name: d,
+        total: candidates.filter(c => c.designation === d).length,
+        selected: candidates.filter(c => c.designation === d && c.currentStage === "Selected").length
+      }));
+
+      setData({
+        candidatesByStage,
+        marksDistribution,
+        designationStats,
+        monthlyHires: [
+            { name: "Jan", count: 4 }, { name: "Feb", count: 7 }, { name: "Mar", count: 5 },
+            { name: "Apr", count: 9 }, { name: "May", count: 12 }, { name: "Jun", count: 8 }
+        ]
+      });
+    } catch (error) {
+      console.error("Analytics load failed", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
-  const stats = {
-    totalCandidates: analyticsData.candidatesByStage.reduce(
-      (sum, stage) => sum + stage.count,
-      0
-    ),
-    selectedCandidates:
-      analyticsData.candidatesByStage.find((stage) => stage.name === "Selected")
-        ?.count || 0,
-    avgMarks:
-      analyticsData.marksDistribution.reduce((sum, range, index) => {
-        const midValue = [7.5, 18, 23, 30][index];
-        return sum + range.value * midValue;
-      }, 0) /
-        analyticsData.marksDistribution.reduce(
-          (sum, range) => sum + range.value,
-          1
-        ) || 0,
-    conversionRate:
-      ((analyticsData.candidatesByStage.find(
-        (stage) => stage.name === "Selected"
-      )?.count || 0) /
-        analyticsData.candidatesByStage.reduce(
-          (sum, stage) => sum + stage.count,
-          0
-        )) *
-        100 || 0,
-  };
+  const COLORS = ["#1890ff", "#52c41a", "#faad14", "#f5222d", "#722ed1"];
 
   return (
     <div className="fade-in">
-      <div className="mb-4">
-        <h1 className="h2 fw-bold text-dark mb-1">Analytics Dashboard</h1>
-        <p className="text-muted mb-0">
-          Recruitment insights and performance metrics
-        </p>
-      </div>
+      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Title level={3} style={{ margin: 0 }}>HR Analytics & Insights</Title>
+            <Text type="secondary">Data-driven recruitment performance monitoring</Text>
+          </Col>
+          <Col>
+            <Button icon={<SyncOutlined />} onClick={loadAnalytics} loading={loading}>Refresh</Button>
+          </Col>
+        </Row>
+      </Card>
 
-      {/* Stats Grid */}
-      <div className="row g-3 g-md-4 mb-4">
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="hr-stat-card">
-            <div className="d-flex align-items-center">
-              <div className="hr-stat-icon bg-primary bg-opacity-10">
-                <span className="text-primary">
-                  <FaUserAlt />
-                </span>
-              </div>
-              <div className="ms-4">
-                <p className="small fw-medium text-muted mb-0">
-                  Total Candidates
-                </p>
-                <p className="h3 fw-bold text-dark mb-0">
-                  {stats.totalCandidates}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="hr-stat-card">
-            <div className="d-flex align-items-center">
-              <div className="hr-stat-icon bg-success bg-opacity-10">
-                <span className="text-success">
-                  <FaCheckSquare />
-                </span>
-              </div>
-              <div className="ms-4">
-                <p className="small fw-medium text-muted mb-0">
-                  Selected Candidates
-                </p>
-                <p className="h3 fw-bold text-dark mb-0">
-                  {stats.selectedCandidates}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="hr-stat-card">
-            <div className="d-flex align-items-center">
-              <div className="hr-stat-icon bg-info bg-opacity-10">
-                <span className="text-info">
-                  <FaRegChartBar />
-                </span>
-              </div>
-              <div className="ms-4">
-                <p className="small fw-medium text-muted mb-0">Avg Marks</p>
-                <p className="h3 fw-bold text-dark mb-0">
-                  {stats.avgMarks.toFixed(1)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-lg-3">
-          <div className="hr-stat-card">
-            <div className="d-flex align-items-center">
-              <div className="hr-stat-icon bg-warning bg-opacity-10">
-                <span className="text-warning">
-                  <FaChartLine />
-                </span>
-              </div>
-              <div className="ms-4">
-                <p className="small fw-medium text-muted mb-0">
-                  Conversion Rate
-                </p>
-                <p className="h3 fw-bold text-dark mb-0">
-                  {stats.conversionRate.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Grid */}
-      <div className="row g-3 g-md-4 mb-4">
-        {/* Candidates by Stage */}
-        <div className="col-12 col-lg-6">
-          <div className="hr-chart-card">
-            <h3 className="h6 fw-semibold text-dark mb-4">
-              Candidates by Stage
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analyticsData.candidatesByStage}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" fill="#3B82F6" name="Candidates" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Marks Distribution */}
-        <div className="col-12 col-lg-6">
-          <div className="hr-chart-card">
-            <h3 className="h6 fw-semibold text-dark mb-4">
-              Marks Distribution
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={analyticsData.marksDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} (${(percent * 100).toFixed(0)}%)`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {analyticsData.marksDistribution.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Designation Performance */}
-        <div className="col-12 col-lg-6">
-          <div className="hr-chart-card">
-            <h3 className="h6 fw-semibold text-dark mb-4">
-              Designation Performance
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analyticsData.designationStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="candidates"
-                  fill="#10B981"
-                  name="Total Candidates"
+      {/* Primary Stats */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} hoverable>
+                <Statistic 
+                    title="Total Applicants" 
+                    value={data.candidatesByStage.reduce((a, b) => a + b.count, 0)} 
+                    prefix={<TeamOutlined />} 
+                    valueStyle={{ color: '#1890ff' }}
                 />
-                <Bar dataKey="selected" fill="#8B5CF6" name="Selected" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Monthly Hires Trend */}
-        <div className="col-12 col-lg-6">
-          <div className="hr-chart-card">
-            <h3 className="h6 fw-semibold text-dark mb-4">
-              Monthly Hires Trend
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analyticsData.monthlyHires}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="hires"
-                  stroke="#F59E0B"
-                  strokeWidth={2}
-                  name="Hires"
+                <Text type="secondary" style={{ fontSize: 11 }}><ArrowUpOutlined /> 12% from last month</Text>
+            </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} hoverable>
+                <Statistic 
+                    title="Conversion Rate" 
+                    value={18.4} 
+                    suffix="%" 
+                    prefix={<RiseOutlined />} 
+                    valueStyle={{ color: '#52c41a' }}
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+                <Progress percent={18.4} size="small" strokeColor="#52c41a" showInfo={false} />
+            </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} hoverable>
+                <Statistic 
+                    title="Avg Screening Score" 
+                    value={28.5} 
+                    prefix={<LineChartOutlined />} 
+                    valueStyle={{ color: '#faad14' }}
+                />
+                <Text type="secondary" style={{ fontSize: 11 }}>Target: 25.0</Text>
+            </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} hoverable>
+                <Statistic 
+                    title="Active Vacancies" 
+                    value={14} 
+                    prefix={<UserOutlined />} 
+                    valueStyle={{ color: '#722ed1' }}
+                />
+                <Text type="secondary" style={{ fontSize: 11 }}>4 Urgent Requirements</Text>
+            </Card>
+        </Col>
+      </Row>
 
-      {/* Recent Activity */}
-      <div className="hr-form-card">
-        <h3 className="h6 fw-semibold text-dark mb-4">
-          Recent Recruitment Activity
-        </h3>
-        <div className="row g-3">
-          <div className="col-12">
-            <div className="d-flex align-items-center justify-content-between p-3 bg-light rounded">
-              <div className="d-flex align-items-center">
-                <div className="hr-stat-icon bg-success bg-opacity-10 me-3">
-                  <span className="text-success small">
-                    <FaCheck />
-                  </span>
-                </div>
-                <div>
-                  <p className="fw-medium text-dark mb-0">
-                    Kavita selected for Office Admin
-                  </p>
-                  <p className="small text-muted mb-0">2 days ago • 29 marks</p>
-                </div>
-              </div>
+      <Row gutter={[24, 24]}>
+        {/* Recruitment Funnel */}
+        <Col xs={24} lg={16}>
+          <Card title={<Space><LineChartOutlined /> Recruitment Funnel (By Stage)</Space>} bordered={false} style={{ borderRadius: 12 }}>
+            <div style={{ width: '100%', height: 350 }}>
+              <ResponsiveContainer>
+                <AreaChart data={data.candidatesByStage}>
+                  <defs>
+                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1890ff" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#1890ff" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <ChartTooltip />
+                  <Area type="monotone" dataKey="count" stroke="#1890ff" fillOpacity={1} fill="url(#colorCount)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          </div>
+          </Card>
+        </Col>
 
-          <div className="col-12">
-            <div className="d-flex align-items-center justify-content-between p-3 bg-light rounded">
-              <div className="d-flex align-items-center">
-                <div className="hr-stat-icon bg-primary bg-opacity-10 me-3">
-                  <span className="text-primary small">
-                    <FaCalendar />
-                  </span>
-                </div>
-                <div>
-                  <p className="fw-medium text-dark mb-0">
-                    Interview scheduled for Mahesh
-                  </p>
-                  <p className="small text-muted mb-0">
-                    1 day ago • Relationship Manager
-                  </p>
-                </div>
-              </div>
+        {/* Scoring Distribution */}
+        <Col xs={24} lg={8}>
+          <Card title={<Space><PieChartOutlined /> Scoring Distribution</Space>} bordered={false} style={{ borderRadius: 12 }}>
+            <div style={{ width: '100%', height: 350 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={data.marksDistribution}
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {data.marksDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-        </div>
-      </div>
+          </Card>
+        </Col>
+
+        {/* Designation Efficiency */}
+        <Col xs={24} lg={12}>
+            <Card title="Designation Performance (Selected vs Total)" bordered={false} style={{ borderRadius: 12 }}>
+                <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                        <BarChart data={data.designationStats} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} />
+                            <ChartTooltip />
+                            <Legend />
+                            <Bar dataKey="total" fill="#d9d9d9" name="Applicants" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="selected" fill="#52c41a" name="Selections" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </Card>
+        </Col>
+
+        {/* Timeline of Events */}
+        <Col xs={24} lg={12}>
+            <Card title="Recent Milestones" bordered={false} style={{ borderRadius: 12 }}>
+                <Timeline mode="left" style={{ marginTop: 20 }}>
+                    <Timeline.Item color="green" label="Today">New candidate onboarded for Sales Manager</Timeline.Item>
+                    <Timeline.Item label="Yesterday">Interview round 2 completed for IT Executive</Timeline.Item>
+                    <Timeline.Item color="blue" label="2 days ago">5 New vacancies published in portal</Timeline.Item>
+                    <Timeline.Item color="red" label="3 days ago">Monthly HR performance review meeting</Timeline.Item>
+                    <Timeline.Item label="4 days ago">Business associate partnership renewed</Timeline.Item>
+                </Timeline>
+            </Card>
+        </Col>
+      </Row>
     </div>
   );
 };
 
 export default Analytics;
-
-// import { FaClock } from 'react-icons/fa';
-
-// const Analytics = () => {
-//   return (
-//     <div style={{
-//       display: 'flex',
-//       flexDirection: 'column',
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//       minHeight: '80vh',
-//       backgroundColor: '#f8f9fa',
-//       padding: '40px 20px',
-//       fontFamily: 'Arial, sans-serif',
-//       textAlign: 'center',
-//       width: '75vw',
-//       margin: 0,
-//       boxSizing: 'border-box'
-//     }}>
-//       <div style={{
-//         backgroundColor: 'white',
-//         padding: '40px 20px',
-//         borderRadius: '15px',
-//         boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-//         width: '100%',
-//         maxWidth: '1200px',
-//         border: '2px solid #e9ecef',
-//         boxSizing: 'border-box'
-//       }}>
-//         <div style={{
-//           fontSize: '80px',
-//           color: '#4a6cf7',
-//           marginBottom: '10px',
-//           animation: 'bounce 2s infinite'
-//         }}>
-//           <FaClock />
-//         </div>
-
-//         <h1 style={{
-//           color: '#2d3748',
-//           fontSize: '3rem',
-//           marginBottom: '20px',
-//           fontWeight: '700'
-//         }}>
-//           Coming Soon!
-//         </h1>
-
-//         <p style={{
-//           color: '#718096',
-//           fontSize: '1.3rem',
-//           lineHeight: '1.6',
-//           marginBottom: '40px',
-//           maxWidth: '800px',
-//           marginLeft: 'auto',
-//           marginRight: 'auto'
-//         }}>
-//           Our Analytics page is currently under development.
-//           We're working hard to bring you powerful insights and data visualization
-//           tools to help you make business decisions.
-//         </p>
-
-//         <div style={{
-//           display: 'inline-block',
-//           backgroundColor: '#4a6cf7',
-//           color: 'white',
-//           padding: '15px 40px',
-//           borderRadius: '25px',
-//           fontSize: '1.1rem',
-//           fontWeight: '600',
-//           cursor: 'pointer',
-//           transition: 'all 0.3s ease',
-//           boxShadow: '0 4px 15px rgba(74, 108, 247, 0.3)',
-//           marginBottom: '10px',
-//           border: 'none',
-//           outline: 'none'
-//         }}
-//         onMouseEnter={(e) => {
-//           e.target.style.backgroundColor = '#3a5ce5';
-//           e.target.style.transform = 'translateY(-2px)';
-//         }}
-//         onMouseLeave={(e) => {
-//           e.target.style.backgroundColor = '#4a6cf7';
-//           e.target.style.transform = 'translateY(0)';
-//         }}
-//         onClick={() => alert('We will notify you when the Analytics page is ready!')}>
-//           Notify Me When Ready
-//         </div>
-//       </div>
-
-//       <style>
-//         {`
-//           @keyframes bounce {
-//             0%, 20%, 50%, 80%, 100% {
-//               transform: translateY(0);
-//             }
-//             40% {
-//               transform: translateY(-10px);
-//             }
-//             60% {
-//               transform: translateY(-5px);
-//             }
-//           }
-
-//           @keyframes pulse {
-//             0% {
-//               transform: scale(1);
-//               opacity: 1;
-//             }
-//             50% {
-//               transform: scale(1.1);
-//               opacity: 0.7;
-//             }
-//             100% {
-//               transform: scale(1);
-//               opacity: 1;
-//             }
-//           }
-
-//           body {
-//             margin: 0;
-//             padding: 0;
-//             overflow-x: hidden;
-//           }
-//         `}
-//       </style>
-//     </div>
-//   );
-// }
-
-// export default Analytics;

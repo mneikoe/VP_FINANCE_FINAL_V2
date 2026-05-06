@@ -130,6 +130,12 @@ const internshipSchema = new mongoose.Schema(
     certificateFileName: {
       type: String,
     },
+    activityFile: {
+      type: String,
+    },
+    activityFileName: {
+      type: String,
+    },
 
     // Application Status
     status: {

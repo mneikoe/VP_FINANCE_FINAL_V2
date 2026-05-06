@@ -17,13 +17,17 @@ const vacancySchema = new mongoose.Schema(
         required: true,
       },
     ],
-    document: {
-      type: String,
-      required: true,
-    },
-    originalFileName: {
-      type: String,
-    },
+    document: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
+    originalFileName: [
+      {
+        type: String,
+      },
+    ],
     createdDate: {
       type: Date,
       default: Date.now,
@@ -50,8 +54,8 @@ const vacancySchema = new mongoose.Schema(
 
 // Virtual field for document URL
 vacancySchema.virtual("documentUrl").get(function () {
-  if (this.document) {
-    return `/api/vacancynotice/documents/${this.document}`;
+  if (this.document && this.document.length > 0) {
+    return `/api/vacancynotice/documents/${this.document[0]}`;
   }
   return null;
 });

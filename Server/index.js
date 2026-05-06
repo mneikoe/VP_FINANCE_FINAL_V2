@@ -177,6 +177,7 @@ app.use("/api/income-expense-accounts", incomeExpenseAccountRoute);
 app.use("/api/income-expense", incomeExpenseRoutes);
 app.use("/api/IncomeExpenseReport", IncomeExpenseReportRoute);
 app.use("/api/notifications", NotificationRoute);
+app.use("/api/email", require("./Routes/emailRoutes"));
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));

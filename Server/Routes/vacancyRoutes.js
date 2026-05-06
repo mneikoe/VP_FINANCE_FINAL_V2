@@ -75,10 +75,10 @@ router.get("/", async (req, res) => {
 });
 
 // ✅ CREATE new vacancy
-router.post("/", upload.single("document"), async (req, res) => {
+router.post("/", upload.array("document", 10), async (req, res) => {
   try {
     console.log("📥 Received request body:", req.body);
-    console.log("📁 Received file:", req.file);
+    console.log("📁 Received files:", req.files);
 
     const { vacancy, designation, date, platform, description } = req.body;
 
@@ -97,10 +97,10 @@ router.post("/", upload.single("document"), async (req, res) => {
       });
     }
 
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Please upload a document",
+        message: "Please upload at least one document",
       });
     }
 
@@ -129,8 +129,8 @@ router.post("/", upload.single("document"), async (req, res) => {
       publishPlatform: platformsArray,
       createdDate: date ? new Date(date) : new Date(),
       status: "Active",
-      document: req.file.filename,
-      originalFileName: req.file.originalname,
+      document: req.files.map((file) => file.filename),
+      originalFileName: req.files.map((file) => file.originalname),
     };
 
     console.log("💾 Creating vacancy with:", vacancyData);
@@ -306,7 +306,8 @@ router.get("/:id/document-info", async (req, res) => {
       });
     }
 
-    const filePath = path.join(uploadDir, vacancy.document);
+    const firstDoc = Array.isArray(vacancy.document) ? vacancy.document[0] : vacancy.document;
+    const filePath = path.join(uploadDir, firstDoc);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
@@ -316,18 +317,24 @@ router.get("/:id/document-info", async (req, res) => {
     }
 
     const stats = fs.statSync(filePath);
-    const ext = path.extname(vacancy.document).toLowerCase();
+    const ext = path.extname(firstDoc).toLowerCase();
 
     res.json({
       success: true,
       documentInfo: {
-        filename: vacancy.document,
-        originalName: vacancy.originalFileName || vacancy.document,
+        filename: firstDoc,
+        originalName: (Array.isArray(vacancy.originalFileName) ? vacancy.originalFileName[0] : vacancy.originalFileName) || firstDoc,
         size: stats.size,
         uploadDate: vacancy.createdAt,
         fileType: ext.replace(".", "").toUpperCase(),
-        downloadUrl: `/api/vacancynotice/documents/${vacancy.document}`,
-        viewUrl: `/api/vacancynotice/documents/${vacancy.document}?view=true`,
+        downloadUrl: `/api/vacancynotice/documents/${firstDoc}`,
+        viewUrl: `/api/vacancynotice/documents/${firstDoc}?view=true`,
+        allDocuments: Array.isArray(vacancy.document) ? vacancy.document.map((doc, idx) => ({
+          filename: doc,
+          originalName: vacancy.originalFileName[idx] || doc,
+          downloadUrl: `/api/vacancynotice/documents/${doc}`,
+          viewUrl: `/api/vacancynotice/documents/${doc}?view=true`,
+        })) : [],
       },
     });
   } catch (error) {
@@ -352,8 +359,15 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    // Delete document file
-    if (vacancy.document) {
+    // Delete document files
+    if (vacancy.document && Array.isArray(vacancy.document)) {
+      vacancy.document.forEach((doc) => {
+        const filePath = path.join(uploadDir, doc);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      });
+    } else if (vacancy.document) {
       const filePath = path.join(uploadDir, vacancy.document);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -377,7 +391,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // ✅ UPDATE vacancy (full update)
-router.put("/:id", upload.single("document"), async (req, res) => {
+router.put("/:id", upload.array("document", 10), async (req, res) => {
   try {
     const {
       vacancy: designation,
@@ -401,19 +415,22 @@ router.put("/:id", upload.single("document"), async (req, res) => {
       updateData.createdDate = new Date(date);
     }
 
-    // Handle new document upload
-    if (req.file) {
-      // Delete old document if exists
+    // Handle new document uploads
+    if (req.files && req.files.length > 0) {
+      // Delete old documents if exist
       const oldVacancy = await Vacancy.findById(req.params.id);
       if (oldVacancy && oldVacancy.document) {
-        const oldFilePath = path.join(uploadDir, oldVacancy.document);
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
-        }
+        const docsToDelete = Array.isArray(oldVacancy.document) ? oldVacancy.document : [oldVacancy.document];
+        docsToDelete.forEach((doc) => {
+          const oldFilePath = path.join(uploadDir, doc);
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath);
+          }
+        });
       }
 
-      updateData.document = req.file.filename;
-      updateData.originalFileName = req.file.originalname;
+      updateData.document = req.files.map((file) => file.filename);
+      updateData.originalFileName = req.files.map((file) => file.originalname);
     }
 
     const vacancy = await Vacancy.findByIdAndUpdate(req.params.id, updateData, {

@@ -172,34 +172,47 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    officeKit: {
-      type: String,
-      default: "",
+    // Office Kit Allotment (Structured)
+    officeKitAllotment: {
+      oneTime: [{
+        particular: String,
+        allotmentDate: Date,
+        condition: String,
+        quantity: Number
+      }],
+      yearly: [{
+        particular: String,
+        allotmentDate: Date,
+        condition: String,
+        quantity: Number
+      }],
+      monthly: [{
+        particular: String,
+        allotmentDate: Date,
+        condition: String,
+        quantity: Number
+      }]
     },
-    offerLetter: {
-      type: String,
-      default: "",
+
+    // Recruitment Audit Trail
+    recruitmentDetails: {
+      candidateId: { type: mongoose.Schema.Types.ObjectId, ref: "Candidate" },
+      appliedDate: Date,
+      interviewDate: Date,
+      interviewPlace: String,
+      totalMarks: Number,
+      offerLetter: {
+        path: String,
+        sentDate: Date
+      },
+      joiningLetter: {
+        path: String,
+        sentDate: Date,
+        joiningDate: Date
+      },
+      resume: String
     },
-    undertaking: {
-      type: String,
-      default: "",
-    },
-    trackRecord: {
-      type: String,
-      default: "",
-    },
-    drawerKeyName: {
-      type: String,
-      default: "",
-    },
-    drawerKeyNumber: {
-      type: String,
-      default: "",
-    },
-    officeKey: {
-      type: String,
-      default: "",
-    },
+
     allotmentDate: {
       type: Date,
       default: null,

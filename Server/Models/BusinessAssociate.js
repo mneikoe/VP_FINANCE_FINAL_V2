@@ -94,6 +94,14 @@ const businessAssociateSchema = new mongoose.Schema({
     },
   },
   bankDetails: bankDetailsSchema,
+  agreementPath: {
+    type: String,
+    default: "",
+  },
+  payoutSheetPath: {
+    type: String,
+    default: "",
+  },
   status: {
     type: String,
     enum: ["Active", "Inactive", "Suspended", "Terminated"],

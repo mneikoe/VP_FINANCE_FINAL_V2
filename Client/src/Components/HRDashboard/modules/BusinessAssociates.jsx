@@ -1,28 +1,59 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
-  FaUserTie,
-  FaBuilding,
-  FaEnvelope,
-  FaPhone,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaIdCard,
-  FaUserCircle,
-  FaLock,
-  FaUniversity,
-  FaEdit,
-  FaTrash,
-  FaEye,
-  FaFilePdf,
-} from "react-icons/fa";
+  Table,
+  Button,
+  Tag,
+  Space,
+  Typography,
+  Card,
+  Row,
+  Col,
+  Modal,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  Tabs,
+  Popconfirm,
+  message,
+  Descriptions,
+  Badge,
+  Tooltip,
+  Divider,
+  Upload,
+} from "antd";
+import {
+  UserOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  BankOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  IdcardOutlined,
+  ReloadOutlined,
+  FileExcelOutlined,
+  UploadOutlined,
+  FilePdfOutlined,
+  DownloadOutlined,
+} from "@ant-design/icons";
+import axios from "axios";
+import dayjs from "dayjs";
+// Use CDN for XLSX to avoid installation issues
+import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const BusinessAssociates = () => {
   const [associates, setAssociates] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingAssociate, setEditingAssociate] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("view");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAssociate, setEditingAssociate] = useState(null);
+  const [viewingAssociate, setViewingAssociate] = useState(null);
+  const [form] = Form.useForm();
+  const [activeTab, setActiveTab] = useState("1");
 
   useEffect(() => {
     loadAssociates();
@@ -36,696 +67,464 @@ const BusinessAssociates = () => {
         setAssociates(response.data.data);
       }
     } catch (error) {
-      console.error("Error loading associates:", error);
+      message.error("Failed to load associates");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddAssociate = async (associateData) => {
-    try {
-      // Generate username
-      const username = generateUsername(
-        associateData.name,
-        associateData.emailId
-      );
+  const showModal = (associate = null) => {
+    if (associate) {
+      setEditingAssociate(associate);
+      form.setFieldsValue({
+        ...associate,
+        dateOfBirth: associate.dateOfBirth ? dayjs(associate.dateOfBirth) : null,
+        anniversaryDate: associate.anniversaryDate ? dayjs(associate.anniversaryDate) : null,
+        dateOfJoining: associate.dateOfJoining ? dayjs(associate.dateOfJoining) : null,
+        dateOfTermination: associate.dateOfTermination ? dayjs(associate.dateOfTermination) : null,
+      });
+    } else {
+      setEditingAssociate(null);
+      form.resetFields();
+    }
+    setIsModalOpen(true);
+  };
 
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingAssociate(null);
+    form.resetFields();
+  };
+
+  const onFinish = async (values) => {
+    try {
       const data = {
-        ...associateData,
-        loginCredentials: {
-          username: username,
-          password: "123456", // Default password
-        },
+        ...values,
+        dateOfBirth: values.dateOfBirth?.format("YYYY-MM-DD"),
+        anniversaryDate: values.anniversaryDate?.format("YYYY-MM-DD"),
+        dateOfJoining: values.dateOfJoining?.format("YYYY-MM-DD"),
+        dateOfTermination: values.dateOfTermination?.format("YYYY-MM-DD"),
       };
 
-      const response = await axios.post("/api/business-associates", data);
-      if (response.data.success) {
-        alert("Business Associate added successfully!");
-        setShowForm(false);
-        loadAssociates();
-        setActiveTab("view");
+      if (!editingAssociate) {
+        const firstName = values.name.split(" ")[0].toLowerCase();
+        data.loginCredentials = {
+          username: `${firstName}${Math.floor(1000 + Math.random() * 9000)}`,
+          password: "123456",
+        };
+        await axios.post("/api/business-associates", data);
+        message.success("Business Associate added successfully");
+      } else {
+        await axios.put(`/api/business-associates/${editingAssociate._id}`, data);
+        message.success("Business Associate updated successfully");
       }
+      handleCancel();
+      loadAssociates();
     } catch (error) {
-      alert(error.response?.data?.message || "Error adding associate");
+      message.error(error.response?.data?.message || "Operation failed");
     }
   };
 
-  const handleUpdateAssociate = async (updatedData) => {
+  const handleFileUpload = async (id, type, file) => {
     try {
-      const response = await axios.put(
-        `/api/business-associates/${editingAssociate._id}`,
-        updatedData
-      );
+      const formData = new FormData();
+      formData.append(type === "agreement" ? "agreement" : "payoutSheet", file);
+      
+      const endpoint = type === "agreement" 
+        ? `/api/business-associates/${id}/upload-agreement`
+        : `/api/business-associates/${id}/upload-payout`;
+
+      const response = await axios.put(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
       if (response.data.success) {
-        alert("Business Associate updated successfully!");
-        setShowForm(false);
-        setEditingAssociate(null);
+        message.success(`${type === "agreement" ? "Agreement" : "Payout Sheet"} uploaded successfully`);
         loadAssociates();
-        setActiveTab("view");
       }
+      return false; // Prevent auto upload by Ant Design
     } catch (error) {
-      alert(error.response?.data?.message || "Error updating associate");
+      message.error("Upload failed");
     }
   };
 
-  const handleDeleteAssociate = async (associateId) => {
-    if (
-      window.confirm("Are you sure you want to delete this business associate?")
-    ) {
+  const handleExcelImport = (file) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
       try {
-        const response = await axios.delete(
-          `/api/business-associates/${associateId}`
-        );
+        const data = e.target.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const parsedData = XLSX.utils.sheet_to_json(sheet);
+
+        if (parsedData.length === 0) {
+            message.error("Excel file is empty");
+            return;
+        }
+
+        // Map excel headers to model fields (Assumes specific headers)
+        const associatesToImport = parsedData.map(row => ({
+            name: row["Full Name"] || row["Name"],
+            associateType: row["Type"] || "Sub-Broker",
+            dateOfBirth: row["DOB"] ? dayjs(row["DOB"]).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+            gender: row["Gender"] || "Male",
+            mobileNumber1: row["Mobile"] || row["Phone"],
+            emailId: row["Email"],
+            panNumber: row["PAN"],
+            address: row["Address"] || "N/A",
+            dateOfJoining: dayjs().format("YYYY-MM-DD"),
+            bankDetails: {
+                accountHolderName: row["Account Holder"] || row["Name"],
+                accountNumber: row["Account Number"],
+                ifscCode: row["IFSC"],
+                branch: row["Branch"] || "N/A"
+            }
+        }));
+
+        const response = await axios.post("/api/business-associates/bulk-import", { associates: associatesToImport });
         if (response.data.success) {
-          alert("Business Associate deleted successfully!");
-          loadAssociates();
+            message.success(response.data.message);
+            loadAssociates();
         }
       } catch (error) {
-        alert("Error deleting associate");
+        message.error("Failed to parse Excel file. Ensure headers: Name, Type, Mobile, Email, PAN, Account Number, IFSC");
       }
+    };
+    reader.readAsBinaryString(file);
+    return false;
+  };
+
+  const downloadSampleExcel = () => {
+    const sampleData = [
+      {
+        "Full Name": "John Doe",
+        "Type": "Sub-Broker",
+        "Mobile": "9876543210",
+        "Email": "john@example.com",
+        "PAN": "ABCDE1234F",
+        "Gender": "Male",
+        "DOB": "1990-01-01",
+        "Account Number": "1234567890",
+        "IFSC": "HDFC0001234",
+        "Branch": "Main Branch",
+        "Address": "Mumbai, India"
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Associates");
+    XLSX.writeFile(wb, "Business_Associates_Template.xlsx");
+  };
+
+  const columns = [
+    {
+      title: "Associate",
+      dataIndex: "name",
+      key: "name",
+      width: 200,
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>{record.emailId}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Type",
+      dataIndex: "associateType",
+      key: "type",
+      render: (type) => <Tag color="blue">{type}</Tag>
+    },
+    {
+      title: "Documents",
+      key: "documents",
+      render: (_, record) => (
+        <Space direction="vertical" size={4}>
+          <Space>
+            <Text size="small" type="secondary">Agreement:</Text>
+            {record.agreementPath ? (
+              <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => window.open(record.agreementPath, "_blank")}>View</Button>
+            ) : (
+              <Upload beforeUpload={(file) => handleFileUpload(record._id, "agreement", file)} showUploadList={false}>
+                <Button size="small" icon={<UploadOutlined />}>Upload</Button>
+              </Upload>
+            )}
+          </Space>
+          <Space>
+            <Text size="small" type="secondary">Payout:</Text>
+            {record.payoutSheetPath ? (
+              <Button type="link" size="small" icon={<FileExcelOutlined />} onClick={() => window.open(record.payoutSheetPath, "_blank")}>Sheet</Button>
+            ) : (
+              <Upload beforeUpload={(file) => handleFileUpload(record._id, "payout", file)} showUploadList={false}>
+                <Button size="small" icon={<UploadOutlined />}>Upload</Button>
+              </Upload>
+            )}
+          </Space>
+        </Space>
+      )
+    },
+    {
+      title: "Contact",
+      dataIndex: "mobileNumber1",
+      key: "contact",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        let color = "default";
+        if (status === "Active") color = "success";
+        if (status === "Terminated") color = "error";
+        return <Tag color={color}>{status}</Tag>;
+      }
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="View Profile">
+            <Button type="text" icon={<EyeOutlined />} onClick={() => setViewingAssociate(record)} />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button type="text" icon={<EditOutlined style={{ color: '#1890ff' }} />} onClick={() => showModal(record)} />
+          </Tooltip>
+          <Popconfirm title="Delete associate?" onConfirm={() => handleDelete(record._id)}>
+            <Button type="text" icon={<DeleteOutlined />} danger />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`/api/business-associates/${id}`);
+      message.success("Associate deleted successfully");
+      loadAssociates();
+    } catch (error) {
+      message.error("Failed to delete associate");
     }
-  };
-
-  const generateUsername = (name, email) => {
-    const firstName = name.split(" ")[0].toLowerCase();
-    const randomNum = Math.floor(Math.random() * 1000);
-    return `${firstName}${randomNum}`;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-IN");
   };
 
   return (
     <div className="fade-in">
-      {/* Header */}
-      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
-        <div>
-          <h1 className="h2 fw-bold text-dark mb-1">Business Associates</h1>
-          <p className="text-muted mb-0">
-            Manage business partners and associates
-          </p>
-        </div>
-      </div>
+      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Title level={3} style={{ margin: 0 }}>Business Associates</Title>
+            <Text type="secondary">Manage partners, upload agreements, and import bulk data</Text>
+          </Col>
+          <Col>
+            <Space size="middle">
+              <Button icon={<DownloadOutlined />} onClick={downloadSampleExcel}>Template</Button>
+              <Upload beforeUpload={handleExcelImport} showUploadList={false} accept=".xlsx,.xls">
+                <Button icon={<FileExcelOutlined />} style={{ color: '#52c41a', borderColor: '#52c41a' }}>Bulk Import</Button>
+              </Upload>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()} size="large">
+                Add Associate
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
 
-      {/* Tabs Navigation */}
-      <div className="mb-4 border-bottom">
-        <ul className="nav nav-tabs">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "view" ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab("view");
-                setShowForm(false);
-                setEditingAssociate(null);
-              }}
-            >
-              <FaUserTie className="me-2" />
-              View Associates ({associates.length})
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "add" ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab("add");
-                setShowForm(true);
-                setEditingAssociate(null);
-              }}
-            >
-              <FaUserCircle className="me-2" />
-              {editingAssociate ? "Edit Associate" : "Add Associate"}
-            </button>
-          </li>
-        </ul>
-      </div>
-
-      {/* Content based on active tab */}
-      {activeTab === "add" || showForm ? (
-        <AssociateForm
-          associate={editingAssociate}
-          onSubmit={
-            editingAssociate ? handleUpdateAssociate : handleAddAssociate
-          }
-          onCancel={() => {
-            setShowForm(false);
-            setEditingAssociate(null);
-            setActiveTab("view");
-          }}
-        />
-      ) : (
-        <AssociatesList
-          associates={associates}
+      <Card bordered={false} style={{ borderRadius: 12, overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+        <Table
+          columns={columns}
+          dataSource={associates}
+          rowKey="_id"
           loading={loading}
-          onEdit={(associate) => {
-            setEditingAssociate(associate);
-            setShowForm(true);
-            setActiveTab("add");
-          }}
-          onDelete={handleDeleteAssociate}
-          formatDate={formatDate}
+          pagination={{ pageSize: 10 }}
+          className="custom-table"
         />
-      )}
-    </div>
-  );
-};
+      </Card>
 
-const AssociateForm = ({ associate, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    associateType: "Sub-Broker",
-    name: "",
-    dateOfBirth: "",
-    gender: "Male",
-    anniversaryDate: "",
-    address: "",
-    mobileNumber1: "",
-    mobileNumber2: "",
-    emailId: "",
-    subbrokerCode: "",
-    panNumber: "",
-    rmName: "",
-    dateOfJoining: "",
-    dateOfTermination: "",
-    bankDetails: {
-      accountNumber: "",
-      ifscCode: "",
-      branch: "",
-      accountHolderName: "",
-    },
-    status: "Active",
-  });
-
-  useEffect(() => {
-    if (associate) {
-      // Format dates for input fields
-      const formattedAssociate = {
-        ...associate,
-        dateOfBirth: associate.dateOfBirth
-          ? associate.dateOfBirth.split("T")[0]
-          : "",
-        anniversaryDate: associate.anniversaryDate
-          ? associate.anniversaryDate.split("T")[0]
-          : "",
-        dateOfJoining: associate.dateOfJoining
-          ? associate.dateOfJoining.split("T")[0]
-          : "",
-        dateOfTermination: associate.dateOfTermination
-          ? associate.dateOfTermination.split("T")[0]
-          : "",
-      };
-      setFormData(formattedAssociate);
-    }
-  }, [associate]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
-      setFormData((prev) => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value,
-        },
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const generateSubbrokerCode = () => {
-    const prefix = "SB";
-    const randomNum = Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, "0");
-    const code = `${prefix}${randomNum}`;
-    setFormData((prev) => ({ ...prev, subbrokerCode: code }));
-  };
-
-  return (
-    <div className="hr-form-card fade-in">
-      <h2 className="h5 fw-semibold text-dark mb-4">
-        <FaUserCircle className="me-2" />
-        {associate ? "Edit Business Associate" : "Add Business Associate"}
-      </h2>
-
-      <form onSubmit={handleSubmit}>
-        {/* Section 1: Basic Information */}
-        <div className="mb-4">
-          <h6 className="fw-semibold text-dark mb-3 border-bottom pb-2">
-            <FaUserTie className="me-2" />
-            Basic Information
-          </h6>
-          <div className="row g-3">
-            <div className="col-md-6">
-              <label className="form-label fw-medium">
-                Type of Associate *
-              </label>
-              <select
-                name="associateType"
-                value={formData.associateType}
-                onChange={handleChange}
-                className="form-control"
-                required
-              >
-                <option value="Sub-Broker">Sub-Broker</option>
-                <option value="Referral Partner">Referral Partner</option>
-                <option value="Corporate Associate">Corporate Associate</option>
-                <option value="Individual Partner">Individual Partner</option>
-              </select>
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Full Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-4">
-              <label className="form-label fw-medium">Date of Birth *</label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-4">
-              <label className="form-label fw-medium">Gender *</label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="form-control"
-                required
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="col-md-4">
-              <label className="form-label fw-medium">Anniversary Date</label>
-              <input
-                type="date"
-                name="anniversaryDate"
-                value={formData.anniversaryDate}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
+      <Modal
+        title={<Space><UserOutlined /> {editingAssociate ? "Edit Associate" : "Add New Associate"}</Space>}
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        width={800}
+        centered
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          style={{ marginTop: 20 }}
+          initialValues={{ associateType: "Sub-Broker", status: "Active" }}
+        >
+          <Tabs defaultActiveKey="1" items={[
+            {
+              key: "1",
+              label: "Basic Details",
+              children: (
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item label="Full Name" name="name" rules={[{ required: true }]}>
+                      <Input prefix={<UserOutlined />} placeholder="Full Name" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Associate Type" name="associateType" rules={[{ required: true }]}>
+                      <Select>
+                        <Option value="Sub-Broker">Sub-Broker</Option>
+                        <Option value="Referral Partner">Referral Partner</Option>
+                        <Option value="Corporate Associate">Corporate Associate</Option>
+                        <Option value="Individual Partner">Individual Partner</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item label="DOB" name="dateOfBirth" rules={[{ required: true }]}>
+                      <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item label="Gender" name="gender">
+                      <Select>
+                        <Option value="Male">Male</Option>
+                        <Option value="Female">Female</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item label="Joining Date" name="dateOfJoining" rules={[{ required: true }]}>
+                      <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Mobile No" name="mobileNumber1" rules={[{ required: true }]}>
+                      <Input prefix={<PhoneOutlined />} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Email ID" name="emailId" rules={[{ required: true, type: 'email' }]}>
+                      <Input prefix={<MailOutlined />} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}>
+                    <Form.Item label="Address" name="address">
+                      <Input.TextArea rows={2} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: "2",
+              label: "Professional & Bank",
+              children: (
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item label="PAN Number" name="panNumber" rules={[{ required: true }]}>
+                      <Input prefix={<IdcardOutlined />} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="RM Name" name="rmName">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}><Divider orientation="left"><BankOutlined /> Bank Details</Divider></Col>
+                  <Col span={12}>
+                    <Form.Item label="Account Holder" name={["bankDetails", "accountHolderName"]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Account Number" name={["bankDetails", "accountNumber"]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="IFSC Code" name={["bankDetails", "ifscCode"]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Branch" name={["bankDetails", "branch"]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            }
+          ]} />
+          <div style={{ textAlign: 'right', marginTop: 24 }}>
+            <Space>
+              <Button onClick={handleCancel}>Cancel</Button>
+              <Button type="primary" htmlType="submit">
+                {editingAssociate ? "Update Associate" : "Add Associate"}
+              </Button>
+            </Space>
           </div>
-        </div>
+        </Form>
+      </Modal>
 
-        {/* Section 2: Contact Information */}
-        <div className="mb-4">
-          <h6 className="fw-semibold text-dark mb-3 border-bottom pb-2">
-            <FaPhone className="me-2" />
-            Contact Information
-          </h6>
-          <div className="row g-3">
-            <div className="col-12">
-              <label className="form-label fw-medium">Address *</label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className="form-control"
-                rows="2"
-                required
-              ></textarea>
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Mobile Number 1 *</label>
-              <input
-                type="tel"
-                name="mobileNumber1"
-                value={formData.mobileNumber1}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Mobile Number 2</label>
-              <input
-                type="tel"
-                name="mobileNumber2"
-                value={formData.mobileNumber2}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Email ID *</label>
-              <input
-                type="email"
-                name="emailId"
-                value={formData.emailId}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Professional Details */}
-        <div className="mb-4">
-          <h6 className="fw-semibold text-dark mb-3 border-bottom pb-2">
-            <FaBuilding className="me-2" />
-            Professional Details
-          </h6>
-          <div className="row g-3">
-            <div className="col-md-6">
-              <div className="d-flex align-items-end gap-2">
-                <div className="flex-grow-1">
-                  <label className="form-label fw-medium">Subbroker Code</label>
-                  <input
-                    type="text"
-                    name="subbrokerCode"
-                    value={formData.subbrokerCode}
-                    onChange={handleChange}
-                    className="form-control"
-                    readOnly
-                  />
-                </div>
-                {!associate && (
-                  <button
-                    type="button"
-                    onClick={generateSubbrokerCode}
-                    className="btn btn-outline-secondary"
-                  >
-                    Generate
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">PAN Number *</label>
-              <input
-                type="text"
-                name="panNumber"
-                value={formData.panNumber}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">RM Name</label>
-              <input
-                type="text"
-                name="rmName"
-                value={formData.rmName}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Date of Joining *</label>
-              <input
-                type="date"
-                name="dateOfJoining"
-                value={formData.dateOfJoining}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">
-                Date of Termination
-              </label>
-              <input
-                type="date"
-                name="dateOfTermination"
-                value={formData.dateOfTermination}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Status</label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="form-control"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Suspended">Suspended</option>
-                <option value="Terminated">Terminated</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 4: Bank Details */}
-        <div className="mb-4">
-          <h6 className="fw-semibold text-dark mb-3 border-bottom pb-2">
-            <FaUniversity className="me-2" />
-            Bank Details
-          </h6>
-          <div className="row g-3">
-            <div className="col-md-6">
-              <label className="form-label fw-medium">
-                Account Holder Name *
-              </label>
-              <input
-                type="text"
-                name="bankDetails.accountHolderName"
-                value={formData.bankDetails.accountHolderName}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Account Number *</label>
-              <input
-                type="text"
-                name="bankDetails.accountNumber"
-                value={formData.bankDetails.accountNumber}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">IFSC Code *</label>
-              <input
-                type="text"
-                name="bankDetails.ifscCode"
-                value={formData.bankDetails.ifscCode}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label fw-medium">Branch *</label>
-              <input
-                type="text"
-                name="bankDetails.branch"
-                value={formData.bankDetails.branch}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Login Credentials (Display Only for existing) */}
-        {associate && associate.loginCredentials && (
-          <div className="mb-4">
-            <h6 className="fw-semibold text-dark mb-3 border-bottom pb-2">
-              <FaLock className="me-2" />
-              Login Credentials
-            </h6>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label fw-medium">Username</label>
-                <input
-                  type="text"
-                  value={associate.loginCredentials.username}
-                  className="form-control"
-                  readOnly
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label fw-medium">Password</label>
-                <input
-                  type="password"
-                  value="********"
-                  className="form-control"
-                  readOnly
-                />
-              </div>
-            </div>
+      <Modal
+        title="Associate Profile"
+        open={!!viewingAssociate}
+        onCancel={() => setViewingAssociate(null)}
+        footer={null}
+        width={700}
+      >
+        {viewingAssociate && (
+          <div className="fade-in">
+            <Descriptions bordered column={2}>
+                <Descriptions.Item label="Name" span={2}><Text strong>{viewingAssociate.name}</Text></Descriptions.Item>
+                <Descriptions.Item label="Type">{viewingAssociate.associateType}</Descriptions.Item>
+                <Descriptions.Item label="Code">{viewingAssociate.subbrokerCode || "N/A"}</Descriptions.Item>
+                <Descriptions.Item label="Phone">{viewingAssociate.mobileNumber1}</Descriptions.Item>
+                <Descriptions.Item label="Email">{viewingAssociate.emailId}</Descriptions.Item>
+                <Descriptions.Item label="PAN">{viewingAssociate.panNumber}</Descriptions.Item>
+                <Descriptions.Item label="Status"><Tag color="green">{viewingAssociate.status}</Tag></Descriptions.Item>
+            </Descriptions>
+            
+            <Divider orientation="left">Documents & Financials</Divider>
+            <Row gutter={16}>
+                <Col span={12}>
+                    <Card size="small" title="Partnership Agreement" extra={viewingAssociate.agreementPath ? <Tag color="blue">Available</Tag> : <Tag>Missing</Tag>}>
+                        {viewingAssociate.agreementPath ? (
+                            <Button type="primary" block icon={<FilePdfOutlined />} onClick={() => window.open(viewingAssociate.agreementPath, "_blank")}>Open Agreement</Button>
+                        ) : (
+                            <Upload beforeUpload={(file) => handleFileUpload(viewingAssociate._id, "agreement", file)} showUploadList={false}>
+                                <Button block icon={<UploadOutlined />}>Upload PDF</Button>
+                            </Upload>
+                        )}
+                    </Card>
+                </Col>
+                <Col span={12}>
+                    <Card size="small" title="Payout Sheet" extra={viewingAssociate.payoutSheetPath ? <Tag color="green">Available</Tag> : <Tag>Missing</Tag>}>
+                        {viewingAssociate.payoutSheetPath ? (
+                            <Button type="primary" block icon={<FileExcelOutlined />} style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={() => window.open(viewingAssociate.payoutSheetPath, "_blank")}>Open Payout Sheet</Button>
+                        ) : (
+                            <Upload beforeUpload={(file) => handleFileUpload(viewingAssociate._id, "payout", file)} showUploadList={false}>
+                                <Button block icon={<UploadOutlined />}>Upload Excel</Button>
+                            </Upload>
+                        )}
+                    </Card>
+                </Col>
+            </Row>
           </div>
         )}
+      </Modal>
 
-        {/* Buttons */}
-        <div className="d-flex flex-column flex-sm-row gap-3 pt-4 border-top">
-          <button type="submit" className="btn btn-primary flex-fill">
-            {associate ? "Update Associate" : "Add Associate"}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn btn-outline-secondary flex-fill"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-const AssociatesList = ({
-  associates,
-  loading,
-  onEdit,
-  onDelete,
-  formatDate,
-}) => {
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Active":
-        return "badge bg-success";
-      case "Inactive":
-        return "badge bg-secondary";
-      case "Suspended":
-        return "badge bg-warning";
-      case "Terminated":
-        return "badge bg-danger";
-      default:
-        return "badge bg-secondary";
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-5">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-        <p className="mt-2">Loading associates...</p>
-      </div>
-    );
-  }
-
-  if (associates.length === 0) {
-    return (
-      <div className="hr-form-card text-center py-5">
-        <div className="display-4 mb-3">👥</div>
-        <h3 className="h5 fw-medium text-dark mb-2">
-          No business associates yet
-        </h3>
-        <p className="text-muted mb-0">
-          Add your first business associate to get started.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="hr-form-card overflow-hidden">
-      <div className="table-responsive">
-        <table className="table table-hover mb-0">
-          <thead className="table-light">
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Contact</th>
-              <th>PAN</th>
-              <th>Joining Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {associates.map((associate) => (
-              <tr key={associate._id}>
-                <td>
-                  <div className="fw-medium">{associate.name}</div>
-                  <small className="text-muted">{associate.emailId}</small>
-                </td>
-                <td>
-                  <span className="badge bg-info">
-                    {associate.associateType}
-                  </span>
-                </td>
-                <td>
-                  <div>{associate.mobileNumber1}</div>
-                  <small className="text-muted">
-                    {associate.mobileNumber2 || "N/A"}
-                  </small>
-                </td>
-                <td>
-                  <code>{associate.panNumber}</code>
-                </td>
-                <td>{formatDate(associate.dateOfJoining)}</td>
-                <td>
-                  <span className={getStatusBadge(associate.status)}>
-                    {associate.status}
-                  </span>
-                </td>
-                <td>
-                  <div className="d-flex gap-2">
-                    <button
-                      onClick={() => onEdit(associate)}
-                      className="btn btn-sm btn-outline-primary"
-                      title="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      onClick={() => onDelete(associate._id)}
-                      className="btn btn-sm btn-outline-danger"
-                      title="Delete"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+      `}</style>
     </div>
   );
 };

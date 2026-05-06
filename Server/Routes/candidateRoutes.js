@@ -198,20 +198,19 @@ router.post("/add", upload.single("resume"), async (req, res) => {
 // Update candidate stage
 router.put("/:id/stage", async (req, res) => {
   try {
-    const { currentStage, interviewDate } = req.body;
+    const { currentStage, currentStatus, interviewDate, interviewPlace } = req.body;
+
+    const updateData = {
+      currentStage: currentStage === "Selected" ? "Joining Data" : currentStage,
+      currentStatus: currentStatus || (currentStage === "Selected" ? "Joining Data" : currentStage),
+    };
+
+    if (interviewDate) updateData.interviewDate = interviewDate;
+    if (interviewPlace) updateData.interviewPlace = interviewPlace;
 
     const candidate = await Candidate.findByIdAndUpdate(
       req.params.id,
-      {
-        currentStage,
-        interviewDate: interviewDate || null,
-        currentStatus:
-          currentStage === "Selected"
-            ? "Joining Data"
-            : currentStage === "Joining Data"
-            ? "Joining Data"
-            : currentStage,
-      },
+      updateData,
       { new: true }
     ).populate("appliedFor", "designation");
 
@@ -224,53 +223,7 @@ router.put("/:id/stage", async (req, res) => {
 
     res.json({
       success: true,
-      message: `Candidate moved to ${currentStage}`,
-      candidate,
-    });
-  } catch (error) {
-    console.error("❌ Error updating candidate stage:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error updating candidate stage",
-      error: error.message,
-    });
-  }
-});
-
-// Get candidates by stage
-// Update candidate stage - FIXED VERSION
-router.put("/:id/stage", async (req, res) => {
-  try {
-    const { currentStage, currentStatus, interviewDate } = req.body;
-
-    // ✅ If Selected is sent, change it to Joining Data
-    const stageToUpdate =
-      currentStage === "Selected" ? "Joining Data" : currentStage;
-    const statusToUpdate =
-      currentStatus === "Selected"
-        ? "Joining Data"
-        : currentStatus || stageToUpdate;
-
-    const candidate = await Candidate.findByIdAndUpdate(
-      req.params.id,
-      {
-        currentStage: stageToUpdate,
-        currentStatus: statusToUpdate,
-        interviewDate: interviewDate || null,
-      },
-      { new: true }
-    ).populate("appliedFor", "designation");
-
-    if (!candidate) {
-      return res.status(404).json({
-        success: false,
-        message: "Candidate not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      message: `Candidate moved to ${stageToUpdate}`,
+      message: `Candidate moved to ${updateData.currentStage}`,
       candidate,
     });
   } catch (error) {

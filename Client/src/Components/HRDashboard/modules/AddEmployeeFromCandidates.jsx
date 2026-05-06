@@ -1,32 +1,45 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
-  FaSync,
-  FaExclamationTriangle,
-  FaUser,
-  FaPhone,
-  FaEnvelope,
-  FaBriefcase,
-  FaCalendarAlt,
-  FaCheckCircle,
-  FaEye,
-  FaFileAlt,
-  FaUserPlus,
-  FaSpinner,
-  FaTimes,
-  FaUserCheck,
-  FaList,
-} from "react-icons/fa";
+  Table,
+  Button,
+  Tag,
+  Space,
+  Typography,
+  Card,
+  Row,
+  Col,
+  Modal,
+  Descriptions,
+  Tabs,
+  Badge,
+  message,
+  Tooltip,
+  Empty,
+  Divider,
+} from "antd";
+import {
+  UserAddOutlined,
+  SyncOutlined,
+  FileTextOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
+  TeamOutlined,
+  EyeOutlined,
+} from "@ant-design/icons";
+import axios from "axios";
+import dayjs from "dayjs";
 import EmployeeAddFormModal from "./EmployeeAddFormModal";
+
+const { Title, Text } = Typography;
 
 const AddEmployeeFromCandidates = () => {
   const [candidates, setCandidates] = useState([]);
   const [addedEmployees, setAddedEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
-  const [activeTab, setActiveTab] = useState("ready"); // 'ready' or 'added'
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("ready");
 
   useEffect(() => {
     fetchAllCandidates();
@@ -35,646 +48,279 @@ const AddEmployeeFromCandidates = () => {
   const fetchAllCandidates = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      // Fetch all candidates
       const response = await axios.get("/api/addcandidate");
-      console.log("All candidates response:", response.data);
+      const allCandidates = response.data.candidates || (Array.isArray(response.data) ? response.data : []);
 
-      let allCandidates = [];
-
-      if (response.data && response.data.candidates) {
-        allCandidates = response.data.candidates;
-      } else if (Array.isArray(response.data)) {
-        allCandidates = response.data;
-      } else {
-        throw new Error("Invalid response format");
-      }
-
-      // Filter candidates based on status
-      const readyCandidates = allCandidates.filter((candidate) => {
-        const currentStage = (candidate.currentStage || "")
-          .toString()
-          .toLowerCase()
-          .trim();
-        const currentStatus = (candidate.currentStatus || "")
-          .toString()
-          .toLowerCase()
-          .trim();
-
-        return (
-          currentStage === "joining letter sent" ||
-          currentStatus === "joining letter sent"
-        );
+      const ready = allCandidates.filter(c => {
+        const stage = (c.currentStage || "").toLowerCase();
+        const status = (c.currentStatus || "").toLowerCase();
+        return stage === "joining letter sent" || status === "joining letter sent";
       });
 
-      const addedEmployeesList = allCandidates.filter((candidate) => {
-        const currentStage = (candidate.currentStage || "")
-          .toString()
-          .toLowerCase()
-          .trim();
-        const currentStatus = (candidate.currentStatus || "")
-          .toString()
-          .toLowerCase()
-          .trim();
-
-        return (
-          currentStage === "added as employee" ||
-          currentStatus === "added as employee"
-        );
+      const added = allCandidates.filter(c => {
+        const stage = (c.currentStage || "").toLowerCase();
+        const status = (c.currentStatus || "").toLowerCase();
+        return stage === "added as employee" || status === "added as employee";
       });
 
-      console.log("Ready candidates:", readyCandidates);
-      console.log("Added employees:", addedEmployeesList);
-
-      setCandidates(readyCandidates);
-      setAddedEmployees(addedEmployeesList);
+      setCandidates(ready);
+      setAddedEmployees(added);
     } catch (error) {
-      console.error("Fetch error:", error);
-      setError("Failed to load candidates");
-      setCandidates([]);
-      setAddedEmployees([]);
+      message.error("Failed to load candidates");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddAsEmployee = (candidate) => {
-    console.log("Adding as employee:", candidate);
-    setSelectedCandidate(candidate);
-    setShowEmployeeForm(true);
-  };
-
-  const closeEmployeeForm = () => {
-    setShowEmployeeForm(false);
-    setSelectedCandidate(null);
-  };
-
-  const handleEmployeeAdded = () => {
-    // Employee add होने के बाद refresh करो
-    fetchAllCandidates();
-    closeEmployeeForm();
-  };
-
-  const calculateTotalMarks = (candidate) => {
-    if (!candidate) return 0;
-    let marks = 0;
-
-    // Education marks
-    switch (candidate.education) {
-      case "Graduate in any":
-        marks += 2;
-        break;
-      case "Graduate in Maths/Economics":
-        marks += 3;
-        break;
-      case "MBA/PG with financial subject":
-        marks += 4;
-        break;
-    }
-
-    // Age group marks
-    switch (candidate.ageGroup) {
-      case "20-25yr":
-        marks += 1;
-        break;
-      case "26-30yr":
-        marks += 2;
-        break;
-      case "31-45yr":
-        marks += 3;
-        break;
-      case "45 & above":
-        marks += 2;
-        break;
-    }
-
-    // Vehicle marks
-    if (candidate.vehicle) marks += 4;
-
-    // Experience fields marks
-    marks +=
-      parseInt(
-        candidate.experienceFields?.administrative || candidate.administrative
-      ) || 0;
-    marks +=
-      parseInt(
-        candidate.experienceFields?.insuranceSales || candidate.insuranceSales
-      ) || 0;
-    marks +=
-      parseInt(candidate.experienceFields?.anySales || candidate.anySales) || 0;
-    marks +=
-      parseInt(candidate.experienceFields?.fieldWork || candidate.fieldWork) ||
-      0;
-
-    // Operational activities marks
-    marks +=
-      parseInt(
-        candidate.operationalActivities?.dataManagement ||
-        candidate.dataManagement
-      ) || 0;
-    marks +=
-      parseInt(
-        candidate.operationalActivities?.backOffice || candidate.backOffice
-      ) || 0;
-    marks +=
-      parseInt(candidate.operationalActivities?.mis || candidate.mis) || 0;
-
-    // Location marks
-    const locationMarks = {
-      "H.B Road": 4,
-      "Arera Colony": 3,
-      BHEL: 2,
-      Mandideep: 2,
-      Others: 1,
-    };
-    marks += locationMarks[candidate.location] || 0;
-
-    // Native place marks
-    if (candidate.nativePlace === "Bhopal") marks += 3;
-    else marks += 1;
-
-    // Spoken English marks
-    if (candidate.spokenEnglish) marks += 4;
-
-    // Salary expectation marks
-    const salaryMarks = {
-      "10K-12K": 4,
-      "12-15K": 3,
-      "15-18K": 3,
-      "18-20K": 2,
-      "20-25K": 2,
-      "25K & Above": 1,
-    };
-    marks += salaryMarks[candidate.salaryExpectation] || 0;
-
-    return marks;
-  };
-
-  const renderReadyCandidates = () => {
-    if (candidates.length === 0) {
-      return (
-        <div className="text-center py-5">
-          <div className="mb-3">
-            <FaFileAlt style={{ fontSize: "3rem", color: "black" }} />
+  const columns = [
+    {
+      title: "Candidate",
+      dataIndex: "candidateName",
+      key: "name",
+      render: (text, record) => (
+        <Space>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #d9d9d9' }}>
+            {text?.charAt(0) || <UserOutlined />}
           </div>
-          <h6 className="mb-2" style={{ color: "black" }}>
-            No Candidates Ready for Employment
-          </h6>
-          <p className="mb-4" style={{ color: "black" }}>
-            Candidates with "Joining Letter Sent" status will appear here
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="table-responsive">
-        <table className="table" style={{ backgroundColor: "white" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #e0e0e0" }}>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Candidate
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Contact
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Designation
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Status
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((candidate) => {
-              const totalMarks = calculateTotalMarks(candidate);
-
-              return (
-                <tr
-                  key={candidate._id}
-                  style={{ borderBottom: "1px solid #e0e0e0" }}
-                >
-                  <td style={{ padding: "12px" }}>
-                    <div className="d-flex align-items-center">
-                      <div
-                        className="rounded-circle d-flex align-items-center justify-content-center me-3"
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          fontSize: "14px",
-                          backgroundColor: "#f8f9fa",
-                          color: "black",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        {candidate.candidateName?.charAt(0) || "C"}
-                      </div>
-                      <div>
-                        <strong style={{ color: "black" }}>
-                          {candidate.candidateName || "Unnamed"}
-                        </strong>
-                        <br />
-                        <small className="text-muted">
-                          Marks: {totalMarks}
-                        </small>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <div style={{ color: "black" }}>
-                      {candidate.mobileNo || "N/A"}
-                    </div>
-                    <small className="text-muted">
-                      {candidate.email || "No email"}
-                    </small>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <span
-                      style={{
-                        backgroundColor: "#f8f9fa",
-                        color: "black",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        border: "1px solid #e0e0e0",
-                      }}
-                    >
-                      {candidate.appliedFor?.designation || "N/A"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <span
-                      style={{
-                        backgroundColor: "#28a745",
-                        color: "white",
-                        padding: "4px 10px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        fontWeight: "500",
-                      }}
-                    >
-                      <FaFileAlt style={{ fontSize: "11px" }} />
-                      Joining Letter Sent
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-sm d-flex align-items-center"
-                        onClick={() => handleAddAsEmployee(candidate)}
-                        style={{
-                          backgroundColor: "#28a745",
-                          color: "white",
-                          border: "none",
-                          fontSize: "12px",
-                          padding: "6px 12px",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <FaUserPlus
-                          className="me-1"
-                          style={{ fontSize: "12px" }}
-                        />
-                        Add as Employee
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  const renderAddedEmployees = () => {
-    if (addedEmployees.length === 0) {
-      return (
-        <div className="text-center py-5">
-          <div className="mb-3">
-            <FaUserCheck style={{ fontSize: "3rem", color: "black" }} />
-          </div>
-          <h6 className="mb-2" style={{ color: "black" }}>
-            No Employees Added Yet
-          </h6>
-          <p className="mb-4" style={{ color: "black" }}>
-            Employees added from candidates will appear here
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="table-responsive">
-        <table className="table" style={{ backgroundColor: "white" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #e0e0e0" }}>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Employee
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Contact
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Designation
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Status
-              </th>
-              <th
-                style={{ color: "black", fontWeight: "600", padding: "12px" }}
-              >
-                Added Date
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {addedEmployees.map((employee) => {
-              const totalMarks = calculateTotalMarks(employee);
-
-              return (
-                <tr
-                  key={employee._id}
-                  style={{ borderBottom: "1px solid #e0e0e0" }}
-                >
-                  <td style={{ padding: "12px" }}>
-                    <div className="d-flex align-items-center">
-                      <div
-                        className="rounded-circle d-flex align-items-center justify-content-center me-3"
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          fontSize: "14px",
-                          backgroundColor: "#f8f9fa",
-                          color: "black",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        {employee.candidateName?.charAt(0) || "E"}
-                      </div>
-                      <div>
-                        <strong style={{ color: "black" }}>
-                          {employee.candidateName || "Unnamed"}
-                        </strong>
-                        <br />
-                        <small className="text-muted">
-                          Marks: {totalMarks}
-                        </small>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <div style={{ color: "black" }}>
-                      {employee.mobileNo || "N/A"}
-                    </div>
-                    <small className="text-muted">
-                      {employee.email || "No email"}
-                    </small>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <span
-                      style={{
-                        backgroundColor: "#f8f9fa",
-                        color: "black",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        border: "1px solid #e0e0e0",
-                      }}
-                    >
-                      {employee.appliedFor?.designation || "N/A"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <span
-                      style={{
-                        backgroundColor: "#6c757d",
-                        color: "white",
-                        padding: "4px 10px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        fontWeight: "500",
-                      }}
-                    >
-                      <FaUserCheck style={{ fontSize: "11px" }} />
-                      Added as Employee
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <div className="d-flex align-items-center">
-                      <FaCalendarAlt
-                        className="me-2"
-                        style={{ color: "black", fontSize: "12px" }}
-                      />
-                      <small style={{ color: "black" }}>
-                        {employee.updatedAt
-                          ? new Date(employee.updatedAt).toLocaleDateString()
-                          : "Not available"}
-                      </small>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="text-center py-5">
-          <div
-            className="spinner-border mb-3"
-            role="status"
-            style={{ color: "black" }}
-          >
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mb-0" style={{ color: "black" }}>
-            Loading candidates data...
-          </p>
-        </div>
-      );
-    }
-
-    if (error && candidates.length === 0 && addedEmployees.length === 0) {
-      return (
-        <div className="text-center py-5">
-          <div className="mb-3">
-            <FaExclamationTriangle
-              style={{ fontSize: "3rem", color: "black" }}
+          <Space direction="vertical" size={0}>
+            <Text strong>{text}</Text>
+            <Text type="secondary" style={{ fontSize: '11px' }}>Score: {record.totalMarks || 0}</Text>
+          </Space>
+        </Space>
+      ),
+    },
+    {
+      title: "Contact",
+      dataIndex: "mobileNo",
+      key: "contact",
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text>{text || "N/A"}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>{record.email || "No email"}</Text>
+        </Space>
+      )
+    },
+    {
+      title: "Designation",
+      dataIndex: ["appliedFor", "designation"],
+      key: "designation",
+      render: (text) => <Tag color="blue">{text || "N/A"}</Tag>
+    },
+    {
+      title: "Status",
+      key: "status",
+      render: (_, record) => (
+        <Tag color={activeTab === "ready" ? "green" : "default"} icon={activeTab === "ready" ? <CheckCircleOutlined /> : null}>
+          {activeTab === "ready" ? "Joining Letter Sent" : "Added as Employee"}
+        </Tag>
+      )
+    },
+    {
+      title: activeTab === "ready" ? "Exp. Joining" : "Joining Date",
+      key: "joiningDate",
+      render: (_, record) => {
+        const date = record.joiningLetterDetails?.joiningDate || record.joiningDate;
+        return date ? dayjs(date).format("DD/MM/YYYY") : "N/A";
+      }
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Space>
+           <Tooltip title="View Candidate Details">
+            <Button 
+                icon={<EyeOutlined />} 
+                onClick={() => { setSelectedCandidate(record); setShowViewModal(true); }}
             />
-          </div>
-          <h6 className="mb-2" style={{ color: "black" }}>
-            No Data Found
-          </h6>
-          <p className="mb-4" style={{ color: "black" }}>
-            {error}
-          </p>
-          <button
-            className="btn"
-            onClick={fetchAllCandidates}
-            style={{
-              backgroundColor: "white",
-              color: "black",
-              border: "1px solid #ced4da",
-            }}
-          >
-            <FaSync className="me-1" />
-            Refresh
-          </button>
-        </div>
-      );
+          </Tooltip>
+          {activeTab === "ready" && (
+            <Button 
+                type="primary" 
+                size="small" 
+                icon={<UserAddOutlined />} 
+                onClick={() => { setSelectedCandidate(record); setShowEmployeeForm(true); }}
+            >
+                Add as Employee
+            </Button>
+          )}
+        </Space>
+      )
+    },
+  ];
+
+  const addedColumns = [
+    ...columns.slice(0, 3), // Candidate, Contact, Designation
+    {
+      title: "Processed Date",
+      dataIndex: "updatedAt",
+      key: "processedDate",
+      render: (date) => dayjs(date).format("DD/MM/YYYY")
+    },
+    {
+        title: "Interview Date",
+        dataIndex: "interviewDate",
+        key: "interviewDate",
+        render: (date) => date ? dayjs(date).format("DD/MM/YYYY") : "N/A"
+    },
+    {
+        title: "Joining Date",
+        key: "joiningDate",
+        render: (_, record) => {
+            const date = record.joiningLetterDetails?.joiningDate || record.joiningDate;
+            return date ? dayjs(date).format("DD/MM/YYYY") : "N/A";
+        }
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Tooltip title="View All Details">
+            <Button 
+                icon={<EyeOutlined />} 
+                onClick={() => { setSelectedCandidate(record); setShowViewModal(true); }}
+            />
+        </Tooltip>
+      )
     }
-
-    return (
-      <div>
-        {/* Tabs Navigation */}
-        <div className="mb-4">
-          <div className="d-flex border-bottom">
-            <button
-              className={`btn btn-tab ${activeTab === "ready" ? "active" : ""}`}
-              onClick={() => setActiveTab("ready")}
-              style={{
-                backgroundColor: activeTab === "ready" ? "#28a745" : "white",
-                color: activeTab === "ready" ? "white" : "black",
-                border: "none",
-                padding: "10px 20px",
-                borderTopLeftRadius: "4px",
-                borderTopRightRadius: "4px",
-                fontSize: "14px",
-                fontWeight: "500",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <FaFileAlt />
-              <span style={{ color: activeTab === "ready" ? "white" : "black" }}>Ready for Employment</span>
-              <span className="badge bg-light text-dark">
-                {candidates.length}
-              </span>
-            </button>
-            <button
-              className={`btn btn-tab ${activeTab === "added" ? "active" : ""}`}
-              onClick={() => setActiveTab("added")}
-              style={{
-                backgroundColor: activeTab === "added" ? "#6c757d" : "white",
-                color: activeTab === "added" ? "white" : "black",
-                border: "none",
-                padding: "10px 20px",
-                borderTopLeftRadius: "4px",
-                borderTopRightRadius: "4px",
-                fontSize: "14px",
-                fontWeight: "500",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <FaUserCheck />
-              <span style={{ color: activeTab === "added" ? "white" : "black" }}>Already Added as Employee</span>
-              <span className="badge bg-light text-dark">
-                {addedEmployees.length}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div>
-          {activeTab === "ready"
-            ? renderReadyCandidates()
-            : renderAddedEmployees()}
-        </div>
-      </div>
-    );
-  };
+  ];
 
   return (
-    <div className="p-4" style={{ backgroundColor: "white" }}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="mb-1" style={{ color: "black" }}>
-            Add Employee from Candidates
-          </h2>
-          <p className="mb-0" style={{ color: "black" }}>
-            {activeTab === "ready"
-              ? `${candidates.length} candidate${candidates.length !== 1 ? "s" : ""
-              } ready for employment`
-              : `${addedEmployees.length} employee${addedEmployees.length !== 1 ? "s" : ""
-              } already added`}
-          </p>
-        </div>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-sm d-flex align-items-center"
-            onClick={fetchAllCandidates}
-            style={{
-              backgroundColor: "white",
-              color: "black",
-              border: "1px solid #ced4da",
-              padding: "6px 12px",
-              height: "32px",
-            }}
-          >
-            <FaSync className="me-2" style={{ fontSize: "14px" }} />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
+    <div className="fade-in">
+      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Title level={3} style={{ margin: 0 }}>Candidate to Employee Conversion</Title>
+            <Text type="secondary">Finalize hiring and transition candidates to workforce</Text>
+          </Col>
+          <Col>
+            <Button icon={<SyncOutlined />} onClick={fetchAllCandidates} loading={loading}>Refresh</Button>
+          </Col>
+        </Row>
+      </Card>
 
-      <div
-        style={{
-          backgroundColor: "white",
-          border: "1px solid #e0e0e0",
-          borderRadius: "4px",
-        }}
-      >
-        <div className="p-3">{renderContent()}</div>
-      </div>
+      <Card bordered={false} style={{ borderRadius: 12, overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          centered
+          items={[
+            {
+              key: "ready",
+              label: (
+                <span>
+                  <FileTextOutlined /> Ready for Employment <Badge count={candidates.length} offset={[10, -5]} size="small" />
+                </span>
+              ),
+              children: (
+                <Table
+                  columns={columns}
+                  dataSource={candidates}
+                  rowKey="_id"
+                  loading={loading}
+                  className="custom-table"
+                />
+              )
+            },
+            {
+              key: "added",
+              label: (
+                <span>
+                  <TeamOutlined /> Already Added <Badge count={addedEmployees.length} offset={[10, -5]} size="small" showZero color="#d9d9d9" />
+                </span>
+              ),
+              children: (
+                <Table
+                  columns={addedColumns}
+                  dataSource={addedEmployees}
+                  rowKey="_id"
+                  loading={loading}
+                  className="custom-table"
+                />
+              )
+            }
+          ]}
+        />
+      </Card>
 
-      {/* Employee Add Form Modal */}
       {showEmployeeForm && selectedCandidate && (
         <EmployeeAddFormModal
           candidate={selectedCandidate}
-          onClose={closeEmployeeForm}
-          onEmployeeAdded={handleEmployeeAdded}
+          onClose={() => { setShowEmployeeForm(false); setSelectedCandidate(null); }}
+          onEmployeeAdded={() => { fetchAllCandidates(); setShowEmployeeForm(false); setSelectedCandidate(null); }}
         />
       )}
+
+      <Modal
+        title={<Space><EyeOutlined /> Candidate History & Details</Space>}
+        open={showViewModal}
+        onCancel={() => { setShowViewModal(false); setSelectedCandidate(null); }}
+        footer={null}
+        width={800}
+        centered
+      >
+        {selectedCandidate && (
+          <div className="fade-in">
+            <Descriptions title="Personal Information" bordered column={2} size="small">
+              <Descriptions.Item label="Full Name">{selectedCandidate.candidateName}</Descriptions.Item>
+              <Descriptions.Item label="Mobile">{selectedCandidate.mobileNo}</Descriptions.Item>
+              <Descriptions.Item label="Email" span={2}>{selectedCandidate.email || "N/A"}</Descriptions.Item>
+              <Descriptions.Item label="Education">{selectedCandidate.education}</Descriptions.Item>
+              <Descriptions.Item label="Location">{selectedCandidate.location}</Descriptions.Item>
+            </Descriptions>
+            
+            <Divider />
+            
+            <Descriptions title="Recruitment Timeline" bordered column={2} size="small">
+                <Descriptions.Item label="Current Stage">
+                    <Tag color="blue">{selectedCandidate.currentStage}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Applied For">
+                    {selectedCandidate.appliedFor?.designation || selectedCandidate.designation}
+                </Descriptions.Item>
+                <Descriptions.Item label="Interview Date">
+                    {selectedCandidate.interviewDate ? dayjs(selectedCandidate.interviewDate).format("DD MMMM YYYY") : "Not Set"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Joining Date">
+                    { (selectedCandidate.joiningLetterDetails?.joiningDate || selectedCandidate.joiningDate) 
+                        ? dayjs(selectedCandidate.joiningLetterDetails?.joiningDate || selectedCandidate.joiningDate).format("DD MMMM YYYY") 
+                        : "Not Set"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Last Updated">
+                    {dayjs(selectedCandidate.updatedAt).format("DD MMMM YYYY HH:mm")}
+                </Descriptions.Item>
+                <Descriptions.Item label="Total Score">
+                    <Badge count={selectedCandidate.totalMarks || 0} color="#faad14" showZero />
+                </Descriptions.Item>
+            </Descriptions>
+
+            {selectedCandidate.salaryExpectation && (
+                <div style={{ marginTop: 16 }}>
+                    <Text strong>Salary Expectation: </Text>
+                    <Text>{selectedCandidate.salaryExpectation}</Text>
+                </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+        .ant-tabs-nav {
+            margin-bottom: 0 !important;
+            padding: 10px 0;
+            background: #fafafa;
+            border-bottom: 1px solid #f0f0f0;
+        }
+      `}</style>
     </div>
   );
 };
