@@ -1,8 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { PencilFill, TrashFill } from "react-bootstrap-icons";
+import { 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Space, 
+  Popconfirm, 
+  Card, 
+  Typography,
+  Tooltip,
+  Badge,
+  Row,
+  Col
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  EnvironmentOutlined,
+  GlobalOutlined,
+  BarcodeOutlined,
+  PushpinOutlined,
+  SearchOutlined,
+  ReloadOutlined
+} from "@ant-design/icons";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import {
   fetchAreas,
   createArea,
@@ -10,232 +34,326 @@ import {
   deleteArea,
 } from "../../../redux/feature/LeadArea/AreaThunx";
 
+const { Title, Text } = Typography;
+
 const Area = () => {
   const dispatch = useDispatch();
-  const { areas, loading, error, success } = useSelector(
-    (state) => state.leadArea
-  );
+  const { areas, loading, success } = useSelector((state) => state.leadArea);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    shortcode: "",
-    pincode: "",
-    city: "",
-  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingArea, setEditingArea] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [form] = Form.useForm();
 
-  const [editId, setEditId] = useState(null);
-
-  // ✅ Fetch areas on load
   useEffect(() => {
-    dispatch(fetchAreas());
+    loadData();
   }, [dispatch]);
 
-  // ✅ Reset form on success
   useEffect(() => {
     if (success) {
-      setFormData({ name: "", shortcode: "", pincode: "", city: "" });
-      setEditId(null);
+      handleCancel();
     }
   }, [success]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const loadData = () => {
+    dispatch(fetchAreas());
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { name, shortcode, pincode, city } = formData;
-
-    if (!name || !shortcode || !pincode || !city) {
-      toast.error("All fields are required!");
-      return;
+  const showModal = (area = null) => {
+    if (area) {
+      setEditingArea(area);
+      form.setFieldsValue({
+        name: area.name,
+        shortcode: area.shortcode,
+        pincode: area.pincode,
+        city: area.city,
+      });
+    } else {
+      setEditingArea(null);
+      form.resetFields();
     }
+    setIsModalOpen(true);
+  };
 
-    if (editId) {
-      const result = await dispatch(updateArea({ id: editId, areaData: formData }));
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingArea(null);
+    form.resetFields();
+  };
+
+  const onFinish = async (values) => {
+    if (editingArea) {
+      const result = await dispatch(updateArea({ id: editingArea._id, areaData: values }));
       if (result.meta.requestStatus === "fulfilled") {
-        toast.success("Area updated successfully!");
-      } else {
-        toast.error("Failed to update area. Please try again.");
+        toast.success("Area updated successfully");
+        loadData();
       }
     } else {
-      const result = await dispatch(createArea(formData));
+      const result = await dispatch(createArea(values));
       if (result.meta.requestStatus === "fulfilled") {
-        toast.success("Area added successfully!");
-      } else {
-        toast.error("Failed to add area. Please try again.");
+        toast.success("Area created successfully");
+        loadData();
       }
     }
-  };
-
-  const handleEdit = (area) => {
-    setFormData({
-      name: area.name,
-      shortcode: area.shortcode,
-      pincode: area.pincode,
-      city: area.city,
-    });
-    setEditId(area._id);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this area?")) {
-      const result = await dispatch(deleteArea(id));
-      if (result.meta.requestStatus === "fulfilled") {
-        toast.success("Area deleted successfully!");
-      } else {
-        toast.error("Failed to delete area. Please try again.");
-      }
+    const result = await dispatch(deleteArea(id));
+    if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Area deleted successfully");
+      loadData();
     }
   };
 
-  if (loading && !areas.length) {
-    return <div className="text-center mt-4">Loading areas...</div>;
-  }
+  const filteredData = (Array.isArray(areas) ? areas : []).filter((item) =>
+    item.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.shortcode?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.city?.toLowerCase().includes(searchText.toLowerCase()) ||
+    String(item.pincode).includes(searchText)
+  );
 
-  if (error) {
-    return <div className="alert alert-danger mt-4">Error: {error}</div>;
-  }
+  const columns = [
+    {
+      title: "Area Name",
+      dataIndex: "name",
+      key: "name",
+      sorter: (a, b) => a.name.localeCompare(b.name),
+      render: (text) => (
+        <Space>
+          <EnvironmentOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Area Short Code",
+      dataIndex: "shortcode",
+      key: "shortcode",
+      render: (text) => (
+        <Space>
+          <BarcodeOutlined style={{ color: "#52c41a" }} />
+          <Text>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "City",
+      dataIndex: "city",
+      key: "city",
+      sorter: (a, b) => a.city.localeCompare(b.city),
+      render: (text) => (
+        <Space>
+          <GlobalOutlined style={{ color: "#faad14" }} />
+          <Text>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Pin Code",
+      dataIndex: "pincode",
+      key: "pincode",
+      render: (text) => (
+        <Space>
+          <PushpinOutlined style={{ color: "#eb2f96" }} />
+          <Text>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      width: 120,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => showModal(record)}
+              style={{ color: "#1890ff" }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Area"
+              description="Confirm deletion of this area?"
+              onConfirm={() => handleDelete(record._id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                type="text" 
+                icon={<DeleteOutlined />} 
+                danger
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="container mt-2">
-      <h3 className="mb-3">Area</h3>
-
-      <div className="row">
-        {/* Form Section */}
-        <div className="col-md-6 mb-4">
-          <div className="card shadow border-0">
-            <div className="card-body">
-              <h5 className="card-title text-primary mb-3">
-                {editId ? "Edit Area" : "Add New Area"}
-              </h5>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Area Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter Area Name"
-                    required
-                    disabled={loading}
+    <div className="premium-master-layout" style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+      <Row gutter={[0, 24]}>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8">
+            <Row justify="space-between" align="middle" gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Space align="center" size="middle">
+                  <Title level={3} style={{ margin: 0 }}>Area Master</Title>
+                  <Badge count={filteredData.length} showZero color="#1890ff" />
+                </Space>
+                <Text type="secondary">Manage your geographic service areas and locations</Text>
+              </Col>
+              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
+                <Space wrap>
+                  <Input 
+                    placeholder="Search areas..." 
+                    prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />} 
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 250 }}
+                    allowClear
                   />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Short Code</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="shortcode"
-                    value={formData.shortcode}
-                    onChange={handleChange}
-                    placeholder="Enter Zone Code"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Pin Code</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleChange}
-                    placeholder="Enter Postal Code"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">City</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="Enter City"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? "Processing..." : editId ? "Update" : "Submit"}
-                </button>
-                {editId && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary ms-2"
-                    onClick={() => {
-                      setFormData({ name: "", shortcode: "", pincode: "", city: "" });
-                      setEditId(null);
-                    }}
-                    disabled={loading}
+                  <Button icon={<ReloadOutlined />} onClick={loadData} title="Refresh Data" />
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    onClick={() => showModal()}
+                    size="large"
+                    className="shadow-sm"
                   >
-                    Cancel
-                  </button>
-                )}
-              </form>
-            </div>
-          </div>
-        </div>
+                    Add New Area
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
 
-        {/* List Section */}
-        <div className="col-md-6 mb-4">
-          <div className="card shadow border-0">
-            <div className="card-body">
-              <h5 className="card-title text-success mb-3">Area List</h5>
-              {areas.length === 0 ? (
-                <p>No areas added yet.</p>
-              ) : (
-                <div className="list-group">
-                  {areas.map((area) => (
-                    <div
-                      key={area._id}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        <strong>{area.name}</strong> ({area.shortcode}) - {area.pincode}, {area.city}
-                      </div>
-                      <div>
-                        <button
-                          className="btn btn-sm btn-outline-primary me-2"
-                          onClick={() => handleEdit(area)}
-                          title="Edit"
-                          disabled={loading}
-                        >
-                          <PencilFill size={16} />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(area._id)}
-                          title="Delete"
-                          disabled={loading}
-                        >
-                          <TrashFill size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8" bodyStyle={{ padding: 0 }}>
+            <Table 
+              columns={columns} 
+              dataSource={filteredData} 
+              rowKey="_id"
+              loading={loading}
+              pagination={{ pageSize: 10, showSizeChanger: true }}
+              scroll={{ x: 800 }}
+              className="ant-table-striped custom-table"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Modal
+        title={
+          <Space>
+            {editingArea ? <EditOutlined className="text-primary" /> : <PlusOutlined className="text-primary" />}
+            <Title level={4} style={{ margin: 0 }}>
+              {editingArea ? "Update Area" : "Create New Area"}
+            </Title>
+          </Space>
+        }
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        destroyOnClose
+        centered
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          style={{ marginTop: "20px" }}
+          requiredMark="optional"
+        >
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item
+                label="Area Name"
+                name="name"
+                rules={[{ required: true, message: "Please enter area name!" }]}
+              >
+                <Input prefix={<EnvironmentOutlined className="text-muted" />} placeholder="e.g. Downtown" size="large" />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item
+                label="Area Short Code"
+                name="shortcode"
+                rules={[{ required: true, message: "Please enter area short code!" }]}
+              >
+                <Input prefix={<BarcodeOutlined className="text-muted" />} placeholder="e.g. DT-01" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                label="City"
+                name="city"
+                rules={[{ required: true, message: "Please enter city!" }]}
+              >
+                <Input prefix={<GlobalOutlined className="text-muted" />} placeholder="e.g. New York" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                label="Pin Code"
+                name="pincode"
+                rules={[{ required: true, message: "Please enter pin code!" }]}
+              >
+                <Input prefix={<PushpinOutlined className="text-muted" />} placeholder="e.g. 10001" size="large" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: "right", marginTop: "32px" }}>
+            <Space>
+              <Button onClick={handleCancel} size="large">Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={loading} size="large">
+                {editingArea ? "Update Changes" : "Save Area"}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          border-right: 1px solid #ffffff !important;
+          border-radius: 0 !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+        .ant-table-striped .ant-table-tbody > tr:nth-child(2n) > td {
+          background-color: #fafafa;
+        }
+        .text-muted { color: #bfbfbf; }
+        .text-primary { color: #1890ff; }
+        .border-radius-8 { border-radius: 8px; overflow: hidden; }
+        .shadow-sm {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+        }
+        .ant-btn-primary.shadow-sm {
+          box-shadow: 0 2px 4px rgba(24, 144, 255, 0.35);
+        }
+      `}</style>
     </div>
   );
 };
 
 export default Area;
+
+
+

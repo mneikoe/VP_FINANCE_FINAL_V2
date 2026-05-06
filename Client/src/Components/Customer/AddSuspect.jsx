@@ -1,70 +1,64 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
+import { 
+  Form, 
+  Input, 
+  Select, 
+  Button, 
+  Row, 
+  Col, 
+  Card, 
+  Typography, 
+  Radio, 
+  DatePicker, 
+  Divider, 
+  Space, 
+  Alert,
+  Spin
+} from "antd";
+import { 
+  UserOutlined, 
+  PhoneOutlined, 
+  MailOutlined, 
+  HomeOutlined, 
+  EnvironmentOutlined,
+  BankOutlined,
+  SolutionOutlined,
+  SaveOutlined,
+  CloseOutlined,
+  WhatsAppOutlined,
+  GlobalOutlined,
+  SafetyCertificateOutlined
+} from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createSuspectLead,
   fetchSuspectLeadById,
   updateSuspectLead,
 } from "../../redux/feature/SuspectLead/SuspectLeadThunx";
-import { fetchLeadOccupationDetails } from "../../redux/feature/LeadOccupation/OccupationThunx";
-import { getAllOccupations } from "../../redux/feature/LeadOccupation/OccupationThunx";
+import { fetchLeadOccupationDetails, getAllOccupations } from "../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../redux/feature/OccupationType/OccupationThunx";
 import { fetchDetails } from "../../redux/feature/LeadSource/LeadThunx";
 import { fetchCallingPurposes } from "../../redux/feature/CallingPurpose/CallingPurposeThunx";
 import axiosInstance from "../../config/axiosConfig";
+import dayjs from "dayjs";
+import { toast } from "react-toastify";
 
-const initialFormState = {
-  salutation: "",
-  familyHead: "",
-  gender: "",
-  organisation: "",
-  designation: "",
-  annualIncome: "",
-  grade: "",
-  mobile: "",
-  contactNo: "",
-  whatsapp: "",
-  email: "",
-  dob: "",
-  dom: "",
-  preferredAddressType: "",
-  resiAddr: "",
-  resiLandmark: "",
-  resiPincode: "",
-  officeAddr: "",
-  officeLandmark: "",
-  officePincode: "",
-  preferredMeetingAddr: "",
-  preferredMeetingArea: "",
-  city: "",
-  leadSource: "",
-  leadName: "",
-  leadOccupation: "",
-  occupationType: "",
-  callingPurpose: "",
-  name: "",
-  allocatedRM: "", // Added allocatedRM to state
-};
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
   const dispatch = useDispatch();
+  const [form] = Form.useForm();
 
-  const { loading, error, currentLead } = useSelector(
-    (state) => state.suspectLead
-  );
-  const [form, setForm] = useState(initialFormState);
-
-  // lead source, lead occupation, calling purpose
-  const leadOccupations = useSelector((state) => state.leadOccupation.details);
+  const { loading, error, currentLead } = useSelector((state) => state.suspectLead);
   const { alldetails: allOccupations } = useSelector((state) => state.leadOccupation);
   const { alldetailsForTypes } = useSelector((state) => state.OccupationType);
   const leadSources = useSelector((state) => state.leadsource.leadsourceDetail);
-  const { callingPurposes, loading: callingPurposeLoading } = useSelector(
-    (state) => state.callingPurpose
-  );
+  const { callingPurposes, loading: callingPurposeLoading } = useSelector((state) => state.callingPurpose);
 
   const [rms, setRms] = useState([]);
   const [filteredRms, setFilteredRms] = useState(null);
+  const [preferredAddressType, setPreferredAddressType] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -74,13 +68,13 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
         await dispatch(fetchCallingPurposes()).unwrap();
         dispatch(getAllOccupationTypes());
         dispatch(getAllOccupations());
-        fetchRMs(); // Fetch RMs on init
+        fetchRMs();
       } catch (error) {
-        console.log(error);
+        console.error(error);
       }
     };
     init();
-  }, []);
+  }, [dispatch]);
 
   const fetchRMs = async () => {
     try {
@@ -100,585 +94,500 @@ const AddSuspect = ({ editId, setActiveTab, setEditId }) => {
     }
   };
 
-  const filterRMsByPincode = (pincode) => {
-    if (!pincode || String(pincode).length !== 6) {
-      setFilteredRms(null);
-      return;
-    }
-    const matched = rms.filter((rm) => {
-      const directMatch = String(rm.workPincode || "").trim() === String(pincode).trim();
-      const managedMatch = Array.isArray(rm.managedAreas) &&
-        rm.managedAreas.some((a) => String(a.pincode || "").trim() === String(pincode).trim());
-      return directMatch || managedMatch;
-    });
-    setFilteredRms(matched.length > 0 ? matched : null);
-  };
-
-  // ✅ Trigger RM filter when pincode or rms list changes
-  useEffect(() => {
-    const pin = form.preferredAddressType === "office" ? form.officePincode : form.resiPincode;
-    if (pin && pin.length === 6) {
-      filterRMsByPincode(pin);
-    } else {
-      setFilteredRms(null);
-    }
-  }, [form.resiPincode, form.officePincode, form.preferredAddressType, rms]);
-
-  // console.log(leadSource);
-
-  // --------------------------
   useEffect(() => {
     if (editId) {
       dispatch(fetchSuspectLeadById(editId));
     } else {
-      setForm(initialFormState);
+      form.resetFields();
+      setPreferredAddressType("");
     }
-  }, [editId, dispatch]);
+  }, [editId, dispatch, form]);
 
   useEffect(() => {
     if (editId && currentLead && currentLead._id === editId) {
-      console.log("✅ currentLead loaded:", currentLead);
-      setForm({
-        ...initialFormState,
-        ...currentLead.personalDetails,
-      });
+      const personalData = currentLead.personalDetails || {};
+      const formattedData = {
+        ...personalData,
+        dob: personalData.dob ? dayjs(personalData.dob) : null,
+        dom: personalData.dom ? dayjs(personalData.dom) : null,
+      };
+      form.setFieldsValue(formattedData);
+      setPreferredAddressType(personalData.preferredAddressType || "");
     }
-  }, [editId, currentLead]);
+  }, [editId, currentLead, form]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    let updatedForm = { ...form, [name]: value };
-
-    if (name === "annualIncome") {
+  const onValuesChange = (changedValues, allValues) => {
+    if (changedValues.annualIncome) {
       let grade = "";
-      if (value === "25 lakh to 1 Cr.") grade = 1;
-      else if (value === "5 to 25 lakh") grade = 2;
-      else if (value === "2.5 to 5 lakh") grade = 3;
-      updatedForm.grade = grade;
+      const income = changedValues.annualIncome;
+      if (income === "25 lakh to 1 Cr.") grade = 1;
+      else if (income === "5 to 25 lakh") grade = 2;
+      else if (income === "2.5 to 5 lakh") grade = 3;
+      form.setFieldsValue({ grade });
     }
 
-    if (name === "resiPincode" || name === "officePincode") {
-      // filtering handled by useEffect
+    if (changedValues.preferredAddressType || changedValues.resiAddr || changedValues.officeAddr || changedValues.resiPincode || changedValues.officePincode) {
+      const type = allValues.preferredAddressType;
+      setPreferredAddressType(type);
+      
+      if (type === "resi") {
+        form.setFieldsValue({
+          preferredMeetingAddr: allValues.resiAddr,
+          preferredMeetingArea: allValues.resiPincode ? `Area for ${allValues.resiPincode}` : "",
+        });
+      } else if (type === "office") {
+        form.setFieldsValue({
+          preferredMeetingAddr: allValues.officeAddr,
+          preferredMeetingArea: allValues.officePincode ? `Area for ${allValues.officePincode}` : "",
+        });
+      }
     }
 
-    setForm(updatedForm);
+    // RM Filtering logic
+    const pin = allValues.preferredAddressType === "office" ? allValues.officePincode : allValues.resiPincode;
+    if (pin && pin.length === 6) {
+      const matched = rms.filter((rm) => {
+        const directMatch = String(rm.workPincode || "").trim() === String(pin).trim();
+        const managedMatch = Array.isArray(rm.managedAreas) &&
+          rm.managedAreas.some((a) => String(a.pincode || "").trim() === String(pin).trim());
+        return directMatch || managedMatch;
+      });
+      setFilteredRms(matched.length > 0 ? matched : null);
+    } else {
+      setFilteredRms(null);
+    }
   };
 
-  const handleRadioChange = (e) => {
-    const value = e.target.value;
-    const address =
-      value === "resi"
-        ? form.resiAddr
-        : value === "office"
-        ? form.officeAddr
-        : "";
-    const pincode =
-      value === "resi"
-        ? form.resiPincode
-        : value === "office"
-        ? form.officePincode
-        : "";
+  const onFinish = async (values) => {
+    const cleanedValues = { ...values };
+    cleanedValues.dob = values.dob ? values.dob.toISOString() : null;
+    cleanedValues.dom = values.dom ? values.dom.toISOString() : null;
 
-    setForm((prev) => ({
-      ...prev,
-      preferredAddressType: value,
-      preferredMeetingAddr: address,
-      preferredMeetingArea: pincode ? `Area for ${pincode}` : "",
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const cleanedForm = { ...form };
-    if (form.preferredAddressType === "resi") {
-      cleanedForm.officeAddr = "";
-      cleanedForm.officeLandmark = "";
-      cleanedForm.officePincode = "";
-    } else if (form.preferredAddressType === "office") {
-      cleanedForm.resiAddr = "";
-      cleanedForm.resiLandmark = "";
-      cleanedForm.resiPincode = "";
+    if (values.preferredAddressType === "resi") {
+      cleanedValues.officeAddr = "";
+      cleanedValues.officeLandmark = "";
+      cleanedValues.officePincode = "";
+    } else if (values.preferredAddressType === "office") {
+      cleanedValues.resiAddr = "";
+      cleanedValues.resiLandmark = "";
+      cleanedValues.resiPincode = "";
     }
+
+    const leadDataToSave = {
+      personalDetails: cleanedValues,
+    };
 
     try {
-      const leadDataToSave = {
-        personalDetails: {
-          name: form.name,
-          salutation: form.salutation,
-          familyHead: form.familyHead,
-          gender: form.gender,
-          organisation: form.organisation,
-          designation: form.designation,
-          annualIncome: form.annualIncome,
-          grade: form.grade,
-          mobile: form.mobile,
-          contactNo: form.contactNo,
-          whatsapp: form.whatsapp,
-          email: form.email,
-          dob: form.dob,
-          dom: form.dom,
-          preferredAddressType: form.preferredAddressType,
-          resiAddr: form.resiAddr,
-          resiLandmark: form.resiLandmark,
-          resiPincode: form.resiPincode,
-          officeAddr: form.officeAddr,
-          officeLandmark: form.officeLandmark,
-          officePincode: form.officePincode,
-          preferredMeetingAddr: form.preferredMeetingAddr,
-          preferredMeetingArea: form.preferredMeetingArea,
-          city: form.city,
-
-          leadSource: form.leadSource,
-          leadName: form.leadName,
-          leadOccupation: form.leadOccupation,
-          occupationType: form.occupationType,
-          callingPurpose: form.callingPurpose,
-          allocatedRM: form.allocatedRM, // Added to submission
-        },
-      };
-
       let resultAction;
       if (editId) {
-        resultAction = await dispatch(
-          // updateSuspectLead({ id: editId, leadData: cleanedForm })
-          updateSuspectLead({ id: editId, leadData: leadDataToSave })
-        );
+        resultAction = await dispatch(updateSuspectLead({ id: editId, leadData: leadDataToSave }));
       } else {
-        // resultAction = await dispatch(createSuspectLead(cleanedForm));
         resultAction = await dispatch(createSuspectLead(leadDataToSave));
       }
-      console.log(cleanedForm, "form data");
 
       if (resultAction.payload) {
-        alert(`Lead successfully ${editId ? "updated" : "added"}!`);
-        setForm(initialFormState); // clear form fields
-        setEditId(null); // clear editId
+        toast.success(`Lead successfully ${editId ? "updated" : "added"}!`);
+        form.resetFields();
+        setEditId(null);
         setActiveTab("display");
-        if (!editId) {
-          setForm(initialFormState);
-        } else {
-          setActiveTab("display");
-          setEditId(null);
-        }
       }
-    } catch (error) {
-      console.error("Error submitting form:", error);
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      toast.error("Failed to save lead details");
     }
   };
 
   if (editId && loading) {
     return (
-      <Container className="text-center mt-4">
-        <Spinner animation="border" /> Loading lead data...
-      </Container>
+      <div style={{ padding: "100px", textAlign: "center" }}>
+        <Spin size="large" tip="Loading lead data..." />
+      </div>
     );
   }
 
   return (
-    <Container className="mt-4 p-3 border rounded bg-light">
-      <h4 className="mb-4">
-        {editId ? "Edit Suspect Lead" : "Add Suspect Lead"}
-      </h4>
-      {error && <div className="text-danger mb-3">Error: {error}</div>}
-      <Form onSubmit={handleSubmit}>
-        <Row className="mb-3">
-          <Col md={4}>
-            <Form.Label>Salutation</Form.Label>
-            <Form.Select
-              name="salutation"
-              value={form.salutation}
-              onChange={handleChange}
-            >
-              <option value="">Select</option>
-              <option>Mr.</option>
-              <option>Mrs.</option>
-              <option>Ms.</option>
-              <option>Mast.</option>
-              <option>Shri.</option>
-              <option>Smt.</option>
-              <option>Kum.</option>
-              <option>Kr.</option>
-              <option>Dr.</option>
-            </Form.Select>
-          </Col>
-          <Col md={4}>
-            <Form.Label>Family Head</Form.Label>
-            <Form.Control
-              name="familyHead"
-              value={form.familyHead}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={4}>
-            <Form.Label>Gender</Form.Label>
-            <Form.Select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-            >
-              <option value="">Select</option>
-              <option>Male</option>
-              <option>Female</option>
-            </Form.Select>
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={3}>
-            <Form.Label>Organisation</Form.Label>
-            <Form.Control
-              name="organisation"
-              value={form.organisation}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Designation</Form.Label>
-            <Form.Control
-              name="designation"
-              value={form.designation}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Annual Income</Form.Label>
-            <Form.Select
-              name="annualIncome"
-              value={form.annualIncome}
-              onChange={handleChange}
-            >
-              <option value="">Choose</option>
-              <option>25 lakh to 1 Cr.</option>
-              <option>5 to 25 lakh</option>
-              <option>2.5 to 5 lakh</option>
-            </Form.Select>
-          </Col>
-          <Col md={3}>
-            <Form.Label>Grade</Form.Label>
-            <Form.Control name="grade" value={form.grade} readOnly />
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={4}>
-            <Form.Label>Mobile No.</Form.Label>
-            <Form.Control
-              name="mobile"
-              value={form.mobile}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={4}>
-            <Form.Label>Contact No.</Form.Label>
-            <Form.Control
-              name="contactNo"
-              value={form.contactNo}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={4}>
-            <Form.Label>Whatsapp</Form.Label>
-            <Form.Control
-              name="whatsapp"
-              value={form.whatsapp}
-              onChange={handleChange}
-            />
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={4}>
-            <Form.Label>Email</Form.Label>
-            <Form.Control
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={4}>
-            <Form.Label>DOB</Form.Label>
-            <Form.Control
-              name="dob"
-              type="date"
-              value={form.dob}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={4}>
-            <Form.Label>DOM</Form.Label>
-            <Form.Control
-              name="dom"
-              type="date"
-              value={form.dom}
-              onChange={handleChange}
-            />
-          </Col>
-        </Row>
-
-        {/* Resi & Office Address */}
-        <Row className="mb-3">
-          <Col md={2} className="pt-4">
-            {/* <Form.Check
-              type="radio"
-              value="resi"
-              checked={sourceRadio === "resi"}
-              onChange={handleRadioChange}
-              label="Select"
-            /> */}
-            <Form.Check
-              type="radio"
-              value="resi"
-              name="preferredAddressType"
-              checked={form.preferredAddressType === "resi"}
-              onChange={handleRadioChange}
-              label="Select"
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Resi. Address</Form.Label>
-            <Form.Control
-              name="resiAddr"
-              value={form.resiAddr}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Landmark</Form.Label>
-            <Form.Control
-              name="resiLandmark"
-              value={form.resiLandmark}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Pin Code</Form.Label>
-            <Form.Control
-              name="resiPincode"
-              value={form.resiPincode}
-              onChange={handleChange}
-            />
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={2} className="pt-4">
-            <Form.Check
-              type="radio"
-              value="office"
-              name="preferredAddressType"
-              checked={form.preferredAddressType === "office"}
-              onChange={handleRadioChange}
-              label="Select"
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Off. Address</Form.Label>
-            <Form.Control
-              name="officeAddr"
-              value={form.officeAddr}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Landmark</Form.Label>
-            <Form.Control
-              name="officeLandmark"
-              value={form.officeLandmark}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={2}>
-            <Form.Label>Pincode</Form.Label>
-            <Form.Control
-              name="officePincode"
-              value={form.officePincode}
-              onChange={handleChange}
-            />
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={4}>
-            <Form.Label className="text-primary fw-bold">
-              Preferred Meeting Address
-            </Form.Label>
-            <Form.Control
-              name="preferredMeetingAddr"
-              value={form.preferredMeetingAddr}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label className="text-primary fw-bold">Area</Form.Label>
-            <Form.Control
-              name="preferredMeetingArea"
-              value={form.preferredMeetingArea}
-              onChange={handleChange}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>City</Form.Label>
-            <Form.Control
-              name="city"
-              value={form.city}
-              onChange={handleChange}
-            />
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          {/* Lead Source */}
-          <Col md={3}>
-            <Form.Label>Lead Source</Form.Label>
-            <Form.Select
-              name="leadSource"
-              value={form.leadSource}
-              onChange={handleChange}
-            >
-              <option value="">Select Lead Source</option>
-              {leadSources.map((source) => (
-                <option key={source._id} value={source.leadName}>
-                  {source.leadName}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-
-          {/* Lead Name */}
-          <Col md={3}>
-            <Form.Label htmlFor="leadName">Lead Name</Form.Label>
-            <Form.Control
-              id="leadName"
-              name="leadName"
-              value={form.leadName}
-              onChange={handleChange}
-              placeholder="Enter lead name"
-            />
-          </Col>
-
-          {/* Occupation Type */}
-          <Col md={3}>
-            <Form.Label htmlFor="occupationType">Occupation Type</Form.Label>
-            <Form.Select
-              id="occupationType"
-              name="occupationType"
-              value={form.occupationType}
-              onChange={(e) => {
-                const { name, value } = e.target;
-                setForm((prev) => ({ ...prev, [name]: value, leadOccupation: "" }));
-              }}
-            >
-              <option value="">-- Select Type --</option>
-              {Array.isArray(alldetailsForTypes) && alldetailsForTypes.map((type) => (
-                <option key={type._id} value={type.occupationType}>
-                  {type.occupationType}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-
-          {/* Lead Occupation (filtered by type) */}
-          <Col md={3}>
-            <Form.Label htmlFor="leadOccupation">Occupation Name</Form.Label>
-            <Form.Select
-              id="leadOccupation"
-              name="leadOccupation"
-              value={form.leadOccupation}
-              onChange={handleChange}
-              disabled={!form.occupationType}
-            >
-              <option value="">{form.occupationType ? "-- Select Occupation --" : "Select type first"}</option>
-              {Array.isArray(allOccupations) && allOccupations
-                .filter((occ) => occ?.occupationType?.occupationType === form.occupationType)
-                .map((occ) => (
-                  <option key={occ._id} value={occ.occupationName}>
-                    {occ.occupationName}
-                  </option>
-                ))
-              }
-            </Form.Select>
-          </Col>
-
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={6}>
-            <Form.Label>Calling Purpose</Form.Label>
-            <Form.Select
-              name="callingPurpose"
-              value={form.callingPurpose}
-              onChange={handleChange}
-            >
-              <option value="">-- Select Purpose --</option>
-              {callingPurposeLoading ? (
-                <option disabled>Loading...</option>
-              ) : (
-                callingPurposes?.map((purpose) => (
-                  <option key={purpose._id} value={purpose.purposeName}>
-                    {purpose.purposeName}
-                  </option>
-                ))
-              )}
-            </Form.Select>
-          </Col>
-          <Col md={6}>
-            <Form.Label>Name</Form.Label>
-            <Form.Select name="name" value={form.name} onChange={handleChange}>
-              <option value="LIC">LIC</option>
-              <option value="Portfolio Management">Portfolio Management</option>
-            </Form.Select>
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={12}>
-            <Form.Label className="text-primary fw-bold">Allocated RM (Suggested by Pincode)</Form.Label>
-            <Form.Select
-              name="allocatedRM"
-              value={form.allocatedRM}
-              onChange={handleChange}
-            >
-              <option value="">{filteredRms ? `-- ${filteredRms.length} Suggested RMs found --` : "-- Select RM --"}</option>
-              {(filteredRms || rms).map((rm) => (
-                <option key={rm._id} value={rm._id}>
-                  {rm.employeeCode || rm.designation} - {rm.name} {filteredRms ? "(Suggested)" : ""}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-        </Row>
-
-        <div className="d-flex justify-content-between">
-          <Button variant="primary" type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" />{" "}
-                {editId ? "Updating..." : "Submitting..."}
-              </>
-            ) : editId ? (
-              "Update Lead"
-            ) : (
-              "Submit Lead"
-            )}
-          </Button>
-
+    <div style={{ padding: "24px", backgroundColor: "#f0f2f5" }}>
+      <Card bordered={false} className="shadow-sm border-radius-8" style={{ marginBottom: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItem: "center" }}>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>{editId ? "Edit Suspect Lead" : "Add Suspect Lead"}</Title>
+            <Text type="secondary">Enter personal and professional details for the potential client</Text>
+          </div>
           {editId && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setActiveTab("display");
-                setEditId(null);
-              }}
-            >
+            <Button icon={<CloseOutlined />} onClick={() => { setActiveTab("display"); setEditId(null); }}>
               Cancel
             </Button>
           )}
         </div>
+      </Card>
+
+      {error && <Alert message="Error" description={error} type="error" showIcon style={{ marginBottom: "24px" }} />}
+
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        onValuesChange={onValuesChange}
+        initialValues={{ name: "LIC" }}
+        requiredMark="optional"
+      >
+        <Row gutter={24}>
+          {/* Section 1: Basic Information */}
+          <Col xs={24} lg={24}>
+            <Card 
+              title={<Space><UserOutlined style={{ color: "#1890ff" }} />Basic Information</Space>} 
+              bordered={false} 
+              className="shadow-sm border-radius-8 mb-4"
+              size="small"
+            >
+              <Row gutter={16}>
+                <Col xs={24} md={4}>
+                  <Form.Item name="salutation" label="Salutation">
+                    <Select placeholder="Select">
+                      {["Mr.", "Mrs.", "Ms.", "Mast.", "Shri.", "Smt.", "Kum.", "Kr.", "Dr."].map(s => (
+                        <Option key={s} value={s}>{s}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={10}>
+                  <Form.Item name="name" label="Full Name" rules={[{ required: true, message: "Name is required" }]}>
+                    <Input prefix={<UserOutlined className="text-muted" />} placeholder="Enter lead name" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={10}>
+                  <Form.Item name="familyHead" label="Family Head">
+                    <Input placeholder="Enter family head name" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="gender" label="Gender">
+                    <Radio.Group>
+                      <Radio value="Male">Male</Radio>
+                      <Radio value="Female">Female</Radio>
+                    </Radio.Group>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={9}>
+                  <Form.Item name="dob" label="Date of Birth">
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={9}>
+                  <Form.Item name="dom" label="Date of Marriage">
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* Section 2: Professional & Income Details */}
+          <Col xs={24} lg={24}>
+            <Card 
+              title={<Space><BankOutlined style={{ color: "#722ed1" }} />Professional Details</Space>} 
+              bordered={false} 
+              className="shadow-sm border-radius-8 mb-4"
+              size="small"
+            >
+              <Row gutter={16}>
+                <Col xs={24} md={6}>
+                  <Form.Item name="organisation" label="Organisation">
+                    <Input placeholder="Company name" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="designation" label="Designation">
+                    <Input placeholder="Role/Position" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item name="annualIncome" label="Annual Income Range">
+                    <Select placeholder="Choose income range">
+                      {["25 lakh to 1 Cr.", "5 to 25 lakh", "2.5 to 5 lakh"].map(i => (
+                        <Option key={i} value={i}>{i}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={4}>
+                  <Form.Item name="grade" label="Grade">
+                    <Input readOnly style={{ backgroundColor: "#f5f5f5", fontWeight: "bold", textAlign: "center" }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* Section 3: Contact Details */}
+          <Col xs={24} lg={24}>
+            <Card 
+              title={<Space><PhoneOutlined style={{ color: "#52c41a" }} />Contact Information</Space>} 
+              bordered={false} 
+              className="shadow-sm border-radius-8 mb-4"
+              size="small"
+            >
+              <Row gutter={16}>
+                <Col xs={24} md={6}>
+                  <Form.Item 
+                    name="mobile" 
+                    label="Mobile Number" 
+                    rules={[{ pattern: /^\d{10}$/, message: "Please enter a valid 10-digit number" }]}
+                  >
+                    <Input prefix={<PhoneOutlined className="text-muted" />} maxLength={10} placeholder="Primary mobile" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="contactNo" label="Contact No. (Landline/Alt)">
+                    <Input prefix={<PhoneOutlined className="text-muted" />} placeholder="Alternative contact" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="whatsapp" label="WhatsApp Number">
+                    <Input prefix={<WhatsAppOutlined style={{ color: "#25D366" }} />} maxLength={10} placeholder="WhatsApp contact" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item 
+                    name="email" 
+                    label="Email Address"
+                    rules={[{ type: "email", message: "Please enter a valid email" }]}
+                  >
+                    <Input prefix={<MailOutlined className="text-muted" />} placeholder="example@domain.com" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* Section 4: Address Details */}
+          <Col xs={24} lg={24}>
+            <Card 
+              title={<Space><HomeOutlined style={{ color: "#faad14" }} />Address Details</Space>} 
+              bordered={false} 
+              className="shadow-sm border-radius-8 mb-4"
+              size="small"
+            >
+              <Form.Item name="preferredAddressType" label={<Text strong>Preferred Communication Address</Text>} className="mb-4">
+                <Radio.Group className="mb-4">
+                  <Radio value="resi">Residential Address</Radio>
+                  <Radio value="office">Office Address</Radio>
+                </Radio.Group>
+              </Form.Item>
+
+              <Row gutter={24}>
+                <Col xs={24} md={12}>
+                  <Card size="small" type="inner" title="Residential Address" style={{ opacity: preferredAddressType === "office" ? 0.6 : 1 }}>
+                    <Form.Item name="resiAddr" label="Street Address">
+                      <Input.TextArea rows={2} placeholder="Building, Street, Area" />
+                    </Form.Item>
+                    <Row gutter={8}>
+                      <Col span={14}>
+                        <Form.Item name="resiLandmark" label="Landmark">
+                          <Input placeholder="Near..." />
+                        </Form.Item>
+                      </Col>
+                      <Col span={10}>
+                        <Form.Item 
+                          name="resiPincode" 
+                          label="Pincode"
+                          rules={[{ pattern: /^\d{6}$/, message: "Must be 6 digits" }]}
+                        >
+                          <Input maxLength={6} placeholder="6-digit" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Card size="small" type="inner" title="Office Address" style={{ opacity: preferredAddressType === "resi" ? 0.6 : 1 }}>
+                    <Form.Item name="officeAddr" label="Workplace Address">
+                      <Input.TextArea rows={2} placeholder="Office/Shop No, Complex" />
+                    </Form.Item>
+                    <Row gutter={8}>
+                      <Col span={14}>
+                        <Form.Item name="officeLandmark" label="Landmark">
+                          <Input placeholder="Nearby location" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={10}>
+                        <Form.Item 
+                          name="officePincode" 
+                          label="Pincode"
+                          rules={[{ pattern: /^\d{6}$/, message: "Must be 6 digits" }]}
+                        >
+                          <Input maxLength={6} placeholder="6-digit" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Divider style={{ margin: "24px 0" }} />
+              
+              <Row gutter={16}>
+                <Col xs={24} md={10}>
+                  <Form.Item name="preferredMeetingAddr" label={<Text strong style={{ color: "#1890ff" }}>Selected Meeting Address</Text>}>
+                    <Input prefix={<EnvironmentOutlined className="text-muted" />} placeholder="Auto-populated from selection" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={7}>
+                  <Form.Item name="preferredMeetingArea" label="Area">
+                    <Input prefix={<GlobalOutlined className="text-muted" />} placeholder="Meeting area" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={7}>
+                  <Form.Item name="city" label="City">
+                    <Input placeholder="Enter city" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* Section 5: Lead & Internal Assignment */}
+          <Col xs={24} lg={24}>
+            <Card 
+              title={<Space><SolutionOutlined style={{ color: "#eb2f96" }} />Lead & Internal Details</Space>} 
+              bordered={false} 
+              className="shadow-sm border-radius-8 mb-4"
+              size="small"
+            >
+              <Row gutter={16}>
+                <Col xs={24} md={6}>
+                  <Form.Item name="leadSource" label="Lead Source">
+                    <Select placeholder="Select source">
+                      {leadSources.map(s => <Option key={s._id} value={s.leadName}>{s.leadName}</Option>)}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="leadName" label="Lead Reference Name">
+                    <Input placeholder="Referrer / Campaign name" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="occupationType" label="Occupation Type">
+                    <Select 
+                      placeholder="Category" 
+                      onChange={() => form.setFieldsValue({ leadOccupation: "" })}
+                    >
+                      {Array.isArray(alldetailsForTypes) && alldetailsForTypes.map(t => (
+                        <Option key={t._id} value={t.occupationType}>{t.occupationType}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item 
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) => prevValues.occupationType !== currentValues.occupationType}
+                  >
+                    {({ getFieldValue }) => (
+                      <Form.Item name="leadOccupation" label="Occupation Name">
+                        <Select 
+                          placeholder="Specific occupation" 
+                          disabled={!getFieldValue("occupationType")}
+                        >
+                          {Array.isArray(allOccupations) && allOccupations
+                            .filter(occ => occ?.occupationType?.occupationType === getFieldValue("occupationType"))
+                            .map(occ => <Option key={occ._id} value={occ.occupationName}>{occ.occupationName}</Option>)
+                          }
+                        </Select>
+                      </Form.Item>
+                    )}
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item name="callingPurpose" label="Calling Purpose">
+                    <Select placeholder="Purpose of contact" loading={callingPurposeLoading}>
+                      {callingPurposes?.map(p => <Option key={p._id} value={p.purposeName}>{p.purposeName}</Option>)}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="name" label="Product Type">
+                    <Select>
+                      <Option value="LIC">LIC</Option>
+                      <Option value="Portfolio Management">Portfolio Management</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Row gutter={16}>
+                <Col xs={24}>
+                  <Form.Item 
+                    name="allocatedRM" 
+                    label={<Space><SafetyCertificateOutlined style={{ color: "#1890ff" }} /><Text strong>Allocated Relationship Manager (RM)</Text></Space>}
+                    extra={filteredRms ? `System found ${filteredRms.length} suggested RMs for this pincode` : "No direct matches found for this pincode. Listing all active RMs."}
+                  >
+                    <Select 
+                      placeholder="Select Relationship Manager" 
+                      size="large"
+                      showSearch
+                      optionFilterProp="children"
+                    >
+                      {(filteredRms || rms).map(rm => (
+                        <Option key={rm._id} value={rm._id}>
+                          <Space>
+                            <Text strong>{rm.name}</Text>
+                            <Text type="secondary">({rm.employeeCode || rm.designation})</Text>
+                            {filteredRms && <Text type="success" style={{ fontSize: "12px" }}>(Suggested)</Text>}
+                          </Space>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+
+        <Card bordered={false} className="shadow-sm border-radius-8">
+          <Row justify="end">
+            <Space size="large">
+              {editId && (
+                <Button size="large" onClick={() => { setActiveTab("display"); setEditId(null); }} icon={<CloseOutlined />}>
+                  Cancel Changes
+                </Button>
+              )}
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                size="large" 
+                loading={loading} 
+                icon={<SaveOutlined />}
+                style={{ minWidth: "180px" }}
+              >
+                {editId ? "Update Lead" : "Save Suspect Lead"}
+              </Button>
+            </Space>
+          </Row>
+        </Card>
       </Form>
-    </Container>
+
+      <style>{`
+        .border-radius-8 { border-radius: 8px; overflow: hidden; }
+        .shadow-sm {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+        }
+        .text-muted { color: #bfbfbf; }
+        .mb-4 { margin-bottom: 16px; }
+        .ant-form-item-label > label { font-weight: 600; color: #434343; }
+        .ant-card-head-title { font-weight: 700; color: #1f1f1f; }
+        .ant-radio-wrapper { font-weight: 500; }
+      `}</style>
+    </div>
   );
 };
 
 export default AddSuspect;
+

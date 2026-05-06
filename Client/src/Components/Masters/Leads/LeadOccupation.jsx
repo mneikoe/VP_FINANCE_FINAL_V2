@@ -1,5 +1,31 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Space, 
+  Popconfirm, 
+  Card, 
+  Typography,
+  Tooltip,
+  Badge,
+  Row,
+  Col,
+  Select,
+  Tag
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  SearchOutlined,
+  ReloadOutlined,
+  IdcardOutlined,
+  AppstoreOutlined
+} from "@ant-design/icons";
 import {
   getAllOccupations,
   createOccupation,
@@ -8,303 +34,298 @@ import {
 } from "../../../redux/feature/LeadOccupation/OccupationThunx";
 import { getAllOccupationTypes } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const LeadOccupation = () => {
-  const [occupationTypeId, setOccupationTypeId] = useState("");
-  const [occupationName, setOccupationName] = useState("");
-  const [editId, setEditId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [openGroup, setOpenGroup] = useState(null);
-
   const dispatch = useDispatch();
-  const { alldetails } = useSelector((state) => state.leadOccupation);
-  const { alldetailsForTypes } = useSelector((state) => state.OccupationType);
+  const { alldetails, loading: occLoading, success } = useSelector((state) => state.leadOccupation);
+  const { alldetailsForTypes, loading: typeLoading } = useSelector((state) => state.OccupationType);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    dispatch(getAllOccupationTypes());
-    dispatch(getAllOccupations());
+    loadData();
   }, [dispatch]);
 
-  const groupedOccupations = useMemo(() => {
-    if (!Array.isArray(alldetails)) return {};
-    return alldetails.reduce((acc, curr) => {
-      const typeName = curr?.occupationType?.occupationType || "Uncategorized";
-      if (!acc[typeName]) acc[typeName] = [];
-      acc[typeName].push(curr);
-      return acc;
-    }, {});
-  }, [alldetails]);
-
-  // Auto-open first group
   useEffect(() => {
-    const keys = Object.keys(groupedOccupations);
-    if (keys.length > 0 && openGroup === null) {
-      setOpenGroup(keys[0]);
+    if (success) {
+      handleCancel();
     }
-  }, [groupedOccupations]);
+  }, [success]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!occupationTypeId || !occupationName.trim()) {
-      toast.warning("Select category and enter name");
-      return;
+  const loadData = () => {
+    dispatch(getAllOccupationTypes());
+    dispatch(getAllOccupations());
+  };
+
+  const showModal = (item = null) => {
+    if (item) {
+      setEditingItem(item);
+      form.setFieldsValue({ 
+        occupationName: item.occupationName,
+        occupationType: item.occupationType?._id 
+      });
+    } else {
+      setEditingItem(null);
+      form.resetFields();
     }
-    setLoading(true);
+    setIsModalOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+    form.resetFields();
+  };
+
+  const onFinish = async (values) => {
     try {
-      if (editId) {
+      if (editingItem) {
         const result = await dispatch(
-          updateOccupation({ id: editId, data: { occupationName, occupationType: occupationTypeId } })
+          updateOccupation({ id: editingItem._id, data: values })
         );
         if (result.meta.requestStatus === "fulfilled") {
-          toast.success("Updated successfully");
-          resetForm();
-          dispatch(getAllOccupations());
+          toast.success("Occupation updated successfully!");
+          loadData();
         }
       } else {
         const result = await dispatch(
-          createOccupation({ occupationName, occupationType: occupationTypeId })
+          createOccupation(values)
         );
         if (result.meta.requestStatus === "fulfilled") {
-          toast.success("Added successfully");
-          resetForm();
-          dispatch(getAllOccupations());
+          toast.success("Occupation added successfully!");
+          loadData();
         }
       }
     } catch {
       toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const resetForm = () => {
-    setOccupationName("");
-    setOccupationTypeId("");
-    setEditId(null);
-  };
-
-  const handleEdit = (item) => {
-    setOccupationName(item.occupationName);
-    setOccupationTypeId(item.occupationType?._id || "");
-    setEditId(item._id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this occupation?")) return;
-    setLoading(true);
-    try {
-      const result = await dispatch(deleteOccupation(id));
-      if (result.meta.requestStatus === "fulfilled") {
-        toast.success("Deleted");
-        dispatch(getAllOccupations());
-      }
-    } finally {
-      setLoading(false);
+    const result = await dispatch(deleteOccupation(id));
+    if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Occupation deleted successfully!");
+      loadData();
     }
   };
 
-  const groupEntries = Object.entries(groupedOccupations);
+  const filteredData = (Array.isArray(alldetails) ? alldetails : []).filter((item) =>
+    item.occupationName?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.occupationType?.occupationType?.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const columns = [
+    {
+      title: "Occupation Name",
+      dataIndex: "occupationName",
+      key: "occupationName",
+      sorter: (a, b) => (a.occupationName || "").localeCompare(b.occupationName || ""),
+      render: (text) => (
+        <Space>
+          <IdcardOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Category",
+      dataIndex: ["occupationType", "occupationType"],
+      key: "category",
+      filters: Array.from(new Set((alldetails || []).map(item => item.occupationType?.occupationType))).filter(Boolean).map(type => ({ text: type, value: type })),
+      onFilter: (value, record) => record.occupationType?.occupationType === value,
+      render: (text) => (
+        <Tag color="blue" icon={<AppstoreOutlined />}>
+          {text || "Uncategorized"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      width: 120,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => showModal(record)}
+              style={{ color: "#1890ff" }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Occupation"
+              description="Confirm deletion of this occupation?"
+              onConfirm={() => handleDelete(record._id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                type="text" 
+                icon={<DeleteOutlined />} 
+                danger
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div style={{ backgroundColor: "#f5f6fa", minHeight: "100vh", padding: "32px 24px" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+    <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+      <Row gutter={[0, 24]}>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8">
+            <Row justify="space-between" align="middle" gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Space align="center" size="middle">
+                  <Title level={3} style={{ margin: 0 }}>Occupation Master</Title>
+                  <Badge count={filteredData.length} showZero color="#13c2c2" />
+                </Space>
+                <Text type="secondary">Assign occupation names under specific categories</Text>
+              </Col>
+              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
+                <Space wrap>
+                  <Input 
+                    placeholder="Search occupation or category..." 
+                    prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />} 
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 280 }}
+                    allowClear
+                  />
+                  <Button icon={<ReloadOutlined />} onClick={loadData} title="Refresh Data" />
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    onClick={() => showModal()}
+                    size="large"
+                    className="shadow-sm"
+                  >
+                    Add Occupation
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
 
-        {/* Page Header */}
-        <div style={{ marginBottom: "28px" }}>
-          <h4 style={{ fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Occupation Name</h4>
-          <p style={{ color: "#6c757d", fontSize: "14px", margin: "4px 0 0" }}>
-            Assign occupation names under specific categories.
-          </p>
-        </div>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8" bodyStyle={{ padding: 0 }}>
+            <Table 
+              columns={columns} 
+              dataSource={filteredData} 
+              rowKey="_id"
+              loading={occLoading || typeLoading}
+              pagination={{ pageSize: 10, showSizeChanger: true }}
+              scroll={{ x: 800 }}
+              className="ant-table-striped custom-table"
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: "24px", alignItems: "start" }}>
+      <Modal
+        title={
+          <Space>
+            {editingItem ? <EditOutlined className="text-primary" /> : <PlusOutlined className="text-primary" />}
+            <Title level={4} style={{ margin: 0 }}>
+              {editingItem ? "Update Occupation" : "Create New Occupation"}
+            </Title>
+          </Space>
+        }
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        destroyOnClose
+        centered
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          style={{ marginTop: "20px" }}
+          requiredMark="optional"
+        >
+          <Form.Item
+            label="Category (Occupation Type)"
+            name="occupationType"
+            rules={[{ required: true, message: "Please select an occupation type!" }]}
+          >
+            <Select 
+              placeholder="Select Category" 
+              size="large"
+              loading={typeLoading}
+              suffixIcon={<AppstoreOutlined className="text-muted" />}
+            >
+              {(alldetailsForTypes || []).map((item) => (
+                <Option key={item._id} value={item._id}>
+                  {item.occupationType}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-          {/* LEFT: Form Card */}
-          <div style={{ background: "#fff", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "28px", position: "sticky", top: "20px" }}>
-            <h6 style={{ fontWeight: 700, color: "#1a1a2e", marginBottom: "20px", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              {editId ? "✏️ Update Entry" : "➕ New Entry"}
-            </h6>
+          <Form.Item
+            label="Occupation Name"
+            name="occupationName"
+            rules={[{ required: true, message: "Please enter the occupation name!" }]}
+          >
+            <Input 
+              prefix={<IdcardOutlined className="text-muted" />} 
+              placeholder="e.g. Doctor, Engineer, Accountant" 
+              size="large"
+            />
+          </Form.Item>
 
-            <form onSubmit={handleSubmit}>
-              {/* Category Dropdown */}
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#495057", marginBottom: "6px", textTransform: "uppercase" }}>
-                  Category
-                </label>
-                <select
-                  value={occupationTypeId}
-                  onChange={(e) => setOccupationTypeId(e.target.value)}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1.5px solid #dee2e6",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    color: "#212529",
-                    backgroundColor: "#ffffff",
-                    appearance: "auto",
-                    outline: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="" disabled style={{ color: "#6c757d" }}>
-                    — Choose Type —
-                  </option>
-                  {Array.isArray(alldetailsForTypes) &&
-                    alldetailsForTypes.map((item) => (
-                      <option key={item._id} value={item._id} style={{ color: "#212529", backgroundColor: "#ffffff" }}>
-                        {item.occupationType}
-                      </option>
-                    ))}
-                </select>
-                {Array.isArray(alldetailsForTypes) && alldetailsForTypes.length === 0 && (
-                  <p style={{ fontSize: "12px", color: "#dc3545", margin: "4px 0 0" }}>
-                    No categories yet. Add them in Occupation Type first.
-                  </p>
-                )}
-              </div>
+          <Form.Item style={{ marginBottom: 0, textAlign: "right", marginTop: "32px" }}>
+            <Space>
+              <Button onClick={handleCancel} size="large">Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={occLoading} size="large">
+                {editingItem ? "Update Changes" : "Save Occupation"}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
 
-              {/* Occupation Name */}
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#495057", marginBottom: "6px", textTransform: "uppercase" }}>
-                  Occupation Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Doctor, Engineer..."
-                  value={occupationName}
-                  onChange={(e) => setOccupationName(e.target.value)}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1.5px solid #dee2e6",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    color: "#212529",
-                    backgroundColor: "#ffffff",
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "11px",
-                  backgroundColor: "#0d6efd",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Saving..." : editId ? "Update" : "Save"}
-              </button>
-
-              {editId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  style={{ width: "100%", marginTop: "8px", padding: "9px", background: "none", border: "1.5px solid #dee2e6", borderRadius: "8px", color: "#6c757d", fontSize: "13px", cursor: "pointer" }}
-                >
-                  Cancel
-                </button>
-              )}
-            </form>
-          </div>
-
-          {/* RIGHT: Grouped Accordion List */}
-          <div>
-            {groupEntries.length === 0 ? (
-              <div style={{ background: "#fff", borderRadius: "12px", padding: "48px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-                <p style={{ color: "#6c757d", margin: 0 }}>No occupations added yet.</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {groupEntries.map(([typeName, occupations]) => {
-                  const isOpen = openGroup === typeName;
-                  return (
-                    <div key={typeName} style={{ background: "#fff", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-                      {/* Accordion Header */}
-                      <button
-                        type="button"
-                        onClick={() => setOpenGroup(isOpen ? null : typeName)}
-                        style={{
-                          width: "100%",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "14px 20px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          borderBottom: isOpen ? "1px solid #f0f0f0" : "none",
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, color: "#1a1a2e", fontSize: "15px" }}>{typeName}</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ background: "#e8f0fe", color: "#0d6efd", borderRadius: "20px", padding: "2px 10px", fontSize: "12px", fontWeight: 600 }}>
-                            {occupations.length}
-                          </span>
-                          <span style={{ color: "#adb5bd", fontSize: "12px" }}>{isOpen ? "▲" : "▼"}</span>
-                        </div>
-                      </button>
-
-                      {/* Accordion Body */}
-                      {isOpen && (
-                        <div>
-                          {occupations.map((item, idx) => (
-                            <div
-                              key={item._id}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                padding: "11px 20px",
-                                borderBottom: idx < occupations.length - 1 ? "1px solid #f8f9fa" : "none",
-                                backgroundColor: "#fdfdfd",
-                              }}
-                              className="occ-row"
-                            >
-                              <span style={{ color: "#212529", fontSize: "14px", fontWeight: 500 }}>{item.occupationName}</span>
-                              <div>
-                                <button
-                                  onClick={() => handleEdit(item)}
-                                  style={{ background: "none", border: "none", color: "#0d6efd", fontSize: "13px", cursor: "pointer", marginRight: "12px", fontWeight: 500 }}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(item._id)}
-                                  style={{ background: "none", border: "none", color: "#dc3545", fontSize: "13px", cursor: "pointer", fontWeight: 500 }}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          border-right: 1px solid #ffffff !important;
+          border-radius: 0 !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+        .ant-table-striped .ant-table-tbody > tr:nth-child(2n) > td {
+          background-color: #fafafa;
+        }
+        .text-muted { color: #bfbfbf; }
+        .text-primary { color: #1890ff; }
+        .border-radius-8 { border-radius: 8px; overflow: hidden; }
+        .shadow-sm {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+        }
+      `}</style>
     </div>
   );
 };
 
 export default LeadOccupation;
+

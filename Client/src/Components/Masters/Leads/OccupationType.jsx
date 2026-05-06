@@ -1,5 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Space, 
+  Popconfirm, 
+  Card, 
+  Typography,
+  Tooltip,
+  Badge,
+  Row,
+  Col
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  SearchOutlined,
+  ReloadOutlined,
+  AppstoreOutlined
+} from "@ant-design/icons";
 import {
   createOccupationType,
   deleteOccupationType,
@@ -7,195 +30,253 @@ import {
   updateOccupationType,
 } from "../../../redux/feature/OccupationType/OccupationThunx";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
+const { Title, Text } = Typography;
 
 const OccupationType = () => {
   const dispatch = useDispatch();
-  const { alldetailsForTypes, loading } = useSelector((state) => state.OccupationType);
+  const { alldetailsForTypes, loading, success } = useSelector((state) => state.OccupationType);
 
-  const [occupationType, setOccupationType] = useState("");
-  const [editId, setEditId] = useState(null);
-  const [editValue, setEditValue] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    dispatch(getAllOccupationTypes());
+    loadData();
   }, [dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!occupationType.trim()) return;
-    try {
-      await dispatch(createOccupationType({ occupationType })).unwrap();
-      toast.success("Category added");
-      dispatch(getAllOccupationTypes());
-      setOccupationType("");
-    } catch {
-      toast.error("Failed to add");
+  useEffect(() => {
+    if (success) {
+      handleCancel();
     }
+  }, [success]);
+
+  const loadData = () => {
+    dispatch(getAllOccupationTypes());
   };
 
-  const handleUpdate = async (id) => {
-    if (!editValue.trim()) return;
+  const showModal = (item = null) => {
+    if (item) {
+      setEditingItem(item);
+      form.setFieldsValue({ occupationType: item.occupationType });
+    } else {
+      setEditingItem(null);
+      form.resetFields();
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+    form.resetFields();
+  };
+
+  const onFinish = async (values) => {
     try {
-      await dispatch(updateOccupationType({ id, data: { occupationType: editValue } })).unwrap();
-      toast.success("Updated");
-      dispatch(getAllOccupationTypes());
-      setEditId(null);
-      setEditValue("");
+      if (editingItem) {
+        await dispatch(updateOccupationType({ id: editingItem._id, data: values })).unwrap();
+        toast.success("Occupation Type updated successfully!");
+      } else {
+        await dispatch(createOccupationType(values)).unwrap();
+        toast.success("Occupation Type added successfully!");
+      }
+      loadData();
     } catch {
-      toast.error("Failed to update");
+      toast.error("An error occurred. Please try again.");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this category?")) return;
     try {
       await dispatch(deleteOccupationType(id)).unwrap();
-      dispatch(getAllOccupationTypes());
-      toast.success("Deleted");
+      toast.success("Occupation Type deleted successfully!");
+      loadData();
     } catch {
-      toast.error("Failed to delete");
+      toast.error("Failed to delete occupation type.");
     }
   };
 
+  const filteredData = (Array.isArray(alldetailsForTypes) ? alldetailsForTypes : []).filter((item) =>
+    item.occupationType?.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const columns = [
+    {
+      title: "Occupation Type",
+      dataIndex: "occupationType",
+      key: "occupationType",
+      sorter: (a, b) => (a.occupationType || "").localeCompare(b.occupationType || ""),
+      render: (text) => (
+        <Space>
+          <AppstoreOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      width: 120,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => showModal(record)}
+              style={{ color: "#1890ff" }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Type"
+              description="Confirm deletion of this occupation type?"
+              onConfirm={() => handleDelete(record._id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                type="text" 
+                icon={<DeleteOutlined />} 
+                danger
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
   return (
-    <div style={{ backgroundColor: "#f5f6fa", minHeight: "100vh", padding: "32px 24px" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+    <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+      <Row gutter={[0, 24]}>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8">
+            <Row justify="space-between" align="middle" gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Space align="center" size="middle">
+                  <Title level={3} style={{ margin: 0 }}>Occupation Type Master</Title>
+                  <Badge count={filteredData.length} showZero color="#722ed1" />
+                </Space>
+                <Text type="secondary">Define broad categories for grouping specific occupations</Text>
+              </Col>
+              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
+                <Space wrap>
+                  <Input 
+                    placeholder="Search type..." 
+                    prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />} 
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 250 }}
+                    allowClear
+                  />
+                  <Button icon={<ReloadOutlined />} onClick={loadData} title="Refresh Data" />
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    onClick={() => showModal()}
+                    size="large"
+                    className="shadow-sm"
+                  >
+                    Add Type
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
 
-        {/* Page Header */}
-        <div style={{ marginBottom: "28px" }}>
-          <h4 style={{ fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Occupation Type</h4>
-          <p style={{ color: "#6c757d", fontSize: "14px", margin: "4px 0 0" }}>
-            Define broad categories for grouping specific occupations.
-          </p>
-        </div>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8" bodyStyle={{ padding: 0 }}>
+            <Table 
+              columns={columns} 
+              dataSource={filteredData} 
+              rowKey="_id"
+              loading={loading}
+              pagination={{ pageSize: 10, showSizeChanger: true }}
+              scroll={{ x: 600 }}
+              className="ant-table-striped custom-table"
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: "24px", alignItems: "start" }}>
+      <Modal
+        title={
+          <Space>
+            {editingItem ? <EditOutlined className="text-primary" /> : <PlusOutlined className="text-primary" />}
+            <Title level={4} style={{ margin: 0 }}>
+              {editingItem ? "Update Type" : "Create New Type"}
+            </Title>
+          </Space>
+        }
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        destroyOnClose
+        centered
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          style={{ marginTop: "20px" }}
+          requiredMark="optional"
+        >
+          <Form.Item
+            label="Occupation Type Name"
+            name="occupationType"
+            rules={[{ required: true, message: "Please enter the occupation type name!" }]}
+          >
+            <Input 
+              prefix={<AppstoreOutlined className="text-muted" />} 
+              placeholder="e.g. Private Sector, Government, Business" 
+              size="large"
+            />
+          </Form.Item>
 
-          {/* LEFT: Add Form */}
-          <div style={{ background: "#fff", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "28px", position: "sticky", top: "20px" }}>
-            <h6 style={{ fontWeight: 700, color: "#1a1a2e", marginBottom: "20px", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              ➕ New Occupation Type
-            </h6>
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "#495057", marginBottom: "6px", textTransform: "uppercase" }}>
-                  Occupation Type
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Private Sector"
-                  value={occupationType}
-                  onChange={(e) => setOccupationType(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1.5px solid #dee2e6",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    color: "#212529",
-                    backgroundColor: "#ffffff",
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "11px",
-                  backgroundColor: "#0d6efd",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Saving..." : "Save Category"}
-              </button>
-            </form>
-          </div>
+          <Form.Item style={{ marginBottom: 0, textAlign: "right", marginTop: "32px" }}>
+            <Space>
+              <Button onClick={handleCancel} size="large">Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={loading} size="large">
+                {editingItem ? "Update Changes" : "Save Type"}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
 
-          {/* RIGHT: Categories List */}
-          <div style={{ background: "#fff", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f0f0f0", background: "#f8f9fa" }}>
-              <span style={{ fontSize: "12px", fontWeight: 700, color: "#6c757d", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                All Categories
-              </span>
-            </div>
-
-            {!Array.isArray(alldetailsForTypes) || alldetailsForTypes.length === 0 ? (
-              <div style={{ padding: "48px", textAlign: "center" }}>
-                <p style={{ color: "#6c757d", margin: 0 }}>No categories defined yet.</p>
-              </div>
-            ) : (
-              alldetailsForTypes.map((item, idx) => (
-                <div
-                  key={item._id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "13px 20px",
-                    borderBottom: idx < alldetailsForTypes.length - 1 ? "1px solid #f0f0f0" : "none",
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  {editId === item._id ? (
-                    <div style={{ display: "flex", gap: "8px", width: "100%", alignItems: "center" }}>
-                      <input
-                        type="text"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        autoFocus
-                        style={{
-                          flex: 1,
-                          padding: "7px 10px",
-                          border: "1.5px solid #0d6efd",
-                          borderRadius: "6px",
-                          fontSize: "14px",
-                          color: "#212529",
-                          backgroundColor: "#fff",
-                          outline: "none",
-                        }}
-                      />
-                      <button onClick={() => handleUpdate(item._id)} style={{ padding: "7px 14px", background: "#198754", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>✓</button>
-                      <button onClick={() => { setEditId(null); setEditValue(""); }} style={{ padding: "7px 14px", background: "#f8f9fa", color: "#6c757d", border: "1px solid #dee2e6", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>✕</button>
-                    </div>
-                  ) : (
-                    <>
-                      <span style={{ color: "#212529", fontSize: "14px", fontWeight: 500 }}>{item.occupationType}</span>
-                      <div>
-                        <button
-                          onClick={() => { setEditId(item._id); setEditValue(item.occupationType); }}
-                          style={{ background: "none", border: "none", color: "#0d6efd", fontSize: "13px", cursor: "pointer", marginRight: "12px", fontWeight: 500 }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item._id)}
-                          style={{ background: "none", border: "none", color: "#dc3545", fontSize: "13px", cursor: "pointer", fontWeight: 500 }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          border-right: 1px solid #ffffff !important;
+          border-radius: 0 !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+        .ant-table-striped .ant-table-tbody > tr:nth-child(2n) > td {
+          background-color: #fafafa;
+        }
+        .text-muted { color: #bfbfbf; }
+        .text-primary { color: #1890ff; }
+        .border-radius-8 { border-radius: 8px; overflow: hidden; }
+        .shadow-sm {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+        }
+      `}</style>
     </div>
   );
 };
 
 export default OccupationType;
+
