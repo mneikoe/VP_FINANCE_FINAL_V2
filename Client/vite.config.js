@@ -25,7 +25,7 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "https://vpf.amnrj.in",
-        //target: "http://localhost:8080",
+        //target: "http://localhost:6060",
         changeOrigin: true,
         secure: false,
       },
