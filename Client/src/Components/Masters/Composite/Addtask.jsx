@@ -70,12 +70,12 @@ const Addtask = ({ on, data, onSuccess }) => {
 
   const flat = data?.task
     ? {
-        ...data.task,
-        category: data.task?.cat?.category,
-        productName: data.task?.cat?.name,
-        descText: data.task?.descp?.text,
-        descImage: data.task?.descp?.image,
-      }
+      ...data.task,
+      category: data.task?.cat?.category,
+      productName: data.task?.cat?.name,
+      descText: data.task?.descp?.text,
+      descImage: data.task?.descp?.image,
+    }
     : null;
 
   const { loading, error, successMessage } = useSelector(
@@ -162,10 +162,10 @@ const Addtask = ({ on, data, onSuccess }) => {
       setFormChecklists(
         flat?.formChecklists?.length
           ? flat.formChecklists.map((item) => ({
-              name: item?.name || "",
-              downloadFormUrl: item?.downloadFormUrl || null,
-              sampleFormUrl: item?.sampleFormUrl || null,
-            }))
+            name: item?.name || "",
+            downloadFormUrl: item?.downloadFormUrl || null,
+            sampleFormUrl: item?.sampleFormUrl || null,
+          }))
           : [{ name: "", downloadFormUrl: null, sampleFormUrl: null }]
       );
 
@@ -376,9 +376,8 @@ const Addtask = ({ on, data, onSuccess }) => {
     <div
       className="composite-task-shell custom-bold-form"
       style={{
-        padding: "6px 16px 10px",
-        background: "#fff",
-        minHeight: "100vh",
+        padding: "0px 16px 0px",
+        background: "transparent",
         fontFamily: "'Poppins', sans-serif",
       }}
     >
@@ -387,18 +386,19 @@ const Addtask = ({ on, data, onSuccess }) => {
         .custom-bold-form .ant-input-number,
         .custom-bold-form .ant-select .ant-select-selector,
         .custom-bold-form .ant-select-selector {
-          border: 2px solid #000 !important;
-          border-color: #000 !important;
+          border: 1.5px solid #a1a1aa !important;
+          background-color: #ffffff !important;
           border-radius: 6px !important;
           font-family: 'Poppins', sans-serif !important;
+          transition: all 0.2s;
         }
         .custom-bold-form .ant-input:focus,
         .custom-bold-form .ant-input-number:focus,
         .custom-bold-form .ant-select .ant-select-selector:focus,
         .custom-bold-form .ant-select-selector:focus,
         .custom-bold-form .ant-select-focused .ant-select-selector {
-          border-color: #1890ff !important;
-          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+          border-color: #000000 !important;
+          box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05) !important;
         }
         .custom-bold-form .ant-tabs-nav-list {
           width: 100%;
@@ -424,19 +424,7 @@ const Addtask = ({ on, data, onSuccess }) => {
             border: "1px solid #dbeafe",
           }}
         >
-          {/* Header */}
-          <div style={{ marginBottom: 8, textAlign: "center" }}>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: "#0d6efd" }}>
-              {data ? "Edit Composite Task" : "Create Composite Task"}
-            </Title>
-            <Text type="secondary">
-              {data
-                ? "Update task details and configurations"
-                : "Create new task template with all configurations"}
-            </Text>
-          </div>
 
-          <Divider style={{ margin: "0 0 8px 0" }} />
 
           <Form
             form={form}
@@ -456,7 +444,7 @@ const Addtask = ({ on, data, onSuccess }) => {
               size="small"
               title="Basic Information"
               style={{
-                marginBottom: 8,
+                marginBottom: 6,
                 borderRadius: 12,
                 border: "1px solid #e5e7eb",
                 background: "#fff",

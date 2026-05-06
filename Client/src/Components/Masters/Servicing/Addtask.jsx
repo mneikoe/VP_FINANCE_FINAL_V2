@@ -313,24 +313,25 @@ const AddTaskService = ({ on, data, onSuccess }) => {
   ];
 
   return (
-    <div className="custom-bold-form" style={{ padding: "24px", background: "#fff", minHeight: "100vh", fontFamily: "'Poppins', sans-serif" }}>
+    <div className="custom-bold-form" style={{ padding: "0px 16px 0px", background: "transparent", fontFamily: "'Poppins', sans-serif" }}>
       <style>{`
         .custom-bold-form .ant-input,
         .custom-bold-form .ant-input-number,
         .custom-bold-form .ant-select .ant-select-selector,
         .custom-bold-form .ant-select-selector {
-          border: 2px solid #000 !important;
-          border-color: #000 !important;
+          border: 1.5px solid #a1a1aa !important;
+          background-color: #ffffff !important;
           border-radius: 6px !important;
           font-family: 'Poppins', sans-serif !important;
+          transition: all 0.2s;
         }
         .custom-bold-form .ant-input:focus,
         .custom-bold-form .ant-input-number:focus,
         .custom-bold-form .ant-select .ant-select-selector:focus,
         .custom-bold-form .ant-select-selector:focus,
         .custom-bold-form .ant-select-focused .ant-select-selector {
-          border-color: #1890ff !important;
-          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+          border-color: #000000 !important;
+          box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05) !important;
         }
         .custom-bold-form .ant-tabs-nav-list {
           width: 100%;
@@ -355,36 +356,13 @@ const AddTaskService = ({ on, data, onSuccess }) => {
             boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
           }}
         >
-          <div style={{ marginBottom: 24 }}>
-            <Space align="center" size={12}>
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ToolOutlined style={{ fontSize: 24, color: "#fff" }} />
-              </div>
-              <div>
-                <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
-                  {data ? "Edit Service Task" : "Create Service Task Template"}
-                </Title>
-                <Text type="secondary">
-                  Service tasks can be assigned to a single role only
-                </Text>
-              </div>
-            </Space>
-          </div>
 
-          <Divider style={{ margin: "0 0 24px 0" }} />
+
+
 
           <Form
             form={form}
+            className="compact-composite-form"
             layout="vertical"
             onFinish={handleSubmit}
             initialValues={{
@@ -397,7 +375,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
             <Card
               size="small"
               title="Basic Information"
-              style={{ marginBottom: 24, borderRadius: 12, background: "#fff" }}
+              style={{ marginBottom: 6, borderRadius: 12, background: "#fff" }}
               styles={{ header: { borderBottom: "none", paddingBottom: 0 } }}
             >
               <Row gutter={[10, 0]}>
@@ -484,7 +462,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
 
             <Card
               size="small"
-              style={{ borderRadius: 12 }}
+              style={{ borderRadius: 12, border: "1px solid #e5e7eb" }}
               styles={{ body: { padding: 0 } }}
             >
               <Tabs
@@ -495,7 +473,7 @@ const AddTaskService = ({ on, data, onSuccess }) => {
                 tabBarStyle={{ marginBottom: 0 }}
               />
 
-              <div style={{ padding: "24px" }}>
+              <div style={{ padding: "8px 12px" }}>
                 {activeTab === "work" && (
                   <Row gutter={[20, 0]} align="top">
                     <Col xs={24} md={16}>
@@ -791,8 +769,8 @@ const AddTaskService = ({ on, data, onSuccess }) => {
 
             <div
               style={{
-                marginTop: 24,
-                paddingTop: 24,
+                marginTop: 8,
+                paddingTop: 8,
                 borderTop: "1px solid #f0f0f0",
                 display: "flex",
                 justifyContent: "center",
@@ -820,6 +798,26 @@ const AddTaskService = ({ on, data, onSuccess }) => {
           </Form>
         </Card>
       </div>
+      <style>{`
+        .compact-composite-form .ant-form-item {
+          margin-bottom: 10px;
+        }
+        .compact-composite-form .ant-form-item-label > label {
+          font-weight: 600;
+          font-size: 12px;
+          color: #334155;
+        }
+        .compact-composite-form .ant-input,
+        .compact-composite-form .ant-select-selector,
+        .compact-composite-form .ant-input-number,
+        .compact-composite-form .ant-picker {
+          min-height: 32px !important;
+        }
+        .composite-task-shell .ant-tabs-tab {
+          padding-top: 8px !important;
+          padding-bottom: 8px !important;
+        }
+      `}</style>
     </div>
   );
 };

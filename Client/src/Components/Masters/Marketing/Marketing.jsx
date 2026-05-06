@@ -254,16 +254,7 @@ const Marketing = () => {
         </span>
       ),
     },
-    {
-      title: "Assigned",
-      dataIndex: "assignments",
-      key: "assignments",
-      width: 90,
-      align: "center",
-      render: (assignments) => (
-        <Badge count={assignments?.length || 0} showZero />
-      ),
-    },
+
     {
       title: "Actions",
       key: "actions",
