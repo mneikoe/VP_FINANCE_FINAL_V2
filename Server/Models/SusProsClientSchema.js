@@ -1,0 +1,404 @@
+const mongoose = require("mongoose");
+
+// Reuse sub-documents
+const healthHistorySchema = new mongoose.Schema({
+  submissionDate: Date,
+  diseaseName: String,
+  since: Date,
+  height: String,
+  weight: String,
+  remark: String,
+});
+
+const familyMemberSchema = new mongoose.Schema({
+  title: String,
+  name: String,
+  relation: String,
+  annualIncome: String,
+  occupation: String,
+  dobActual: Date,
+  dobRecord: Date,
+  marriageDate: Date,
+  includeHealth: Boolean,
+  contact: String,
+  healthHistory: [healthHistorySchema],
+});
+
+const customerDocSchema = new mongoose.Schema({
+  createdDate: Date,
+  memberName: String,
+  documentNo: String,
+  documentName: String,
+  financialProducts: String,
+  remark: String,
+  upload: [String],
+});
+
+const financialInfoSchema = new mongoose.Schema({
+  insurance: [
+    {
+      submissionDate: { type: Date, required: true },
+      memberName: { type: String, required: true },
+      insuranceCompany: { type: String, required: true },
+      policyNumber: { type: String, required: true },
+      planName: { type: String, required: true },
+      sumAssured: { type: Number, required: true },
+      mode: { type: String, required: true },
+      premium: { type: Number, required: true },
+      startDate: { type: Date, required: true },
+      maturityDate: { type: Date, required: true },
+      term: { type: String, default: "" },
+      ppt: { type: String, default: "" },
+      document: { type: String, default: null },
+    },
+  ],
+  investments: [
+    {
+      submissionDate: { type: Date, required: true },
+      memberName: { type: String, required: true },
+      financialProduct: { type: String, required: true },
+      companyName: { type: String, required: true },
+      planName: { type: String, required: true },
+      amount: { type: Number, required: true },
+      maturityAmt: { type: Number, default: null },
+      startDate: { type: Date, required: true },
+      maturityDate: { type: Date, required: true },
+      document: { type: String, default: null },
+    },
+  ],
+  loans: [
+    {
+      submissionDate: { type: Date, required: true },
+      memberName: { type: String, required: true },
+      loanType: { type: String, required: true },
+      companyName: { type: String, required: true },
+      loanAccountNumber: { type: String, required: true },
+      outstandingAmount: { type: Number, required: true },
+      interestRate: { type: Number, required: true },
+      term: { type: String, required: true },
+      startDate: { type: Date, required: true },
+      maturityDate: { type: Date, required: true },
+    },
+  ],
+});
+
+const needsSchema = new mongoose.Schema({
+  financialProducts: String,
+  anyCorrection: String,
+  anyUpdation: String,
+  financialCalculation: Boolean,
+  assesmentOfNeed: Boolean,
+  portfolioManagement: Boolean,
+  doorStepServices: Boolean,
+  purchaseNewProducts: Boolean,
+});
+
+const proposedPlanSchema = new mongoose.Schema({
+  createdDate: { type: Date },
+  memberName: { type: String, required: true },
+  financialProduct: { type: String, required: true },
+  financialCompany: { type: String, required: true },
+  planName: { type: String, required: true },
+  documents: { type: [String] },
+  status: { type: String },
+});
+
+const personalDetailsSchema = new mongoose.Schema({
+  groupCode: String,
+  groupName: String,
+  groupHeadName: String,
+  gender: String,
+  salutation: String,
+  mobileNo: String,
+  emailId: String,
+  name: String,
+  organisation: String,
+  designation: String,
+  annualIncome: String,
+  grade: String,
+  familyHead: String,
+  contactNo: String,
+  whatsappNo: String,
+  paName: String,
+  paMobileNo: Number,
+  adharNumber: String,
+  panCardNumber: String,
+  preferredAddressType: { type: String, enum: ["resi", "office"] },
+  resiAddr: String,
+  resiLandmark: String,
+  resiState: String,
+  resiCity: String,
+  resiArea: String,
+  resiSubArea: String,
+  resiPincode: String,
+  officeAddr: String,
+  officeLandmark: String,
+  officeState: String,
+  officeCity: String,
+  officeArea: String,
+  officeSubArea: String,
+  officePincode: String,
+  preferredMeetingAddr: String,
+  preferredMeetingArea: String,
+  subArea: String, // ✅ NEW FIELD ADDED
+  city: String,
+  state: String,
+  meetingLandmark: String,
+  bestTime: String,
+  time: String, // ✅ NEW TIME FIELD ADDED
+  nativePlace: String,
+  hobbies: String,
+  socialLink: String,
+  habits: String,
+  leadSource: String,
+  leadName: String,
+  leadPerson: String,
+  leadOccupation: String,
+  leadOccupationType: String,
+  occupation: String,
+  callingPurpose: String,
+  allocatedCRE: String,
+  allocatedRM: String, // ✅ NEW RM FIELD ADDED
+  remark: String,
+  pincode: Number,
+  dob: Date,
+  dom: Date,
+  profilepic: String,
+});
+// Models/SusProsClientSchema.js mein NAYA SCHEMA ADD KARO
+const taskHistorySchema = new mongoose.Schema(
+  {
+    taskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "taskHistory.taskType",
+      required: true,
+    },
+    taskType: {
+      type: String,
+      enum: ["CompositeTask", "MarketingTask", "ServiceTask"],
+      required: true,
+    },
+    taskName: {
+      type: String,
+      required: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+    },
+    assignedToName: String,
+    assignedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    dueDate: Date,
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "urgent"],
+    },
+    statusUpdates: [
+      {
+        status: {
+          type: String,
+          enum: ["pending", "in-progress", "completed", "cancelled"],
+          required: true,
+        },
+        remarks: String,
+        updatedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Employee",
+        },
+        updatedByName: String,
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        files: [
+          {
+            filename: String,
+            originalName: String,
+            uploadedAt: Date,
+          },
+        ],
+      },
+    ],
+    currentStatus: {
+      type: String,
+      enum: ["pending", "in-progress", "completed", "cancelled"],
+      default: "pending",
+    },
+    completedAt: Date,
+    completionRemarks: String,
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true }
+);
+// Models/SusProsClientSchema.js में callTaskSchema update करो
+const callTaskSchema = new mongoose.Schema(
+  {
+    taskDate: {
+      type: Date,
+      required: true,
+    },
+    taskTime: {
+      type: String,
+      required: true,
+    },
+    taskRemarks: String,
+    taskStatus: {
+      type: String,
+      enum: [
+        // ✅ FORWARDED STATUSES
+        "Call Not Picked",
+        "Busy on Another Call",
+        "Call After Sometimes",
+        "Others",
+
+        // ✅ CLOSED STATUSES
+        "Not Reachable",
+        "Wrong Number",
+        "Not Interested",
+        "Appointment Scheduled",
+
+        // ✅ ACTIVE STATUSES
+        "Callback",
+        "Not Contacted",
+      ],
+      required: true,
+    },
+    // ✅ NEW: Category field for easy filtering
+    taskCategory: {
+      type: String,
+      enum: ["forwarded", "closed", "active"],
+      default: "active",
+    },
+    // ✅ NEW: Next follow-up date for forwarded calls
+    nextFollowUpDate: Date,
+    nextFollowUpTime: String,
+    nextAppointmentDate: {
+      type: Date,
+      default: null,
+    },
+    nextAppointmentTime: {
+      type: String,
+      default: null,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true }
+);
+
+const callHistorySchema = new mongoose.Schema({
+  callDate: Date,
+  callTime: { type: String, default: "" }, // Appointment time (e.g. "10:30 AM")
+  duration: String,
+  remarks: String,
+  mobile: String,
+  status: String, // e.g. "Appointment", "Call"
+  callBy: String, // Who added (RM name/code)
+  callById: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", default: null },
+});
+
+const TestShema = new mongoose.Schema({
+  status: {
+    type: String,
+    enum: ["suspect", "prospect", "client"],
+  },
+  personalDetails: personalDetailsSchema,
+  taskHistory: [taskHistorySchema],
+  education: {
+    types: {
+      type: String,
+      enum: ["", "school", "college", "professional"],
+    },
+    schoolName: String,
+    schoolSubjects: String,
+    collegeName: String,
+    collegeCourse: String,
+    instituteName: String,
+    professionalDegree: String,
+  },
+
+  preferences: {},
+  familyMembers: [familyMemberSchema],
+  financialInfo: financialInfoSchema,
+  futurePriorities: [
+    {
+      priorityName: { type: String, required: true },
+      members: { type: [String], required: true },
+      approxAmount: { type: Number, required: true },
+      individualOrFamily: { type: String, default: "" },
+      policyType: { type: String, default: "" },
+      companyName: { type: String, default: "" },
+      termPpt: { type: String, default: "" },
+      maturityDate: { type: Date, default: null },
+      duration: { type: String, default: "" },
+      remark: { type: String },
+    },
+  ],
+  proposedPlan: [proposedPlanSchema],
+  needs: needsSchema,
+  customerDoc: [customerDocSchema],
+  kycs: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Kyc",
+    },
+  ],
+  taskDetails: String,
+  assignedAt: {
+    type: Date,
+    default: null,
+  },
+
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Telecaller",
+    default: null,
+  },
+
+  assignedRole: {
+    type: String,
+    enum: ["Telecaller", "RM", "Manager"],
+    default: null,
+  },
+  assignedToRM: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee", // or "RM" model if you have
+    default: null,
+  },
+
+  assignedToRMName: {
+    type: String,
+    default: null,
+  },
+
+  assignedToRMCode: {
+    type: String,
+    default: null,
+  },
+
+  assignedToRMAt: {
+    type: Date,
+    default: null,
+  },
+
+  rmAssignmentNotes: {
+    type: String,
+    default: "",
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  callTasks: [callTaskSchema],
+  callHistory: [callHistorySchema],
+});
+
+module.exports = mongoose.model("testSchema", TestShema);

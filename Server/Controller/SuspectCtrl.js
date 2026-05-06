@@ -1,0 +1,1464 @@
+const suspectModel = require("../Models/SusProsClientSchema");
+const generateAndStoreGroupCode = require("../utils/generateGroupCode");
+const mongoose = require("mongoose");
+// Create a new suspect
+exports.createSuspect = async (req, res) => {
+  try {
+    // Check if request body has data
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(401).json({
+        error: "No Suspect data provided in request body",
+      });
+    }
+
+    const suspectData = { ...req.body, status: "suspect" };
+    const newSuspect = new suspectModel(suspectData);
+    const savedSuspect = await newSuspect.save();
+
+    if (!savedSuspect || !savedSuspect._id) {
+      return res.status(500).json({
+        error: "Failed to save Suspect data properly",
+      });
+    }
+
+    const groupCode = await generateAndStoreGroupCode(savedSuspect._id);
+    if (!savedSuspect.personalDetails) {
+      savedSuspect.personalDetails = {};
+    }
+    savedSuspect.personalDetails.groupCode = groupCode;
+    await savedSuspect.save();
+
+    res.status(201).json(savedSuspect);
+  } catch (err) {
+    res.status(500).json({
+      error: "Failed to create Suspect form",
+      details: err.message,
+    });
+  }
+};
+
+// Get all suspects
+exports.getAllSuspects = async (req, res) => {
+  try {
+    const allSuspects = await suspectModel
+      .find({ status: "suspect" })
+      .sort({ createdAt: -1 });
+    if (allSuspects.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "No Suspects found" });
+    res.status(200).json({ success: true, suspects: allSuspects });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching Suspects",
+      error: error.message,
+    });
+  }
+};
+
+//!SECTIONfetch all appointment done
+exports.getAllSuspectsAppointmentScheduled = async (req, res) => {
+  try {
+    const allSuspects = await suspectModel.find({
+      status: "suspect",
+      "callTasks.taskStatus": "Appointment Scheduled",
+    });
+    if (allSuspects.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "No Suspects found" });
+    res.status(200).json({ success: true, suspects: allSuspects });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching Suspects",
+      error: error.message,
+    });
+  }
+};
+
+// Get a single suspect by ID
+// Controller/SuspectCtrl.js में getSuspectById function update करो:
+exports.getSuspectById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log("🔍 GET SUSPECT BY ID - Request received");
+    console.log("ID parameter:", id);
+
+    if (!id || id === "undefined") {
+      return res.status(400).json({
+        success: false,
+        message: "Suspect ID is required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid suspect ID format",
+      });
+    }
+
+    // ✅ COMPLETE DATA FETCH WITH ALL RELATED DATA
+    const suspect = await suspectModel
+      .findById(id)
+      .populate("personalDetails")
+      .populate({
+        path: "familyMembers",
+        populate: {
+          path: "healthHistory",
+        },
+      })
+      .populate("financialInfo.insurance")
+      .populate("financialInfo.investments")
+      .populate("financialInfo.loans")
+      .populate("futurePriorities")
+      .populate("proposedPlan")
+      .populate("needs")
+      .populate("customerDoc")
+      .populate("kycs")
+      .populate("callTasks")
+      .populate("callHistory")
+      .lean(); // Use lean for better performance
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    console.log("✅ Suspect found with complete data");
+
+    // Format response
+    const responseData = {
+      _id: suspect._id,
+      status: suspect.status,
+
+      // Personal Details
+      personalDetails: suspect.personalDetails || {},
+
+      // Family Members
+      familyMembers: suspect.familyMembers || [],
+
+      // Financial Info
+      financialInfo: {
+        insurance: suspect.financialInfo?.insurance || [],
+        investments: suspect.financialInfo?.investments || [],
+        loans: suspect.financialInfo?.loans || [],
+      },
+
+      // Future Priorities
+      futurePriorities: suspect.futurePriorities || [],
+
+      // Needs
+      needs: suspect.needs || {},
+
+      // Proposed Plan
+      proposedPlan: suspect.proposedPlan || [],
+
+      // Customer Documents
+      customerDoc: suspect.customerDoc || [],
+
+      // KYC
+      kycs: suspect.kycs || [],
+
+      // Call Tasks & History
+      callTasks: suspect.callTasks || [],
+      callHistory: suspect.callHistory || [],
+
+      // Assignment Info
+      assignedTo: suspect.assignedTo,
+      assignedToRM: suspect.assignedToRM,
+      assignedToRMName: suspect.assignedToRMName,
+      assignedToRMCode: suspect.assignedToRMCode,
+      assignedToRMAt: suspect.assignedToRMAt,
+      rmAssignmentNotes: suspect.rmAssignmentNotes,
+
+      // Timestamps
+      createdAt: suspect.createdAt,
+      updatedAt: suspect.updatedAt,
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Suspect details fetched successfully",
+      suspect: responseData,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching suspect by ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch suspect details",
+      error: error.message,
+    });
+  }
+};
+
+// Update a suspect's personal details
+exports.updatePersonalDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Check if the client ID is provided in the URL.
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Suspect ID is required." });
+    }
+
+    // 2. Validate that the request body contains the new personalDetails.
+    const { personalDetails } = req.body;
+    if (!personalDetails || Object.keys(personalDetails).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "New personal details are required in the request body.",
+      });
+    }
+
+    // 3. Find the client by ID and update the personalDetails object.
+    // The '$set' operator is used here to replace the entire 'personalDetails' object.
+    const updatedSuspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { $set: { personalDetails } },
+      { new: true, runValidators: true } // Return the updated document and run schema validators.
+    );
+
+    // 4. Handle the case where the client ID is not found.
+    if (!updatedSuspect) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Suspect not found." });
+    }
+
+    // 5. Send a successful response with the updated client document.
+    res.status(200).json({
+      success: true,
+      message: "Personal details updated successfully.",
+      updatedSuspect: updatedSuspect,
+    });
+  } catch (error) {
+    // 6. Centralized error handling.
+    console.error("Error updating personal details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error.",
+      details: error.message,
+    });
+  }
+};
+
+// Backend me addCallTask function me change - Suspect ko prospect convert mat karo
+exports.addCallTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      taskDate,
+      taskTime,
+      taskRemarks,
+      taskStatus,
+      nextFollowUpDate,
+      nextFollowUpTime,
+      nextAppointmentDate,
+      nextAppointmentTime,
+    } = req.body;
+
+    console.log("🟢 BACKEND - ADD CALL TASK RECEIVED:", {
+      suspectId: id,
+      taskStatus,
+    });
+
+    // Validation
+    if (!taskDate || !taskStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Task date and status are required.",
+      });
+    }
+
+    // Special validation for forwarded statuses
+    const forwardedStatuses = [
+      "Call Not Picked",
+      "Busy on Another Call",
+      "Call After Sometimes",
+      "Others",
+    ];
+    if (
+      forwardedStatuses.includes(taskStatus) &&
+      (!nextFollowUpDate || !nextFollowUpTime)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Next call date and time are required for forwarded calls.",
+      });
+    }
+
+    // Special validation for Appointment Scheduled
+    if (
+      taskStatus === "Appointment Scheduled" &&
+      (!nextAppointmentDate || !nextAppointmentTime)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Next appointment date and time are required for Appointment Scheduled status.",
+      });
+    }
+
+    const suspect = await suspectModel.findById(id);
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found.",
+      });
+    }
+
+    // ✅ CRITICAL CHANGE: Suspect ko prospect mat convert karo
+    // REMOVE this conversion logic:
+    // let statusChanged = false;
+    // if (taskStatus === "Appointment Scheduled" && suspect.status !== "prospect") {
+    //   console.log(`🎯 Converting suspect ${id} to prospect (Appointment Scheduled)`);
+    //   suspect.status = "prospect";
+    //   suspect.convertedAt = new Date();
+    //   suspect.conversionReason = "Telecaller Appointment";
+    //   statusChanged = true;
+    // }
+
+    // Suspect ka status change nahi karna hai, wo suspect hi rahega
+    // Isliye statusChanged hamesha false rahega
+    let statusChanged = false;
+
+    // Determine category
+    let taskCategory = "active";
+    if (
+      [
+        "Not Reachable",
+        "Wrong Number",
+        "Not Interested",
+        "Appointment Scheduled",
+      ].includes(taskStatus)
+    ) {
+      taskCategory = "closed";
+    } else if (forwardedStatuses.includes(taskStatus)) {
+      taskCategory = "forwarded";
+    }
+
+    const newCallTask = {
+      taskDate: new Date(taskDate),
+      taskTime:
+        taskTime ||
+        new Date().toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      taskRemarks: taskRemarks || "",
+      taskStatus,
+      taskCategory,
+
+      nextFollowUpDate:
+        forwardedStatuses.includes(taskStatus) && nextFollowUpDate
+          ? new Date(nextFollowUpDate)
+          : null,
+
+      nextFollowUpTime:
+        forwardedStatuses.includes(taskStatus) && nextFollowUpTime
+          ? nextFollowUpTime
+          : null,
+
+      nextAppointmentDate:
+        taskStatus === "Appointment Scheduled" && nextAppointmentDate
+          ? new Date(nextAppointmentDate)
+          : null,
+
+      nextAppointmentTime:
+        taskStatus === "Appointment Scheduled" && nextAppointmentTime
+          ? nextAppointmentTime
+          : null,
+    };
+
+    console.log("💾 SAVING CALL TASK:", newCallTask);
+
+    // Add to callTasks array
+    suspect.callTasks.push(newCallTask);
+
+    // Save the suspect WITHOUT changing its status
+    await suspect.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Call task added successfully.",
+      callTask: newCallTask,
+      totalCallTasks: suspect.callTasks.length,
+      statusChanged: false, // Hamesha false rahega
+      newStatus: suspect.status, // Yeh suspect hi rahega
+      suspectId: suspect._id,
+    });
+  } catch (error) {
+    console.error("❌ Error adding call task:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while adding call task.",
+      details: error.message,
+    });
+  }
+};
+exports.getSuspectsByCallStatus = async (req, res) => {
+  try {
+    const { status, category, telecallerId } = req.query;
+
+    console.log("🔍 Filtering suspects by:", {
+      status,
+      category,
+      telecallerId,
+    });
+
+    // ✅ BASE QUERY - Only suspects assigned to specific telecaller
+    let query = { status: "suspect" };
+
+    if (telecallerId) {
+      query.assignedTo = telecallerId;
+    }
+
+    const suspects = await suspectModel
+      .find(query)
+      .select("personalDetails callTasks assignedTo assignedAt status")
+      .populate("assignedTo", "username email")
+      .sort({ assignedAt: -1 });
+
+    // ✅ FILTER BY LATEST CALL TASK STATUS
+    const filteredSuspects = suspects.filter((suspect) => {
+      if (!suspect.callTasks || suspect.callTasks.length === 0) {
+        return status === "Not Contacted"; // No call tasks = Not Contacted
+      }
+
+      // Get latest call task
+      const latestTask = suspect.callTasks.reduce((latest, task) => {
+        if (!task.taskDate) return latest;
+        const taskDate = new Date(task.taskDate);
+        if (!latest) return task;
+        const latestDate = new Date(latest.taskDate);
+        return taskDate > latestDate ? task : latest;
+      }, null);
+
+      if (!latestTask) return false;
+
+      // Filter by status
+      if (status && latestTask.taskStatus !== status) {
+        return false;
+      }
+
+      // Filter by category
+      if (category && latestTask.taskCategory !== category) {
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log(
+      `✅ Found ${filteredSuspects.length} suspects matching filters`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Suspects filtered by call status",
+      count: filteredSuspects.length,
+      suspects: filteredSuspects,
+      filters: { status, category, telecallerId },
+    });
+  } catch (error) {
+    console.error("❌ Error filtering suspects:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while filtering suspects",
+      error: error.message,
+    });
+  }
+};
+// Get call history for a suspect
+exports.getCallHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const suspect = await suspectModel.findById(id, "callHistory");
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      callHistory: suspect.callHistory,
+    });
+  } catch (error) {
+    console.error("Error retrieving call history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error.",
+      details: error.message,
+    });
+  }
+};
+
+// Add call history entry (e.g. RM adding appointment with date, time, remark)
+exports.addCallHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { callDate, callTime, remarks } = req.body;
+
+    if (!callDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Call/Appointment date is required.",
+      });
+    }
+
+    const suspect = await suspectModel.findById(id);
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found.",
+      });
+    }
+
+    const callBy = req.user?.name || req.user?.employeeCode || req.user?.username || "RM";
+    const callById = req.user?.id || null;
+
+    const entry = {
+      callDate: new Date(callDate),
+      callTime: callTime || "",
+      remarks: remarks || "",
+      status: "Appointment",
+      callBy,
+      callById,
+    };
+
+    if (!suspect.callHistory) suspect.callHistory = [];
+    suspect.callHistory.push(entry);
+    await suspect.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Appointment added to call history.",
+      callHistory: suspect.callHistory,
+    });
+  } catch (error) {
+    console.error("Error adding call history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error.",
+      details: error.message,
+    });
+  }
+};
+
+// Add family members to a suspect
+exports.addFamilyMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide suspectId" });
+    }
+    const membersArray = req.body;
+    if (!Array.isArray(membersArray) || membersArray.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body must be a non-empty array of family members",
+      });
+    }
+    const suspect = await suspectModel.findById(id);
+    if (!suspect) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Suspect not found" });
+    }
+    suspect.familyMembers.push(...membersArray);
+    await suspect.save();
+    res.status(201).json({
+      success: true,
+      message: `${membersArray.length} family member(s) added successfully`,
+      familyMembers: suspect.familyMembers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to add family member(s)",
+      error: error.message,
+    });
+  }
+};
+
+// Add financial info to a suspect
+
+exports.addFinancialInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Suspect ID is required" });
+    }
+
+    // Find the client
+    const suspect = await suspectModel.findById(id);
+    if (!suspect) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Suspect not found" });
+    }
+
+    // console.log("Request body:", req.body);
+    // console.log("Request files:", req.files);
+
+    // Parse JSON strings if they exist, otherwise use empty arrays
+    let insuranceData = [];
+    let investmentsData = [];
+    let loansData = [];
+
+    try {
+      // Handle both JSON strings and direct arrays
+      if (req.body.insurance) {
+        insuranceData =
+          typeof req.body.insurance === "string"
+            ? JSON.parse(req.body.insurance)
+            : req.body.insurance;
+      }
+
+      if (req.body.investments) {
+        investmentsData =
+          typeof req.body.investments === "string"
+            ? JSON.parse(req.body.investments)
+            : req.body.investments;
+      }
+
+      if (req.body.loans) {
+        loansData =
+          typeof req.body.loans === "string"
+            ? JSON.parse(req.body.loans)
+            : req.body.loans;
+      }
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid JSON data format",
+        error: parseError.message,
+      });
+    }
+
+    // Ensure arrays are actually arrays
+    insuranceData = Array.isArray(insuranceData) ? insuranceData : [];
+    investmentsData = Array.isArray(investmentsData) ? investmentsData : [];
+    loansData = Array.isArray(loansData) ? loansData : [];
+
+    console.log("Parsed data:", { insuranceData, investmentsData, loansData });
+
+    // Attach document filenames to each item if files exist
+    // const attachFiles = (dataArray, uploadedFilesArray = []) => {
+    //   if (Array.isArray(dataArray) && Array.isArray(uploadedFilesArray)) {
+    //     dataArray.forEach((item, index) => {
+    //       if (uploadedFilesArray[index]) {
+    //         item.document = uploadedFilesArray[index].filename;
+    //       }
+    //     });
+    //   }
+    // };
+
+    const attachFiles = (dataArray, uploadedFilesArray = []) => {
+      if (Array.isArray(dataArray) && Array.isArray(uploadedFilesArray)) {
+        dataArray.forEach((item, index) => {
+          if (uploadedFilesArray[index]) {
+            item.document = uploadedFilesArray[index].filename;
+          } else {
+            item.document = null;
+          }
+        });
+      }
+    };
+
+    // Safely access file arrays
+    const insuranceFiles = req.files?.insuranceDocuments || [];
+    const investmentFiles = req.files?.investmentDocuments || [];
+    const loanFiles = req.files?.loanDocuments || [];
+
+    attachFiles(insuranceData, insuranceFiles);
+    attachFiles(investmentsData, investmentFiles);
+    attachFiles(loansData, loanFiles);
+
+    // Initialize financialInfo if not present
+    if (!suspect.financialInfo) {
+      suspect.financialInfo = {
+        insurance: [],
+        investments: [],
+        loans: [],
+      };
+    }
+
+    // Append new data (only if arrays have content)
+    if (insuranceData.length > 0) {
+      suspect.financialInfo.insurance.push(...insuranceData);
+    }
+    if (investmentsData.length > 0) {
+      suspect.financialInfo.investments.push(...investmentsData);
+    }
+    if (loansData.length > 0) {
+      suspect.financialInfo.loans.push(...loansData);
+    }
+
+    // Check if any data was actually added
+    const totalItemsAdded =
+      insuranceData.length + investmentsData.length + loansData.length;
+    if (totalItemsAdded === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No financial data provided",
+      });
+    }
+
+    // Save client
+    await suspect.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Financial info with documents added successfully",
+      financialInfo: suspect.financialInfo,
+      suspectId: suspect._id,
+      added: {
+        insurance: insuranceData.length,
+        investments: investmentsData.length,
+        loans: loansData.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error in addFinancialInfo:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Add future priorities and needs to a suspect
+exports.addFuturePrioritiesAndNeeds = async (req, res) => {
+  try {
+    const suspectId = req.params.id;
+    const { futurePriorities, needs } = req.body;
+
+    // Validate client ID
+    if (!suspectId) {
+      return res.status(400).json({ error: "suspect ID is required" });
+    }
+
+    // Validate futurePriorities
+    if (!Array.isArray(futurePriorities)) {
+      return res
+        .status(400)
+        .json({ error: "futurePriorities must be an array" });
+    }
+
+    for (const priority of futurePriorities) {
+      const isLifeInsurance = priority.priorityName === "Life Insurance";
+      if (
+        !priority.priorityName ||
+        !Array.isArray(priority.members) ||
+        typeof priority.approxAmount !== "number" ||
+        (isLifeInsurance &&
+          (!priority.individualOrFamily ||
+            !priority.policyType ||
+            !priority.companyName ||
+            !priority.termPpt ||
+            !priority.maturityDate))
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Invalid priority object structure" });
+      }
+    }
+
+    // Build update object
+    const updateData = {
+      futurePriorities,
+    };
+
+    if (needs && typeof needs === "object") {
+      updateData.needs = needs;
+    }
+
+    const updatedSuspect = await suspectModel.findByIdAndUpdate(
+      suspectId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedSuspect) {
+      return res.status(404).json({ error: "Suspect not found" });
+    }
+
+    res.status(200).json({
+      message: "Future priorities (and needs if provided) updated successfully",
+      suspect: updatedSuspect,
+      suspectId: updatedSuspect._id,
+    });
+  } catch (error) {
+    console.error("Error updating future priorities and needs:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+};
+
+// Add a proposed financial plan to a suspect
+exports.addProposedFinancialPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate client ID
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Suspect ID is required" });
+    }
+
+    // Validate request body
+    if (!req.body) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Request body is required" });
+    }
+
+    // Handle file uploads
+    const files = req.files;
+    if (!files) {
+      return res.status(401).json({
+        success: false,
+        message: "Please provide documents to upload",
+      });
+    }
+
+    const documentPaths = files.map((file) => file.filename);
+
+    const suspectToUpdate = await suspectModel.findById(id);
+    if (!suspectToUpdate) {
+      return res
+        .status(404)
+        .json({ success: false, message: "suspect not found" });
+    }
+
+    const newProposedPlan = {
+      ...req.body,
+      documents: documentPaths,
+    };
+
+    suspectToUpdate.proposedPlan.push(newProposedPlan);
+
+    await suspectToUpdate.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Proposed financial plan updated successfully",
+      proposedPlan: suspectToUpdate.proposedPlan,
+      suspectId: suspectToUpdate._id,
+    });
+  } catch (error) {
+    console.error("Error adding proposed financial plan:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+};
+
+// Update a suspect's status
+exports.updateSuspectStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: "Suspect ID is required" });
+    const updatedSuspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+    if (!updatedSuspect) {
+      return res.status(404).json({ message: "Suspect not found" });
+    }
+    res.status(200).json(updatedSuspect);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Delete a suspect
+exports.deleteSuspect = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Suspect ID is required" });
+    }
+
+    await suspectModel.findByIdAndDelete(id);
+    res
+      .status(200)
+      .json({ success: true, message: "suspect deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting suspect",
+      error: error.message,
+    });
+  }
+};
+
+// get all family members
+exports.getAllFamilyMembers = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide Client ID",
+      });
+    }
+
+    const suspect = await suspectModel.findById(id).select("familyMembers");
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found for this ID",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Family members fetched successfully",
+      data: suspect.familyMembers,
+    });
+  } catch (error) {
+    console.error("Error in fetching all family members:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching family members",
+    });
+  }
+};
+// ✅ NEW: Get all appointment scheduled records (both suspects and prospects)
+exports.getAllAppointmentScheduled = async (req, res) => {
+  try {
+    console.log("🟢 [API] Fetching all Appointment Scheduled records...");
+
+    // Find all records with Appointment Scheduled status
+    // Both suspect and prospect status allowed
+    const allRecords = await suspectModel
+      .find({
+        "callTasks.taskStatus": "Appointment Scheduled",
+      })
+      .populate({
+        path: "assignedTo",
+        select: "username email mobileno role",
+        model: "Telecaller",
+      })
+      .sort({ createdAt: -1 }) // Latest first
+      .lean();
+
+    console.log(
+      `✅ [API] Found ${allRecords.length} records with Appointment Scheduled`
+    );
+
+    if (allRecords.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No appointment scheduled records found",
+        data: {
+          appointments: [],
+          count: 0,
+          stats: {
+            total: 0,
+            suspects: 0,
+            prospects: 0,
+            today: 0,
+            upcoming: 0,
+          },
+        },
+      });
+    }
+
+    // Process and filter records
+    const processedAppointments = allRecords
+      .filter((record) => {
+        // Ensure record has call tasks
+        if (!record.callTasks || !Array.isArray(record.callTasks)) return false;
+
+        // Find Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) =>
+            task.taskStatus === "Appointment Scheduled" &&
+            task.nextAppointmentDate
+        );
+
+        return appointmentTasks.length > 0;
+      })
+      .map((record) => {
+        // Get Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) => task.taskStatus === "Appointment Scheduled"
+        );
+
+        // Get latest appointment
+        const latestAppointment = appointmentTasks.reduce((latest, task) => {
+          if (!latest) return task;
+          const taskDate = new Date(task.taskDate || 0);
+          const latestDate = new Date(latest.taskDate || 0);
+          return taskDate > latestDate ? task : latest;
+        }, null);
+
+        // Format telecaller info
+        let telecallerInfo = {};
+        if (record.assignedTo && typeof record.assignedTo === "object") {
+          telecallerInfo = {
+            _id: record.assignedTo._id,
+            username: record.assignedTo.username || "Unknown",
+            email: record.assignedTo.email || "-",
+            mobileno: record.assignedTo.mobileno || "-",
+            role: record.assignedTo.role || "Telecaller",
+          };
+        } else if (record.assignedTo) {
+          // If assignedTo is just an ID (string/ObjectId)
+          telecallerInfo = {
+            _id: record.assignedTo,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            role: "-",
+          };
+        } else {
+          telecallerInfo = {
+            _id: null,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            role: "-",
+          };
+        }
+
+        return {
+          _id: record._id,
+          status: record.status || "suspect",
+          personalDetails: record.personalDetails || {},
+          assignedTo: telecallerInfo,
+          assignedAt: record.assignedAt,
+          callTasks: record.callTasks || [],
+
+          // Appointment info
+          latestAppointment: latestAppointment || null,
+          appointmentDate: latestAppointment?.nextAppointmentDate || null,
+          appointmentTime: latestAppointment?.nextAppointmentTime || null,
+          scheduledOn: latestAppointment?.taskDate || null,
+          appointmentRemarks: latestAppointment?.taskRemarks || "",
+
+          // For easy access
+          groupCode: record.personalDetails?.groupCode || "-",
+          groupName:
+            record.personalDetails?.groupName ||
+            record.personalDetails?.name ||
+            "Unknown",
+          organisation: record.personalDetails?.organisation || "-",
+          city: record.personalDetails?.city || "-",
+          mobileNo: record.personalDetails?.mobileNo || "-",
+          contactNo: record.personalDetails?.contactNo || "-",
+          emailId: record.personalDetails?.emailId || "-",
+          leadSource: record.personalDetails?.leadSource || "-",
+        };
+      });
+
+    console.log(
+      `✅ [API] Processed ${processedAppointments.length} appointments`
+    );
+
+    // Calculate stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    const stats = {
+      total: processedAppointments.length,
+      suspects: processedAppointments.filter((a) => a.status === "suspect")
+        .length,
+      prospects: processedAppointments.filter((a) => a.status === "prospect")
+        .length,
+      today: processedAppointments.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate.getTime() === today.getTime();
+      }).length,
+      upcoming: processedAppointments.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate >= today && aptDate <= nextWeek;
+      }).length,
+    };
+
+    // Log for debugging
+    console.log("📊 Appointment Stats:", stats);
+    console.log("👥 Telecallers found:", [
+      ...new Set(processedAppointments.map((a) => a.assignedTo.username)),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment scheduled records fetched successfully",
+      data: {
+        appointments: processedAppointments,
+        count: processedAppointments.length,
+        stats: stats,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "❌ [API] Error fetching appointment scheduled records:",
+      error
+    );
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching appointment scheduled records",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+exports.getSuspectsAppointmentScheduled = async (req, res) => {
+  try {
+    console.log("🟢 [API] Fetching SUSPECTS with Appointment Scheduled...");
+
+    // Find only suspects (status: "suspect") with Appointment Scheduled
+    const suspectRecords = await suspectModel
+      .find({
+        status: "suspect", // ✅ Only suspects
+        "callTasks.taskStatus": "Appointment Scheduled",
+      })
+      .populate({
+        path: "assignedTo",
+        select: "username email mobileno role employeeCode",
+        model: "Telecaller",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log(
+      `✅ [API] Found ${suspectRecords.length} SUSPECTS with Appointment Scheduled`
+    );
+
+    if (suspectRecords.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No suspects with appointment scheduled found",
+        data: {
+          suspects: [],
+          count: 0,
+        },
+      });
+    }
+
+    // Process and filter records
+    const processedSuspects = suspectRecords
+      .filter((record) => {
+        // Ensure record has call tasks
+        if (!record.callTasks || !Array.isArray(record.callTasks)) return false;
+
+        // Find Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) =>
+            task.taskStatus === "Appointment Scheduled" &&
+            task.nextAppointmentDate
+        );
+
+        return appointmentTasks.length > 0;
+      })
+      .map((record) => {
+        // Get Appointment Scheduled tasks
+        const appointmentTasks = record.callTasks.filter(
+          (task) => task.taskStatus === "Appointment Scheduled"
+        );
+
+        // Get latest appointment
+        const latestAppointment = appointmentTasks.reduce((latest, task) => {
+          if (!latest) return task;
+          const taskDate = new Date(task.taskDate || 0);
+          const latestDate = new Date(latest.taskDate || 0);
+          return taskDate > latestDate ? task : latest;
+        }, null);
+
+        // Format telecaller info
+        let telecallerInfo = {};
+        if (record.assignedTo && typeof record.assignedTo === "object") {
+          telecallerInfo = {
+            _id: record.assignedTo._id,
+            username: record.assignedTo.username || "Unknown",
+            email: record.assignedTo.email || "-",
+            mobileno: record.assignedTo.mobileno || "-",
+            employeeCode: record.assignedTo.employeeCode || "-",
+            role: record.assignedTo.role || "Telecaller",
+          };
+        } else if (record.assignedTo) {
+          // If assignedTo is just an ID (string/ObjectId)
+          telecallerInfo = {
+            _id: record.assignedTo,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            employeeCode: "-",
+            role: "-",
+          };
+        } else {
+          telecallerInfo = {
+            _id: null,
+            username: "Unassigned",
+            email: "-",
+            mobileno: "-",
+            employeeCode: "-",
+            role: "-",
+          };
+        }
+
+        return {
+          _id: record._id,
+          status: record.status || "suspect",
+          personalDetails: record.personalDetails || {},
+          assignedTo: telecallerInfo,
+          assignedAt: record.assignedAt,
+          callTasks: record.callTasks || [],
+
+          // Appointment info
+          latestAppointment: latestAppointment || null,
+          appointmentDate: latestAppointment?.nextAppointmentDate || null,
+          appointmentTime: latestAppointment?.nextAppointmentTime || null,
+          scheduledOn: latestAppointment?.taskDate || null,
+          appointmentRemarks: latestAppointment?.taskRemarks || "",
+
+          // For easy access
+          groupCode: record.personalDetails?.groupCode || "-",
+          groupName:
+            record.personalDetails?.groupName ||
+            record.personalDetails?.name ||
+            "Unknown",
+          organisation: record.personalDetails?.organisation || "-",
+          city: record.personalDetails?.city || "-",
+          mobileNo: record.personalDetails?.mobileNo || "-",
+          contactNo: record.personalDetails?.contactNo || "-",
+          emailId: record.personalDetails?.emailId || "-",
+          leadSource: record.personalDetails?.leadSource || "-",
+          grade: record.personalDetails?.grade || "-",
+          callingPurpose: record.personalDetails?.callingPurpose || "-",
+          gender: record.personalDetails?.gender || "-",
+          preferredMeetingArea:
+            record.personalDetails?.preferredMeetingArea || "-",
+          leadName: record.personalDetails?.leadName || "-",
+        };
+      });
+
+    console.log(`✅ [API] Processed ${processedSuspects.length} suspects`);
+
+    // Calculate stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    const stats = {
+      total: processedSuspects.length,
+      today: processedSuspects.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate.getTime() === today.getTime();
+      }).length,
+      upcoming: processedSuspects.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const aptDate = new Date(a.appointmentDate);
+        aptDate.setHours(0, 0, 0, 0);
+        return aptDate >= today && aptDate <= nextWeek;
+      }).length,
+    };
+
+    console.log("📊 Appointment Stats for SUSPECTS:", stats);
+
+    res.status(200).json({
+      success: true,
+      message: "Suspects with appointment scheduled fetched successfully",
+      data: {
+        suspects: processedSuspects,
+        count: processedSuspects.length,
+        stats: stats,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "❌ [API] Error fetching suspects appointment scheduled records:",
+      error
+    );
+    res.status(500).json({
+      success: false,
+      message:
+        "Server error while fetching suspects appointment scheduled records",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+// SuspectCtrl.js में ये functions add करो:
+
+// Update family members
+exports.updateFamilyMembers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { familyMembers } = req.body;
+
+    const suspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { familyMembers },
+      { new: true, runValidators: true }
+    );
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Family members updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update family members",
+      error: error.message,
+    });
+  }
+};
+
+// Update financial info
+exports.updateFinancialInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const financialInfo = req.body;
+
+    const suspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { financialInfo },
+      { new: true, runValidators: true }
+    );
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Financial information updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update financial information",
+      error: error.message,
+    });
+  }
+};
+
+// Update future priorities and needs
+exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { futurePriorities, needs } = req.body;
+
+    const updateData = {};
+    if (futurePriorities) updateData.futurePriorities = futurePriorities;
+    if (needs) updateData.needs = needs;
+
+    const suspect = await suspectModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Future priorities and needs updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update future priorities and needs",
+      error: error.message,
+    });
+  }
+};
+
+// Update proposed financial plan
+exports.updateProposedFinancialPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { proposedPlan } = req.body;
+
+    const suspect = await suspectModel.findByIdAndUpdate(
+      id,
+      { proposedPlan },
+      { new: true, runValidators: true }
+    );
+
+    if (!suspect) {
+      return res.status(404).json({
+        success: false,
+        message: "Suspect not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Proposed financial plan updated successfully",
+      suspect,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update proposed financial plan",
+      error: error.message,
+    });
+  }
+};

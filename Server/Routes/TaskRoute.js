@@ -1,0 +1,129 @@
+// TaskRoute.js - Updated version
+const express = require("express");
+const router = express.Router();
+const TaskController = require("../Controller/TaskCtrl");
+const upload = require("../config/multer");
+
+// Validation middleware
+const validateTaskType = (req, res, next) => {
+  const validTypes = ["composite", "individual", "marketing", "service"];
+  const type = req.body.type || req.query.type || "composite";
+
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid task type: ${type}`,
+      validTypes,
+    });
+  }
+
+  next();
+};
+
+// Multer configuration
+const uploadFields = upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "downloadFormUrl", maxCount: 10 },
+  { name: "sampleFormUrl", maxCount: 10 },
+]);
+const parseFormData = (req, res, next) => {
+  // Check and parse formChecklists if it's a string
+  if (req.body.formChecklists && typeof req.body.formChecklists === "string") {
+    try {
+      console.log("📦 Parsing formChecklists from string");
+      req.body.formChecklists = JSON.parse(req.body.formChecklists);
+    } catch (error) {
+      console.error("❌ Error parsing formChecklists:", error);
+      req.body.formChecklists = [];
+    }
+  }
+  next();
+};
+// ✅ ROUTES
+
+// 1. GET all tasks
+router.get("/", validateTaskType, TaskController.getAllTasks);
+
+// 2. GET single task
+router.get("/:id", validateTaskType, TaskController.getTaskById);
+
+// 3. CREATE task
+router.post("/", uploadFields, parseFormData, TaskController.createTask);
+
+// 4. UPDATE task
+router.put("/:id", uploadFields, parseFormData, TaskController.updateTask);
+
+// 5. DELETE task
+router.delete("/delete/:id", validateTaskType, TaskController.deleteTask);
+
+// 6. Special routes
+router.get("/templates/composite", TaskController.getCompositeTemplates);
+router.get("/for-employee/:employeeId", TaskController.getTasksByEmployeeRole);
+router.get("/by-role/:role", TaskController.getTasksByRole);
+// ✅ FIXED: Add the missing assign-composite route
+router.post("/assign-composite", TaskController.assignCompositeTask);
+router.get("/assigned/:employeeId", TaskController.getAssignedTasks);
+router.get("/templates/marketing", TaskController.getMarketingTemplates);
+router.get(
+  "/marketing/for-employee/:employeeId",
+  TaskController.getMarketingTasksByEmployeeRole
+);
+router.get(
+  "/marketing/assigned/:employeeId",
+  TaskController.getAssignedMarketingTasks
+);
+router.get("/marketing/stats", TaskController.getMarketingTaskStats);
+router.get("/marketing/:id", TaskController.getMarketingTaskById);
+router.post("/assign-marketing", TaskController.assignMarketingTask);
+router.put("/marketing/:id", uploadFields, TaskController.updateMarketingTask);
+router.delete("/marketing/:id", TaskController.deleteMarketingTask);
+router.get("/templates/service", TaskController.getServiceTemplates);
+router.get(
+  "/service/for-employee/:employeeId",
+  TaskController.getServiceTasksByEmployeeRole
+);
+router.get(
+  "/service/assigned/:employeeId",
+  TaskController.getAssignedServiceTasks
+);
+router.get("/service/stats", TaskController.getServiceTaskStats);
+router.get("/service/:id", TaskController.getServiceTaskById);
+router.post("/assign-service", TaskController.assignServiceTask);
+router.put("/service/:id", uploadFields, TaskController.updateServiceTask);
+router.delete("/service/:id", TaskController.deleteServiceTask);
+router.put(
+  "/entity/:entityId/task/:taskId/status",
+
+  TaskController.updateEntityTaskStatus
+);
+
+// ✅ Get entity task history
+router.get(
+  "/entity/:entityId/task-history",
+
+  TaskController.getEntityTaskHistory
+);
+
+// ✅ Get specific task status for entity
+router.get(
+  "/entity/:entityId/task/:taskId/status",
+
+  TaskController.getEntityTaskStatus
+);
+router.put(
+  "/:taskId/status",
+
+  TaskController.updateTaskStatus
+);
+
+// RM complete + forward to OE (old - marks completed)
+router.post("/forward-to-oe", TaskController.forwardTaskToOE);
+
+// RM forward to OE with any status (standalone, no forced completion)
+router.post("/rm-forward-to-oe", TaskController.rmForwardToOE);
+
+// OA Employee Report
+router.get("/report/list", TaskController.getEmployeeReportList);
+router.get("/report/activity/:employeeId", TaskController.getEmployeeActivityReport);
+
+module.exports = router;

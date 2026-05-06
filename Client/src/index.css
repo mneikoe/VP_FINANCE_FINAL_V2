@@ -1,0 +1,2 @@
+/* Remove old custom CSS that was causing issues */
+@import "tailwindcss";
