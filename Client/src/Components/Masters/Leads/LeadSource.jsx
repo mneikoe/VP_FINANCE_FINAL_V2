@@ -1,195 +1,282 @@
-
-
 import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  Button,
-  Card,
-  ListGroup,
-} from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
+import { 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Space, 
+  Popconfirm, 
+  Card, 
+  Typography,
+  Tooltip,
+  Badge,
+  Row,
+  Col
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  SearchOutlined,
+  ReloadOutlined,
+  LinkOutlined
+} from "@ant-design/icons";
 import {
   createDetails,
   fetchDetails,
   updateDetails,
   deleteDetails,
 } from "../../../redux/feature/LeadSource/LeadThunx";
-import { fetchLeadType } from "../../../redux/feature/LeadType/LeadTypeThunx";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
+
+const { Title, Text } = Typography;
 
 const LeadSource = () => {
-  const [leadTypeId, setLeadTypeId] = useState(""); // State for leadTypeId
-  const [sourceName, setsourceName] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState(null);
-
   const dispatch = useDispatch();
-
-  // Lead sources slice from Redux
-  const { leadsourceDetail: leadSources, loading } = useSelector(
+  const { leadsourceDetail: leadSources, loading, success } = useSelector(
     (state) => state.leadsource
   );
 
-  // Lead types slice from Redux
-  const leadTypeState = useSelector((state) => state.LeadType);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    dispatch(fetchLeadType());
-    dispatch(fetchDetails());
+    loadData();
   }, [dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (success) {
+      handleCancel();
+    }
+  }, [success]);
 
+  const loadData = () => {
+    dispatch(fetchDetails());
+  };
 
-    const leadData = { leadTypeId, sourceName }; // Include leadTypeId in the data
+  const showModal = (item = null) => {
+    if (item) {
+      setEditingItem(item);
+      form.setFieldsValue({ sourceName: item.sourceName });
+    } else {
+      setEditingItem(null);
+      form.resetFields();
+    }
+    setIsModalOpen(true);
+  };
 
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+    form.resetFields();
+  };
+
+  const onFinish = async (values) => {
     try {
-      if (isEditing) {
-        await dispatch(updateDetails({ id: editId, data: leadData }));
-        toast.success("Lead name updated successfully!");
+      if (editingItem) {
+        await dispatch(updateDetails({ id: editingItem._id, data: values })).unwrap();
+        toast.success("Lead source updated successfully!");
       } else {
-        await dispatch(createDetails(leadData));
-        toast.success("Lead name created successfully!");
+        await dispatch(createDetails(values)).unwrap();
+        toast.success("Lead source created successfully!");
       }
-      setsourceName("");
-      setLeadTypeId(""); // Clear leadTypeId
-      setIsEditing(false);
-      setEditId(null);
-      dispatch(fetchDetails()); // Fetch all lead sources again to get the updated data
+      loadData();
     } catch (error) {
       toast.error("An error occurred. Please try again.");
-      console.error("Error submitting lead name:", error);
     }
   };
 
-  const handleEdit = (source) => {
-    setEditId(source._id);
-    setsourceName(source.sourceName);
-    setLeadTypeId(source.leadTypeId); // Set leadTypeId
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setsourceName("");
-    setLeadTypeId(""); // Clear leadTypeId
-    setEditId(null);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this lead source?")) {
-      dispatch(deleteDetails(id));
-      toast.success("Lead Source deleted successfully!");
-      dispatch(fetchDetails()); // Fetch all lead sources again to get the updated data
+  const handleDelete = async (id) => {
+    try {
+      await dispatch(deleteDetails(id)).unwrap();
+      toast.success("Lead source deleted successfully!");
+      loadData();
+    } catch (error) {
+      toast.error("Failed to delete lead source.");
     }
   };
+
+  const filteredData = (Array.isArray(leadSources) ? leadSources : []).filter((item) =>
+    item.sourceName?.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const columns = [
+    {
+      title: "Lead Name",
+      dataIndex: "sourceName",
+      key: "sourceName",
+      sorter: (a, b) => (a.sourceName || "").localeCompare(b.sourceName || ""),
+      render: (text) => (
+        <Space>
+          <LinkOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      width: 120,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => showModal(record)}
+              style={{ color: "#1890ff" }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Lead Source"
+              description="Confirm deletion of this lead source?"
+              onConfirm={() => handleDelete(record._id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                type="text" 
+                icon={<DeleteOutlined />} 
+                danger
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <Container
-      fluid
-      className="p-4"
-      style={{ backgroundColor: "#edf2f7", minHeight: "100vh" }}
-    >
-      <ToastContainer />
-      <h3 className="mb-4">Lead Name</h3>
-      <Row>
-        <Col md={6}>
-          <Card className="shadow-sm border-top border-primary">
-            <Card.Body>
-              <Card.Title>
-                {isEditing ? "Edit Lead Name" : "Add Lead Name"}
-              </Card.Title>
-              <Form onSubmit={handleSubmit}>
-                {/* <Form.Group className="mb-3" controlId="leadType">
-                  <Form.Label>Lead Type</Form.Label>
-                  <Form.Select
-                    value={leadTypeId}
-                    onChange={(e) => setLeadTypeId(e.target.value)}
-                    required
-                  >
-                    <option value="">--Choose--</option>
-                    {(leadTypeState?.LeadType || []).map((item) => (
-                      <option key={item._id} value={item._id}>
-                        {item.leadType}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group> */}
-
-                <Form.Group className="mb-3" controlId="sourceName">
-                  <Form.Label>Lead Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter Name"
-                    value={sourceName}
-                    onChange={(e) => setsourceName(e.target.value)}
-                    required
+    <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+      <Row gutter={[0, 24]}>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8">
+            <Row justify="space-between" align="middle" gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Space align="center" size="middle">
+                  <Title level={3} style={{ margin: 0 }}>Lead Source Master</Title>
+                  <Badge count={filteredData.length} showZero color="#fa8c16" />
+                </Space>
+                <Text type="secondary">Manage the origins of your leads</Text>
+              </Col>
+              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
+                <Space wrap>
+                  <Input 
+                    placeholder="Search source..." 
+                    prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />} 
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 250 }}
+                    allowClear
                   />
-                </Form.Group>
-
-                <div className="d-flex gap-2">
-                  <Button type="submit" variant="primary">
-                    {isEditing ? "Update" : "Submit"}
+                  <Button icon={<ReloadOutlined />} onClick={loadData} title="Refresh Data" />
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    onClick={() => showModal()}
+                    size="large"
+                    className="shadow-sm"
+                  >
+                    Add Source
                   </Button>
-                  {isEditing && (
-                    <Button variant="secondary" onClick={handleCancelEdit}>
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-              </Form>
-            </Card.Body>
+                </Space>
+              </Col>
+            </Row>
           </Card>
         </Col>
 
-        <Col md={6}>
-          <Card className="shadow-sm border-top border-success">
-            <Card.Body>
-              <Card.Title>All Lead name</Card.Title>
-              {loading ? (
-                <p>Loading...</p>
-              ) : (
-                <ListGroup variant="flush">
-                  {leadSources?.map((source) => (
-                    <ListGroup.Item
-                      key={source._id}
-                      className="d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        {source.sourceName} 
-                      </div>
-                   
-                      <div>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          className="me-2"
-                          onClick={() => handleEdit(source)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleDelete(source._id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              )}
-            </Card.Body>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8" bodyStyle={{ padding: 0 }}>
+            <Table 
+              columns={columns} 
+              dataSource={filteredData} 
+              rowKey="_id"
+              loading={loading}
+              pagination={{ pageSize: 10, showSizeChanger: true }}
+              scroll={{ x: 600 }}
+              className="ant-table-striped custom-table"
+            />
           </Card>
         </Col>
       </Row>
-    </Container>
+
+      <Modal
+        title={
+          <Space>
+            {editingItem ? <EditOutlined className="text-primary" /> : <PlusOutlined className="text-primary" />}
+            <Title level={4} style={{ margin: 0 }}>
+              {editingItem ? "Update Lead Source" : "Create New Lead Source"}
+            </Title>
+          </Space>
+        }
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        destroyOnClose
+        centered
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          style={{ marginTop: "20px" }}
+          requiredMark="optional"
+        >
+          <Form.Item
+            label="Lead Name"
+            name="sourceName"
+            rules={[{ required: true, message: "Please enter the lead source name!" }]}
+          >
+            <Input 
+              prefix={<LinkOutlined className="text-muted" />} 
+              placeholder="e.g. Website, Referral, Social Media" 
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: "right", marginTop: "32px" }}>
+            <Space>
+              <Button onClick={handleCancel} size="large">Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={loading} size="large">
+                {editingItem ? "Update Changes" : "Save Source"}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          border-right: 1px solid #ffffff !important;
+          border-radius: 0 !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+        .ant-table-striped .ant-table-tbody > tr:nth-child(2n) > td {
+          background-color: #fafafa;
+        }
+        .text-muted { color: #bfbfbf; }
+        .text-primary { color: #1890ff; }
+        .border-radius-8 { border-radius: 8px; overflow: hidden; }
+        .shadow-sm {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+        }
+      `}</style>
+    </div>
   );
 };
 

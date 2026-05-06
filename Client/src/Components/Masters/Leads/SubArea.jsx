@@ -1,5 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { 
+  Table, 
+  Button, 
+  Modal, 
+  Form, 
+  Input, 
+  Space, 
+  Popconfirm, 
+  Card, 
+  Typography,
+  Tooltip,
+  Select,
+  Tag,
+  Badge,
+  Row,
+  Col
+} from "antd";
+import { 
+  PlusOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  EnvironmentOutlined,
+  BlockOutlined,
+  NumberOutlined,
+  PushpinOutlined,
+  SearchOutlined,
+  ReloadOutlined
+} from "@ant-design/icons";
+import { toast } from "react-toastify";
 import {
   fetchSubAreas,
   createSubArea,
@@ -7,291 +36,321 @@ import {
   deleteSubArea,
 } from "../../../redux/feature/LeadSubArea/SubAreaThunx";
 import { fetchAreas } from "../../../redux/feature/LeadArea/AreaThunx";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const SubArea = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("view");
-  const [formData, setFormData] = useState({
-    areaId: "",
-    subAreaName: "",
-    shortcode: "",
-    pincode: "",
-  });
-  const [formErrors, setFormErrors] = useState({});
-  const [editId, setEditId] = useState(null);
+  const { subAreas, loading, success } = useSelector((state) => state.leadSubArea);
+  const { areas } = useSelector((state) => state.leadArea);
 
-  // Get data from Redux store
-  const { subAreas, loading, error } = useSelector(
-    (state) => state.leadSubArea
-  );
-  const { areas, loading: areasLoading } = useSelector(
-    (state) => state.leadArea
-  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSubArea, setEditingSubArea] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [form] = Form.useForm();
 
-  // Fetch data on component mount
   useEffect(() => {
+    loadData();
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (success) {
+      handleCancel();
+    }
+  }, [success]);
+
+  const loadData = () => {
     dispatch(fetchSubAreas());
     dispatch(fetchAreas());
-  }, [dispatch, editId]);
-
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.areaId) errors.areaId = "Area is required";
-    if (!formData.subAreaName.trim())
-      errors.subAreaName = "Sub Area name is required";
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    try {
-      if (editId) {
-        // Update existing sub area
-       const result = await dispatch(updateSubArea({ id: editId, subAreaData: formData }));
-        if(result.meta.requestStatus === "fulfilled") {
-          setFormData({
-            areaId: "",
-            subAreaName: "",
-            shortcode: "",
-            pincode: "",
-          })
-          toast.success("Sub Area updated successfully!");
-        } else {
-          toast.error("Failed to update Sub Area.");
-        }
-        await dispatch(fetchSubAreas())
-      } else {
-        // Create new sub area
-        const result = await dispatch(createSubArea(formData));
-        if(result.meta.requestStatus === "fulfilled") {
-          setFormData({
-            areaId: "",
-            subAreaName: "",
-            shortcode: "",
-            pincode: "",
-          })
-          toast.success("Sub Area created successfully!");  
-        } else {
-          toast.error("Failed to create Sub Area.");
-        }
-        await dispatch(fetchSubAreas())
-      }
-
-      // Reset form and switch to view tab
-      resetForm();
-      setActiveTab("view");
-    } catch (err) {
-      console.error("Error saving sub area:", err);
+  const showModal = (subArea = null) => {
+    if (subArea) {
+      setEditingSubArea(subArea);
+      form.setFieldsValue({
+        areaId: subArea.areaId?._id,
+        subAreaName: subArea.subAreaName,
+      });
+    } else {
+      setEditingSubArea(null);
+      form.resetFields();
     }
+    setIsModalOpen(true);
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingSubArea(null);
+    form.resetFields();
   };
 
-  const resetForm = () => {
-    setFormData({
-      areaId: "",
-      subAreaName: "",
-      shortcode: "",
-      pincode: "",
-    });
-    setEditId(null);
-  };
-
-  const handleEdit = (subArea) => {
-    setFormData({
-      areaId: subArea.areaId?._id || "",
-      subAreaName: subArea.subAreaName,
-      shortcode: subArea.areaId?.shortcode || "",
-      pincode: subArea.areaId?.pincode || "",
-    });
-    setEditId(subArea._id);
-    setActiveTab("add");
+  const onFinish = async (values) => {
+    if (editingSubArea) {
+      const result = await dispatch(updateSubArea({ id: editingSubArea._id, subAreaData: values }));
+      if (result.meta.requestStatus === "fulfilled") {
+        toast.success("Sub Area updated successfully");
+      }
+    } else {
+      const result = await dispatch(createSubArea(values));
+      if (result.meta.requestStatus === "fulfilled") {
+        toast.success("Sub Area created successfully");
+      }
+    }
+    dispatch(fetchSubAreas());
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this sub area?")) {
-      try {
-        const result = await dispatch(deleteSubArea(id));
-        if(result.meta.requestStatus === "fulfilled") {
-          toast.success("Sub Area deleted successfully!");
-          await dispatch(fetchSubAreas());
-        }
-        else {
-          toast.error("Failed to delete Sub Area.");
-        }
-      } catch (err) {
-        console.error("Error deleting sub area:", err);
-      }
+    const result = await dispatch(deleteSubArea(id));
+    if (result.meta.requestStatus === "fulfilled") {
+      toast.success("Sub Area deleted successfully");
+      dispatch(fetchSubAreas());
     }
   };
 
-  const cancelEdit = () => {
-    resetForm();
-    setActiveTab("view");
-  };
+  const filteredData = subAreas.filter((item) => 
+    item.subAreaName?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.areaId?.name?.toLowerCase().includes(searchText.toLowerCase())
+  );
 
-  if (loading || areasLoading)
-    return <div className="text-center my-5">Loading...</div>;
-  if (error) return <div className="alert alert-danger">Error: {error}</div>;
+  const columns = [
+    {
+      title: "Parent Area",
+      dataIndex: ["areaId", "name"],
+      key: "areaName",
+      sorter: (a, b) => (a.areaId?.name || "").localeCompare(b.areaId?.name || ""),
+      render: (text) => (
+        <Space>
+          <EnvironmentOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{text || "N/A"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Sub Area Name",
+      dataIndex: "subAreaName",
+      key: "subAreaName",
+      sorter: (a, b) => (a.subAreaName || "").localeCompare(b.subAreaName || ""),
+      render: (text) => (
+        <Tag color="geekblue" style={{ borderRadius: "4px", padding: "2px 10px", fontWeight: 500 }}>
+          {text}
+        </Tag>
+      ),
+    },
+    {
+      title: "Area Short Code",
+      dataIndex: ["areaId", "shortcode"],
+      key: "shortcode",
+      render: (text) => (
+        <Space>
+          <NumberOutlined style={{ color: "#52c41a" }} />
+          <Text code>{text || "-"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Pincode",
+      dataIndex: ["areaId", "pincode"],
+      key: "pincode",
+      render: (text) => (
+        <Space>
+          <PushpinOutlined style={{ color: "#faad14" }} />
+          <Text type="secondary">{text || "-"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: "right",
+      width: 100,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => showModal(record)}
+              style={{ color: "#1890ff" }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Sub Area"
+              description="Confirm deletion of this sub area?"
+              onConfirm={() => handleDelete(record._id)}
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                type="text" 
+                icon={<DeleteOutlined />} 
+                danger
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="card shadow-lg rounded">
-      <div style={{ backgroundColor: "#ECECEC" }} className="card-header  text-black d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">Manage Sub Areas</h5>
-        <ul className="nav nav-tabs card-header-tabs">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "view" ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab("view");
-                resetForm();
+    <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+      <Row gutter={[0, 24]}>
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8">
+            <Row justify="space-between" align="middle" gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Space align="center" size="middle">
+                  <Title level={3} style={{ margin: 0 }}>Sub Area Master</Title>
+                  <Badge count={filteredData.length} overflowCount={999} showZero color="#1890ff" />
+                </Space>
+                <Text type="secondary">Manage detailed regions within your geographic areas</Text>
+              </Col>
+              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
+                <Space wrap>
+                  <Input 
+                    placeholder="Search Sub Area or Area..." 
+                    prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />} 
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 250 }}
+                    allowClear
+                  />
+                  <Button icon={<ReloadOutlined />} onClick={loadData} title="Refresh Data" />
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />} 
+                    onClick={() => showModal()}
+                    size="large"
+                    className="shadow-sm"
+                  >
+                    Add Sub Area
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+
+        <Col span={24}>
+          <Card bordered={false} className="shadow-sm border-radius-8" bodyStyle={{ padding: 0 }}>
+            <Table 
+              columns={columns} 
+              dataSource={filteredData} 
+              rowKey="_id"
+              loading={loading}
+              pagination={{ 
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} sub areas`
               }}
+              scroll={{ x: 800 }}
+              className="ant-table-striped custom-table"
+              locale={{ emptyText: "No sub areas found" }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Modal
+        title={
+          <Space>
+            {editingSubArea ? <EditOutlined className="text-primary" /> : <PlusOutlined className="text-primary" />}
+            <Title level={4} style={{ margin: 0 }}>
+              {editingSubArea ? "Update Sub Area" : "Create New Sub Area"}
+            </Title>
+          </Space>
+        }
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        destroyOnClose
+        centered
+        width={500}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          style={{ marginTop: "20px" }}
+          requiredMark="optional"
+        >
+          <Form.Item
+            label="Parent Area"
+            name="areaId"
+            rules={[{ required: true, message: "Please select an area!" }]}
+          >
+            <Select 
+              placeholder="Choose a parent area" 
+              showSearch
+              size="large"
+              filterOption={(input, option) =>
+                (option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              suffixIcon={<EnvironmentOutlined />}
             >
-              View Data
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "add" ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab("add");
-                resetForm();
-              }}
-            >
-              {editId ? "Edit Sub Area" : "Add Sub Area"}
-            </button>
-          </li>
-        </ul>
-      </div>
+              {areas.map((area) => (
+                <Option key={area._id} value={area._id}>
+                  {area.name} ({area.pincode})
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-      <div className="card-body">
-        {activeTab === "add" && (
-          <form onSubmit={handleSubmit}>
-            <div className="row mb-3">
-              <div className="col-md-6">
-                <label className="form-label">Select Area</label>
-                <select
-                  className={`form-select ${formErrors.areaId ? "is-invalid" : ""
-                    }`}
-                  name="areaId"
-                  value={formData.areaId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">-- Choose Area --</option>
-                  {areas.map((area) => (
-                    <option key={area._id} value={area._id}>
-                      {area.name} ({area.pincode})
-                    </option>
-                  ))}
-                </select>
-                {formErrors.areaId && (
-                  <div className="invalid-feedback">{formErrors.areaId}</div>
-                )}
-              </div>
+          <Form.Item
+            label="Sub Area Name"
+            name="subAreaName"
+            rules={[{ required: true, message: "Please enter the name of the sub area!" }]}
+          >
+            <Input 
+              prefix={<BlockOutlined className="text-muted" />} 
+              placeholder="e.g. Sector 5, Phase 2" 
+              size="large"
+            />
+          </Form.Item>
 
-              <div className="col-md-6">
-                <label className="form-label">Sub Area Name</label>
-                <input
-                  type="text"
-                  className={`form-control ${formErrors.subAreaName ? "is-invalid" : ""
-                    }`}
-                  name="subAreaName"
-                  value={formData.subAreaName}
-                  onChange={handleChange}
-                  placeholder="Enter Sub Area Name"
-                  required
-                />
-                {formErrors.subAreaName && (
-                  <div className="invalid-feedback">
-                    {formErrors.subAreaName}
-                  </div>
-                )}
-              </div>
-            </div>
+          <Form.Item style={{ marginBottom: 0, textAlign: "right", marginTop: "32px" }}>
+            <Space>
+              <Button onClick={handleCancel} size="large">Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={loading} size="large" className="px-5">
+                {editingSubArea ? "Update Changes" : "Save Sub Area"}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
 
-            <div className="text-end">
-              <button type="submit" className="btn btn-success me-2">
-                <i className="fa fa-save me-2"></i>
-                {editId ? "Update" : "Save"} Sub Area
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={cancelEdit}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-
-        {activeTab === "view" && (
-          <div className="table-responsive">
-            <table className="table table-hover table-bordered">
-              <thead className="table-light">
-                <tr>
-                  <th>#</th>
-                  <th>Area</th>
-                  <th>Sub Area</th>
-                  <th>Short Code</th>
-                  <th>Pincode</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subAreas.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center text-muted py-4">
-                      No sub areas found. Click "Add Sub Area" to create one.
-                    </td>
-                  </tr>
-                ) : (
-                  subAreas.map((item, index) => (
-                    <tr key={item._id}>
-                      <td>{index + 1}</td>
-                      <td>{item.areaId?.name || "N/A"}</td>
-                      <td>{item.subAreaName}</td>
-                      <td>{item.areaId?.shortcode || "-"}</td>
-                      <td>{item.areaId?.pincode || "-"}</td>
-                      <td>
-                        <div className="d-flex gap-2 justify-content-center">
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <i className="fa fa-edit me-1"></i>Edit
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(item._id)}
-                          >
-                            <i className="fa fa-trash me-1"></i>Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <style>{`
+        .custom-table .ant-table-thead > tr > th {
+          background-color: #FFCC00 !important;
+          color: #000 !important;
+          font-weight: bold !important;
+          border-right: 1px solid #ffffff !important;
+          border-radius: 0 !important;
+          text-align: center !important;
+        }
+        .custom-table .ant-table-thead > tr > th:last-child {
+          border-right: none !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          text-align: center !important;
+        }
+        .ant-table-striped .ant-table-tbody > tr:nth-child(2n) > td {
+          background-color: #fafafa;
+        }
+        .text-muted { color: #bfbfbf; }
+        .text-primary { color: #1890ff; }
+        .border-radius-8 { border-radius: 8px; overflow: hidden; }
+        .shadow-sm {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+        }
+        .ant-btn-primary.shadow-sm {
+          box-shadow: 0 2px 4px rgba(24, 144, 255, 0.35);
+        }
+        .ant-card-head { border-bottom: 1px solid #f0f0f0; }
+        .px-5 { padding-left: 2rem; padding-right: 2rem; }
+      `}</style>
     </div>
   );
 };
