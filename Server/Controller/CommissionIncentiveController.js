@@ -3,6 +3,12 @@ const CommissionIncentive = require("../Models/CommissionIncentiveModel");
 exports.createCommissionIncentive = async (req, res) => {
   try {
     const data = req.body;
+    
+    // Handle empty clientRef
+    if (data.clientRef === "" || data.clientRef === null) {
+      delete data.clientRef;
+    }
+
     data.incentiveAmount = ((parseFloat(data.premiumAmount) || 0) * (parseFloat(data.rateOfIncentive) || 0)) / 100;
     data.netIncentivePayable = data.incentiveAmount - (parseFloat(data.deductions) || 0);
     
@@ -10,6 +16,7 @@ exports.createCommissionIncentive = async (req, res) => {
     await incentive.save();
     res.status(201).json({ success: true, data: incentive });
   } catch (error) {
+    console.error("Error creating commission incentive:", error);
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -37,12 +44,19 @@ exports.getCommissionIncentives = async (req, res) => {
 exports.updateCommissionIncentive = async (req, res) => {
   try {
     const data = req.body;
+
+    // Handle empty clientRef
+    if (data.clientRef === "" || data.clientRef === null) {
+      data.clientRef = undefined; // Or use $unset in update if necessary
+    }
+
     data.incentiveAmount = ((parseFloat(data.premiumAmount) || 0) * (parseFloat(data.rateOfIncentive) || 0)) / 100;
     data.netIncentivePayable = data.incentiveAmount - (parseFloat(data.deductions) || 0);
     
     const incentive = await CommissionIncentive.findByIdAndUpdate(req.params.id, data, { new: true });
     res.status(200).json({ success: true, data: incentive });
   } catch (error) {
+    console.error("Error updating commission incentive:", error);
     res.status(400).json({ success: false, message: error.message });
   }
 };

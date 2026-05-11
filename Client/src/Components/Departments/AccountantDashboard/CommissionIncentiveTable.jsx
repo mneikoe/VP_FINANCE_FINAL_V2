@@ -88,8 +88,8 @@ const CommissionIncentiveTable = () => {
 
   const fetchClients = async () => {
     try {
-      const res = await axios.get("/api/client");
-      if (res.data.success) setClients(res.data.data);
+      const res = await axios.get("/api/client/all");
+      if (res.data.success) setClients(res.data.prospects || res.data.data || []);
     } catch (error) { console.error(error); }
   };
 
@@ -110,16 +110,32 @@ const CommissionIncentiveTable = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Data Cleaning
+      const cleanedData = { ...formData };
+      if (cleanedData.clientRef === "") delete cleanedData.clientRef;
+      if (cleanedData.nextDueDate === "") delete cleanedData.nextDueDate;
+      if (cleanedData.transferDate === "") delete cleanedData.transferDate;
+      
+      // Ensure numbers
+      cleanedData.premiumAmount = parseFloat(cleanedData.premiumAmount) || 0;
+      cleanedData.rateOfIncentive = parseFloat(cleanedData.rateOfIncentive) || 0;
+      cleanedData.deductions = parseFloat(cleanedData.deductions) || 0;
+
+      console.log("Submitting cleaned data:", cleanedData);
+
       if (selectedIncentive) {
-        await axios.put(`/api/incentives/commission/${selectedIncentive._id}`, formData);
+        await axios.put(`/api/incentives/commission/${selectedIncentive._id}`, cleanedData);
         toast.success("Updated successfully");
       } else {
-        await axios.post("/api/incentives/commission", formData);
+        await axios.post("/api/incentives/commission", cleanedData);
         toast.success("Added successfully");
       }
       setIsModalOpen(false);
       fetchIncentives();
-    } catch (error) { toast.error("Operation failed"); }
+    } catch (error) { 
+      console.error("Submission error:", error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Operation failed"); 
+    }
   };
 
   return (
@@ -138,7 +154,30 @@ const CommissionIncentiveTable = () => {
             />
           </div>
           <button 
-            onClick={() => { setFormData({ ...formData, clientRef: "" }); setSelectedIncentive(null); setIsModalOpen(true); }}
+            onClick={() => { 
+              setFormData({
+                leadSource: "",
+                leadName: "",
+                clientRef: "",
+                financialProduct: "",
+                companyName: "",
+                plan: "",
+                doc: "",
+                mode: "",
+                premiumAmount: 0,
+                rateOfIncentive: 0,
+                incentiveAmount: 0,
+                deductions: 0,
+                netIncentivePayable: 0,
+                nextDueDate: "",
+                bankAccount: "",
+                transferDate: "",
+                month: "May 2026",
+                year: 2026,
+              }); 
+              setSelectedIncentive(null); 
+              setIsModalOpen(true); 
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
           >
             <FiPlus /> Add Calculation
