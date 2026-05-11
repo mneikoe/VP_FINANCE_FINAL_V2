@@ -191,7 +191,7 @@ function ProspectAppointmentList() {
 
   const handleConvertToClient = async (prospect) => {
     try {
-      await axiosInstance.put(`/api/prospect/convert/${prospect.id}`, {
+      await axiosInstance.put(`/api/prospect/update/status/${prospect.id}`, {
         status: "client",
       });
       message.success(`${prospect.name} converted to Client successfully`);

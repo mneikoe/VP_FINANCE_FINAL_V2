@@ -179,7 +179,6 @@ app.use("/api/income-expense-accounts", incomeExpenseAccountRoute);
 app.use("/api/income-expense", incomeExpenseRoutes);
 app.use("/api/IncomeExpenseReport", IncomeExpenseReportRoute);
 app.use("/api/notifications", NotificationRoute);
-app.use("/api/email", require("./Routes/emailRoutes"));
 app.use("/api/salary", SalaryRoute);
 app.use("/api/incentives", IncentiveRoute);
 
