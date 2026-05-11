@@ -282,7 +282,7 @@ function ProspectAppointmentList() {
       width: 180,
     
       render: (_, record) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           <Text strong>{record.name}</Text>
           
         </Space>
@@ -293,7 +293,7 @@ function ProspectAppointmentList() {
       key: "contact",
       width: 160,
       render: (_, record) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           <Space size={4}>
             <PhoneOutlined />
             <Text>{record.mobile}</Text>
@@ -332,7 +332,7 @@ function ProspectAppointmentList() {
       width: 220,
       
       render: (_, record) => (
-        <Space direction="horizontal" size={2}>
+        <Space orientation="horizontal" size={2}>
           <Space>
             <Text>{record.city}</Text>
           </Space>
@@ -445,12 +445,12 @@ function ProspectAppointmentList() {
   return (
     <div style={{ padding: "24px" }}>
       <Card
-        bordered={false}
+        variant="borderless"
         style={{
           boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)",
         }}
       >
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <Space orientation="vertical" size="large" style={{ width: "100%" }}>
           {/* Header */}
           <div
             style={{
@@ -461,7 +461,7 @@ function ProspectAppointmentList() {
               gap: "16px",
             }}
           >
-            <Space direction="vertical" size={4}>
+            <Space orientation="vertical" size={4}>
               <Space align="center" size={12}>
                 <div
                   style={{

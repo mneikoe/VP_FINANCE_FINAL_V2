@@ -169,7 +169,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
 
   return (
     <div style={{ padding: "24px", backgroundColor: "#f0f2f5" }}>
-      <Card bordered={false} className="shadow-sm border-radius-8" style={{ marginBottom: "24px" }}>
+      <Card variant="borderless" className="shadow-sm border-radius-8" style={{ marginBottom: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItem: "center" }}>
           <div>
             <Title level={3} style={{ margin: 0 }}>{editId ? "Edit Prospect Lead" : "Add Prospect Lead"}</Title>
@@ -198,7 +198,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
           <Col xs={24} lg={24}>
             <Card 
               title={<Space><UserOutlined style={{ color: "#1890ff" }} />Identity & Basic Details</Space>} 
-              bordered={false} 
+              variant="borderless" 
               className="shadow-sm border-radius-8 mb-4"
               size="small"
             >
@@ -250,7 +250,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
           <Col xs={24} lg={24}>
             <Card 
               title={<Space><BankOutlined style={{ color: "#722ed1" }} />Professional Details</Space>} 
-              bordered={false} 
+              variant="borderless" 
               className="shadow-sm border-radius-8 mb-4"
               size="small"
             >
@@ -287,7 +287,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
           <Col xs={24} lg={24}>
             <Card 
               title={<Space><PhoneOutlined style={{ color: "#52c41a" }} />Contact Information</Space>} 
-              bordered={false} 
+              variant="borderless" 
               className="shadow-sm border-radius-8 mb-4"
               size="small"
             >
@@ -328,7 +328,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
           <Col xs={24} lg={24}>
             <Card 
               title={<Space><HomeOutlined style={{ color: "#faad14" }} />Address Details</Space>} 
-              bordered={false} 
+              variant="borderless" 
               className="shadow-sm border-radius-8 mb-4"
               size="small"
             >
@@ -414,7 +414,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
           <Col xs={24} lg={24}>
             <Card 
               title={<Space><SolutionOutlined style={{ color: "#eb2f96" }} />Lead & Management Details</Space>} 
-              bordered={false} 
+              variant="borderless" 
               className="shadow-sm border-radius-8 mb-4"
               size="small"
             >
@@ -475,7 +475,7 @@ const AddProspectLead = ({ editId, setActiveTab, setEditId }) => {
           </Col>
         </Row>
 
-        <Card bordered={false} className="shadow-sm border-radius-8">
+        <Card variant="borderless" className="shadow-sm border-radius-8">
           <Row justify="end">
             <Space size="large">
               {editId && (

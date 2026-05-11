@@ -268,7 +268,7 @@ function DisplaySuspect() {
       width: 150,
       
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{text}</Text>
           <Tag color={getGenderColor(record.gender)}>{record.gender}</Tag>
         </Space>
@@ -279,7 +279,7 @@ function DisplaySuspect() {
       key: 'contact',
       width: 110,
       render: (_, record) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           {record.mobile && (
             <Space size={4}>
               <PhoneOutlined />
@@ -341,7 +341,7 @@ function DisplaySuspect() {
      
       defaultSortOrder: 'ascend',
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Space>
             <CalendarOutlined />
             <Text>{text}</Text>
@@ -423,6 +423,7 @@ function DisplaySuspect() {
       fixed: 'right',
       render: (_, record) => (
         <Dropdown
+          trigger={['click']}
           menu={{
             items: [
               {
@@ -464,7 +465,7 @@ function DisplaySuspect() {
 
   if (error) {
     return (
-      <Card>
+      <Card variant="outlined">
         <Text type="danger">Error: {error}</Text>
       </Card>
     );
@@ -473,12 +474,12 @@ function DisplaySuspect() {
   return (
     <div style={{ padding: '10px' }}>
       <Card 
-        bordered={false}
+        variant="borderless"
         style={{ 
           boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)'
         }}
       >
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -486,7 +487,7 @@ function DisplaySuspect() {
             flexWrap: 'wrap',
             gap: '16px'
           }}>
-            <Space direction="vertical" size={4}>
+            <Space orientation="vertical" size={4}>
               <Title level={4} style={{ margin: 0 }}>
                 Appointment Scheduled Suspects
               </Title>

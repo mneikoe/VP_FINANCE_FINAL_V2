@@ -128,7 +128,7 @@ const AssignedTasks = ({ user }) => {
       dataIndex: "groupName",
       width: 180,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{record.groupName || "N/A"}</Text>
           <Text type="secondary">{record.organisation || "N/A"}</Text>
         </Space>
@@ -138,7 +138,7 @@ const AssignedTasks = ({ user }) => {
       title: "Contacts",
       width: 170,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text>{record.mobileNo || "N/A"}</Text>
           <Text type="secondary">{record.contactNo || "-"}</Text>
         </Space>
@@ -153,7 +153,7 @@ const AssignedTasks = ({ user }) => {
       title: "Appointment",
       width: 160,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text>{formatDate(record.appointmentDate)}</Text>
           <Text type="secondary">{formatTimeAMPM(record.appointmentTime)}</Text>
         </Space>

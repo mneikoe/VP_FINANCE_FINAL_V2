@@ -128,7 +128,7 @@ const TelecallerReport = () => {
       dataIndex: "name",
       key: "name",
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{text || "—"}</Text>
           <Tag color="default" style={{ fontSize: 11 }}>
             {record.employeeCode || "—"}
@@ -272,7 +272,7 @@ const TelecallerReport = () => {
   return (
     <div style={{ padding: "24px" }}>
       <Card
-        bordered={false}
+        variant="borderless"
         style={{
           boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)",
         }}
@@ -315,7 +315,7 @@ const TelecallerReport = () => {
         >
           <Row gutter={[24, 16]} align="bottom">
             <Col xs={24} md={16} lg={8}>
-              <Space direction="vertical" size={4} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={4} style={{ width: "100%" }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   <CalendarOutlined style={{ marginRight: 8 }} />
                   Select Date Range

@@ -84,25 +84,30 @@ const SuspectFirstForm = () => {
   };
 
   // Data collection functions
-  const handlePersonalDataUpdate = (formData) => {
+  const handlePersonalDataUpdate = React.useCallback((formData) => {
     setPersonalData(formData);
-  };
+  }, []);
 
-  const handleFamilyDataUpdate = (data) => {
+  const handleFamilyDataUpdate = React.useCallback((data) => {
     setFamilyData(data);
-  };
+  }, []);
 
-  const handleFinancialDataUpdate = (data) => {
+  const handleFinancialDataUpdate = React.useCallback((data) => {
     setFinancialData(data);
-  };
+  }, []);
 
-  const handlePrioritiesDataUpdate = (data) => {
+  const handlePrioritiesDataUpdate = React.useCallback((data) => {
     setPrioritiesData(data);
-  };
+  }, []);
 
-  const handleProposedPlanDataUpdate = (data) => {
+  const handleProposedPlanDataUpdate = React.useCallback((data) => {
     setProposedPlanData(data);
-  };
+  }, []);
+
+  const memoizedSuspectDataForFamily = React.useMemo(() => {
+    if (isEdit) return suspectData;
+    return personalData ? { personalDetails: personalData } : null;
+  }, [isEdit, suspectData, personalData]);
 
   // Handle Next button click - ONLY NAVIGATION
   const handleNextClick = () => {
@@ -277,13 +282,7 @@ const SuspectFirstForm = () => {
             </h6>
             <FamilyMembersFormSuspect
               suspectId={suspectId}
-              suspectData={
-                isEdit
-                  ? suspectData
-                  : personalData
-                    ? { personalDetails: personalData }
-                    : null
-              }
+              suspectData={memoizedSuspectDataForFamily}
               onDataUpdate={handleFamilyDataUpdate}
               onBack={() => handleTabChange("personal")}
             />

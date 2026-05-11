@@ -154,7 +154,7 @@ const CustomerMaster = () => {
       dataIndex: "name",
       sorter: (a, b) => (a.name || "").localeCompare(b.name || ""),
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{record.name || "Unnamed Customer"}</Text>
           <Text type="secondary">{record.emailId || "N/A"}</Text>
         </Space>
@@ -173,7 +173,7 @@ const CustomerMaster = () => {
       title: "Contact",
       dataIndex: "mobileNo",
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text>{record.mobileNo || "N/A"}</Text>
           <Text type="secondary">{record.contactNo || "-"}</Text>
         </Space>
@@ -183,7 +183,7 @@ const CustomerMaster = () => {
       title: "Location",
       dataIndex: "area",
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text>{record.area || "N/A"}</Text>
           <Text type="secondary">{record.city || "N/A"}</Text>
         </Space>
@@ -227,7 +227,7 @@ const CustomerMaster = () => {
       <Card style={{ marginBottom: 16 }}>
         <Row justify="space-between" align="middle" gutter={[12, 12]}>
           <Col>
-            <Space direction="vertical" size={2}>
+            <Space orientation="vertical" size={2}>
               <Title level={3} style={{ margin: 0 }}>
                 <UserSwitchOutlined /> Customer Master
               </Title>

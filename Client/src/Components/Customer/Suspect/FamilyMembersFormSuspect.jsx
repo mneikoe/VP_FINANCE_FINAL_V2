@@ -8,6 +8,8 @@ import {
 } from "../../../redux/feature/SuspectRedux/SuspectThunx";
 import { toast } from "react-toastify";
 
+
+
 const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) => {
   const dispatch = useDispatch();
   const [familyMembers, setFamilyMembers] = useState([]);
@@ -20,17 +22,17 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
   const addedMemberRef = useRef(null);
   const scrollToAddedMemberRef = useRef(false);
 
-  const personalDetails = suspectData?.personalDetails || {};
+  const personalDetails = React.useMemo(() => suspectData?.personalDetails || {}, [suspectData?.personalDetails]);
 
   const defaultMember = (isSelf = false, data = {}) => ({
     _id: data._id || undefined,
     title: data.title || "",
     name: isSelf
       ? personalDetails.groupHeadName ||
-        personalDetails.groupName ||
-        personalDetails.name ||
-        data.name ||
-        ""
+      personalDetails.groupName ||
+      personalDetails.name ||
+      data.name ||
+      ""
       : data.name || "",
     relation: isSelf ? "Self" : data.relation || "",
     dobActual: data.dobActual || "",
@@ -63,7 +65,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
           m.relation === "Self" ? defaultMember(true, m) : defaultMember(false, m)
         )
       );
-    } else {
+    } else if (familyMembers.length === 0) {
       setFamilyMembers([defaultMember(true)]);
     }
   }, [suspectData]);
@@ -73,25 +75,25 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       prev.map((member) =>
         member.relation === "Self"
           ? {
-              ...member,
-              title: personalDetails?.salutation || personalDetails?.title || member.title,
-              name:
-                personalDetails?.groupHeadName ||
-                personalDetails?.groupName ||
-                personalDetails?.name ||
-                member.name,
-              occupation:
-                personalDetails?.leadOccupation ||
-                personalDetails?.occupation ||
-                member.occupation,
-              occupationType:
-                personalDetails?.leadOccupationType ||
-                personalDetails?.occupationType ||
-                member.occupationType,
-              designation: personalDetails?.designation || member.designation,
-              annualIncome: personalDetails?.annualIncome || member.annualIncome,
-              contact: personalDetails?.mobileNo || member.contact,
-            }
+            ...member,
+            title: personalDetails?.salutation || personalDetails?.title || member.title,
+            name:
+              personalDetails?.groupHeadName ||
+              personalDetails?.groupName ||
+              personalDetails?.name ||
+              member.name,
+            occupation:
+              personalDetails?.leadOccupation ||
+              personalDetails?.occupation ||
+              member.occupation,
+            occupationType:
+              personalDetails?.leadOccupationType ||
+              personalDetails?.occupationType ||
+              member.occupationType,
+            designation: personalDetails?.designation || member.designation,
+            annualIncome: personalDetails?.annualIncome || member.annualIncome,
+            contact: personalDetails?.mobileNo || member.contact,
+          }
           : member
       )
     );
@@ -141,8 +143,8 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       name === "adharNumber" || name === "contact"
         ? String(value).replace(/\D/g, "")
         : name === "panCardNumber"
-        ? String(value).toUpperCase().replace(/[^A-Z0-9]/g, "")
-        : value;
+          ? String(value).toUpperCase().replace(/[^A-Z0-9]/g, "")
+          : value;
 
     setFamilyMembers((prev) =>
       prev.map((member, i) => {
@@ -181,19 +183,19 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       prev.map((member, i) =>
         i === index
           ? {
-              ...member,
-              includeHealth: checked,
-              healthHistory: checked
-                ? member.healthHistory
-                : {
-                    submissionDate: "",
-                    diseaseName: "",
-                    since: "",
-                    height: "",
-                    weight: "",
-                    remark: "",
-                  },
-            }
+            ...member,
+            includeHealth: checked,
+            healthHistory: checked
+              ? member.healthHistory
+              : {
+                submissionDate: "",
+                diseaseName: "",
+                since: "",
+                height: "",
+                weight: "",
+                remark: "",
+              },
+          }
           : member
       )
     );
@@ -256,9 +258,9 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
       name:
         member.relation === "Self"
           ? personalDetails.groupHeadName ||
-            personalDetails.groupName ||
-            personalDetails.name ||
-            member.name
+          personalDetails.groupName ||
+          personalDetails.name ||
+          member.name
           : member.name,
       relation: member.relation || "Self",
       dobActual: member.dobActual,
@@ -526,7 +528,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                   {selfMember.includeHealth && (
                     <small className="text-muted">
                       {selfMember.healthHistory?.submissionDate &&
-                      selfMember.healthHistory?.diseaseName
+                        selfMember.healthHistory?.diseaseName
                         ? "Details added"
                         : "Please complete details"}
                     </small>
