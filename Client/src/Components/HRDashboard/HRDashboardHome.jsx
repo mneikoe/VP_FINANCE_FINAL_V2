@@ -129,7 +129,7 @@ const HRDashboardHome = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {statCards.map((item, index) => (
           <Col xs={12} sm={8} lg={6} key={index}>
-            <Card bordered={false} className="stat-card" hoverable style={{ borderRadius: 12 }}>
+            <Card variant="borderless" className="stat-card" hoverable style={{ borderRadius: 12 }}>
               <Space align="start">
                 <div style={{ 
                   width: 40, height: 40, borderRadius: 10, background: `${item.color}15`, 
@@ -154,7 +154,7 @@ const HRDashboardHome = () => {
           <Card 
             title={<Space><TeamOutlined /> Recent Candidates</Space>} 
             extra={<Link to="/dashboard/add-candidate">View All</Link>}
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 12 }}
           >
             <List
@@ -187,7 +187,7 @@ const HRDashboardHome = () => {
         {/* Quick Insights & Recent Vacancies */}
         <Col xs={24} lg={8}>
           <Space direction="vertical" style={{ width: '100%' }} size="large">
-            <Card title={<Space><ClockCircleOutlined /> Recruitment Progress</Space>} bordered={false} style={{ borderRadius: 12 }}>
+            <Card title={<Space><ClockCircleOutlined /> Recruitment Progress</Space>} variant="borderless" style={{ borderRadius: 12 }}>
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
                 <Progress 
                   type="dashboard" 
@@ -204,7 +204,7 @@ const HRDashboardHome = () => {
             <Card 
               title={<Space><FileTextOutlined /> Latest Vacancies</Space>} 
               extra={<Link to="/dashboard/vacancies">Manage</Link>}
-              bordered={false}
+              variant="borderless"
               style={{ borderRadius: 12 }}
             >
               <List

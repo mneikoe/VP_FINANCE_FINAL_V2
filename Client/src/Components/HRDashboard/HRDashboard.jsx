@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { Layout, ConfigProvider } from "antd";
-import Sidebar from "./Sidebar.jsx";
-import TopNavigation from "./TopNavigation.jsx";
-import "./HRDashboard.css";
+import React from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { ConfigProvider } from "antd";
+import UnifiedNavbar from "../Dashbord/UnifiedNavbar";
+import { hrMenuConfig } from "../../config/menuConfigs";
 
 // Import HR Dashboard Components
 import HRDashboardHome from "./HRDashboardHome.jsx";
@@ -25,71 +24,59 @@ import HRActions from "./modules/HRActions.jsx";
 import EmployeeList from "../Employee/OfficeAdmin/EmployeeList";
 import EmployeeDetails from "../Employee/OfficeAdmin/EmployeeDetails";
 
-const { Content } = Layout;
-
 const HRDashboard = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
   return (
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#1890ff",
-          borderRadius: 8,
+          colorPrimary: "#f27405",
+          borderRadius: 12,
+          fontFamily: "'Outfit', sans-serif",
         },
       }}
     >
-      <Layout className="hr-dashboard-layout" hasSider>
-        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <div className="min-h-screen bg-slate-50 font-outfit">
+        <UnifiedNavbar role="HR" menuConfig={hrMenuConfig} />
         
-        <Layout 
-          style={{ 
-            marginLeft: collapsed ? 80 : 280, 
-            transition: 'margin-left 0.2s',
-            minHeight: '100vh',
-            background: '#f0f2f5'
-          }}
-        >
-          <TopNavigation collapsed={collapsed} setCollapsed={setCollapsed} />
-          
-          <Content style={{ margin: '24px', minHeight: 280 }}>
-            <div className="fade-in">
-              <Routes>
-                {/* Default Dashboard Route */}
-                <Route path="/" element={<HRDashboardHome />} />
-                <Route path="/home" element={<HRDashboardHome />} />
+        <main className="relative z-0 p-4 lg:p-8 animate-in fade-in duration-500">
+          <div className="mx-auto max-w-[1920px]">
+            <Routes>
+              {/* Default Dashboard Route */}
+              <Route path="/" element={<HRDashboardHome />} />
+              <Route path="/home" element={<HRDashboardHome />} />
 
-                {/* HR Module Routes */}
-                <Route path="/vacancies" element={<VacancyManagement />} />
-                <Route path="/add-candidate" element={<AddCandidate />} />
-                <Route path="/career-enquiry" element={<CareerEnquiry />} />
-                <Route path="/resume-shortlist" element={<ResumeShortlist />} />
-                <Route path="/interview-process" element={<InterviewProcess />} />
-                <Route path="/joining-data" element={<JoiningData />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/business-associates" element={<BusinessAssociates />} />
-                <Route
-                  path="/add-employee-from-candidates"
-                  element={<AddEmployeeFromCandidates />}
-                />
+              {/* HR Module Routes */}
+              <Route path="/vacancies" element={<VacancyManagement />} />
+              <Route path="/add-candidate" element={<AddCandidate />} />
+              <Route path="/career-enquiry" element={<CareerEnquiry />} />
+              <Route path="/resume-shortlist" element={<ResumeShortlist />} />
+              <Route path="/interview-process" element={<InterviewProcess />} />
+              <Route path="/joining-data" element={<JoiningData />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/business-associates" element={<BusinessAssociates />} />
+              <Route
+                path="/add-employee-from-candidates"
+                element={<AddEmployeeFromCandidates />}
+              />
 
-                {/* New Routes for Business Associates */}
-                <Route path="/internship-students" element={<InternshipStudents />} />
-                <Route path="/rules-regulations" element={<RulesRegulations />} />
-                <Route path="/future-plans" element={<FuturePlans />} />
-                <Route path="/hr-actions" element={<HRActions />} />
+              {/* New Routes for Business Associates */}
+              <Route path="/internship-students" element={<InternshipStudents />} />
+              <Route path="/rules-regulations" element={<RulesRegulations />} />
+              <Route path="/future-plans" element={<FuturePlans />} />
+              <Route path="/hr-actions" element={<HRActions />} />
 
-                {/* Employee Management Routes */}
-                <Route path="/all-employee" element={<EmployeeList />} />
-                <Route path="/employee/:id" element={<EmployeeDetails />} />
+              {/* Employee Management Routes */}
+              <Route path="/all-employee" element={<EmployeeList />} />
+              <Route path="/employee/:id" element={<EmployeeDetails />} />
 
-                {/* Catch all route - redirect to dashboard */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </div>
-          </Content>
-        </Layout>
-      </Layout>
+              {/* Catch all route - redirect to dashboard */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
     </ConfigProvider>
   );
 };

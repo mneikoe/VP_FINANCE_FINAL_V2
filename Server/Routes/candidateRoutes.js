@@ -191,6 +191,7 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       success: false,
       message: "Error adding candidate",
       error: error.message,
+      stack: error.stack,
     });
   }
 });

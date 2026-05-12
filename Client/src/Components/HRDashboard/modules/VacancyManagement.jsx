@@ -273,7 +273,7 @@ const VacancyManagement = () => {
 
   return (
     <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
-      <Card bordered={false} style={{ borderRadius: "12px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+      <Card variant="borderless" style={{ borderRadius: "12px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
           <Col xs={24} sm={12}>
             <Title level={3} style={{ margin: 0 }}>Vacancy Management</Title>
@@ -293,7 +293,7 @@ const VacancyManagement = () => {
         </Row>
       </Card>
 
-      <Card bordered={false} style={{ borderRadius: "12px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+      <Card variant="borderless" style={{ borderRadius: "12px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={12}>
             <Input
@@ -333,7 +333,7 @@ const VacancyManagement = () => {
         </Row>
       </Card>
 
-      <Card bordered={false} style={{ borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} bodyStyle={{ padding: 0 }}>
+      <Card variant="borderless" style={{ borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }} styles={{ body: { padding: 0 } }}>
         <Table
           columns={columns}
           dataSource={filteredVacancies}
@@ -372,9 +372,9 @@ const VacancyManagement = () => {
         onCancel={handleCancel}
         footer={null}
         width={700}
-        destroyOnClose
+        destroyOnHidden
         centered
-        bodyStyle={{ paddingTop: '20px' }}
+        styles={{ body: { paddingTop: '20px' } }}
       >
         <Form
           form={form}

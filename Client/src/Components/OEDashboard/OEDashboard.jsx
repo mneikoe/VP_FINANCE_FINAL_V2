@@ -23,7 +23,8 @@ import {
   Divider,
   Dropdown,
   ConfigProvider,
-  Tooltip
+  Tooltip,
+  Empty
 } from "antd";
 import {
   HomeOutlined,
@@ -41,7 +42,6 @@ import {
   ClockCircleOutlined
 } from "@ant-design/icons";
 
-// OE Dashboard Modules
 import OEDashboardHome from "./OEDashboardHome";
 import OETaskSummary from "./OETaskSummary";
 import OEProfile from "./modules/Profile";
@@ -63,7 +63,17 @@ const OEDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [user, setUser] = useState(null);
+  const [assignedTasks, setAssignedTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [stats, setStats] = useState({
+    totalAssigned: 0,
+    completed: 0,
+    pending: 0,
+    todayTasks: 0,
+  });
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
@@ -161,7 +171,7 @@ const OEDashboard = () => {
       }}
     >
       <Layout style={{ minHeight: '100vh', background: '#f8fafc' }}>
-        {/* VIBRANT FLOATING HEADER (RM STYLE) */}
+        {/* VIBRANT FLOATING HEADER */}
         <div style={{ 
           padding: scrolled ? '12px 24px' : '0', 
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 

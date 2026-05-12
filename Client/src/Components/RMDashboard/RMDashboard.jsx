@@ -81,7 +81,7 @@ const RMDashboard = () => {
     return userData ? JSON.parse(userData) : null;
   });
   const [assignedSuspects, setAssignedSuspects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     totalAssigned: 0,
     completed: 0,
@@ -94,12 +94,6 @@ const RMDashboard = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    if (!userData || userData.role !== "RM") {
-      navigate("/auth/login");
-      return;
-    }
-    setUser(userData);
     fetchAssignedSuspects();
 
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -389,6 +383,7 @@ const RMDashboard = () => {
           placement="left"
           onClose={() => setMobileMenuOpen(false)}
           open={mobileMenuOpen}
+          width={280}
           styles={{ body: { padding: 0 } }}
         >
           <Menu

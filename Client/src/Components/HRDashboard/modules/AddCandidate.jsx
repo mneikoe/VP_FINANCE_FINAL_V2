@@ -608,7 +608,7 @@ const AddCandidate = () => {
             key: "2",
             label: <Space><UnorderedListOutlined /> Evaluation Pipeline</Space>,
             children: (
-              <Card bordered={false} style={{ borderRadius: '0 0 12px 12px' }} bodyStyle={{ padding: 0 }}>
+              <Card variant="borderless" style={{ borderRadius: '0 0 12px 12px' }} styles={{ body: { padding: 0 } }}>
                 <Table 
                   columns={columns} 
                   dataSource={candidates} 

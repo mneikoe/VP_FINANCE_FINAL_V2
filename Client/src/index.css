@@ -1,2 +1,36 @@
-/* Remove old custom CSS that was causing issues */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary-orange: #f27405;
+    --primary-orange-light: #ff8c00;
+    --primary-orange-dark: #cc6204;
+    --secondary-navy: #0c0a3e;
+    --secondary-navy-light: #1a1761;
+    --accent-gold: #FFB800;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --bg-light: #f8fafc;
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.3);
+  }
+
+  body {
+    @apply antialiased text-slate-900 bg-slate-50;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom Utilities */
+.glass-effect {
+  @apply backdrop-blur-md bg-white/80 border border-white/20;
+}
+
+.orange-gradient {
+  background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-light) 100%);
+}
+
+.navy-gradient {
+  background: linear-gradient(135deg, var(--secondary-navy) 0%, var(--secondary-navy-light) 100%);
+}

@@ -70,6 +70,7 @@ router.get("/", async (req, res) => {
       success: false,
       message: "Error fetching vacancies",
       error: error.message,
+      stack: error.stack, // Added stack for debugging
     });
   }
 });
