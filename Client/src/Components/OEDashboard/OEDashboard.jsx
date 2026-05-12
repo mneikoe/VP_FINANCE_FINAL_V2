@@ -5,59 +5,65 @@ import {
   Navigate,
   useLocation,
   useNavigate,
+  Link
 } from "react-router-dom";
 import { logoutUser } from "../../redux/feature/auth/authThunx";
 import { useDispatch } from "react-redux";
 import axios from "../../config/axios";
 import {
-  FaSignOutAlt,
-  FaHome,
-  FaUser,
-  FaTasks,
-  FaHistory,
-  FaMoneyBillAlt,
-  FaBars,
-  FaTimes,
-} from "react-icons/fa";
+  Layout,
+  Menu,
+  Button,
+  Space,
+  Badge,
+  Avatar,
+  Drawer,
+  Typography,
+  Card,
+  Divider,
+  Dropdown,
+  ConfigProvider,
+  Tooltip
+} from "antd";
+import {
+  HomeOutlined,
+  UserOutlined,
+  CheckSquareOutlined,
+  FileTextOutlined,
+  HistoryOutlined,
+  WalletOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  BellOutlined,
+  ThunderboltOutlined,
+  AppstoreOutlined,
+  LineChartOutlined,
+  ClockCircleOutlined
+} from "@ant-design/icons";
 
 // OE Dashboard Modules
 import OEDashboardHome from "./OEDashboardHome";
 import OETaskSummary from "./OETaskSummary";
 import OEProfile from "./modules/Profile";
-// import OESuspectDetailsPage from "./modules/SuspectDetailsPage";
-// import OETaskDetailsPage from "../Masters/task-details/TaskDetailsPage";
+
+const { Header, Content, Footer } = Layout;
+const { Text, Title } = Typography;
 
 const PlaceholderComponent = ({ title }) => (
-  <div className="flex flex-col items-center justify-center min-h-[50vh] p-8">
-    <h2 className="text-2xl font-bold text-gray-800 mb-3">{title}</h2>
-    <p className="text-gray-600 mb-6">This page is under construction.</p>
-    <button
-      className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors"
-      onClick={() => window.history.back()}
-    >
-      Go Back
-    </button>
-  </div>
+  <Card 
+    style={{ textAlign: 'center', padding: '60px 0', borderRadius: '16px' }}
+    bordered={false}
+  >
+    <Empty description={<span>{title} module is currently being optimized.</span>} />
+    <Button type="primary" onClick={() => window.history.back()} style={{ marginTop: 20 }}>Return</Button>
+  </Card>
 );
 
 const OEDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => {
-    const userData = localStorage.getItem("user");
-    return userData ? JSON.parse(userData) : null;
-  });
-  const [assignedTasks, setAssignedTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalAssigned: 0,
-    completed: 0,
-    pending: 0,
-    upcomingTasks: 0,
-    todayTasks: 0,
-  });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dispatch = useDispatch();
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
@@ -66,34 +72,27 @@ const OEDashboard = () => {
       return;
     }
     setUser(userData);
-    fetchAssignedTasks();
+    fetchAssignedTasks(userData.id);
+
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [navigate]);
 
-  const fetchAssignedTasks = async () => {
+  const fetchAssignedTasks = async (oeId) => {
+    if (!oeId) return;
     try {
       setLoading(true);
-      const oeId = user?.id;
-
-      if (!oeId) {
-        console.error("❌ No OE ID found!");
-        setAssignedTasks([]);
-        setLoading(false);
-        return;
-      }
-
       const response = await axios.get("/api/OE/assigned-tasks", {
-        params: { oeId: oeId },
+        params: { oeId },
       });
-
       if (response.data.success) {
-        setAssignedTasks(response.data.data || []);
-      } else {
-        console.error("❌ API Error:", response.data.message);
-        setAssignedTasks([]);
+        const tasks = response.data.data || [];
+        setAssignedTasks(tasks);
+        calculateStatistics(tasks);
       }
     } catch (error) {
-      console.error("❌ Error fetching assigned tasks:", error);
-      setAssignedTasks([]);
+      console.error("OE Task Fetch Error:", error);
     } finally {
       setLoading(false);
     }
@@ -110,15 +109,6 @@ const OEDashboard = () => {
       return dueDate.getTime() === today.getTime();
     }).length;
 
-    const upcomingCount = tasks.filter((task) => {
-      if (!task.dueDate) return false;
-      const dueDate = new Date(task.dueDate);
-      const today = new Date();
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
-      return dueDate >= today && dueDate <= nextWeek;
-    }).length;
-
     const completedCount = tasks.filter(
       (t) => t.status === "completed" || t.assignmentStatus === "completed"
     ).length;
@@ -127,16 +117,9 @@ const OEDashboard = () => {
       totalAssigned: tasks.length,
       completed: completedCount,
       pending: tasks.length - completedCount,
-      upcomingTasks: upcomingCount,
       todayTasks: todayCount,
     });
   };
-
-  useEffect(() => {
-    if (assignedTasks.length > 0) {
-      calculateStatistics(assignedTasks);
-    }
-  }, [assignedTasks]);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -144,216 +127,237 @@ const OEDashboard = () => {
   };
 
   const navigation = [
-    { name: "Dashboard", href: "/oe/dashboard", icon: <FaHome size={14} /> },
-    { name: "Profile", href: "/oe/profile", icon: <FaUser size={14} /> },
-    {
-      name: "Task Summary",
-      href: "/oe/task-summary",
-      icon: <FaTasks size={14} />,
-    },
-    {
-      name: "Salary History",
-      href: "/oe/salary-history",
-      icon: <FaMoneyBillAlt size={14} />,
-    },
-    {
-      name: "Incentive History",
-      href: "/oe/incentive-history",
-      icon: <FaHistory size={14} />,
-    },
+    { name: "Dashboard", href: "/oe/dashboard", icon: <HomeOutlined /> },
+    { name: "Profile", href: "/oe/profile", icon: <UserOutlined /> },
+    { name: "Task Summary", href: "/oe/task-summary", icon: <CheckSquareOutlined /> },
+    { name: "Salary", href: "/oe/salary-history", icon: <WalletOutlined /> },
+    { name: "Incentives", href: "/oe/incentive-history", icon: <HistoryOutlined /> },
   ];
 
-  const isActive = (href) => {
-    return (
-      location.pathname === href || location.pathname.startsWith(href + "/")
-    );
-  };
+  const menuItems = navigation.map(item => ({
+    key: item.href,
+    icon: item.icon,
+    label: item.name,
+    onClick: () => {
+      navigate(item.href);
+      setMobileMenuOpen(false);
+    }
+  }));
 
-  const getPageTitle = () => {
-    if (location.pathname.includes("/oe/dashboard")) return "Dashboard";
-    if (location.pathname.includes("/oe/profile")) return "Profile";
-    if (location.pathname.includes("/oe/task-summary")) return "Task Summary";
-    if (location.pathname.includes("/oe/salary-history"))
-      return "Salary History";
-    if (location.pathname.includes("/oe/incentive-history"))
-      return "Incentive History";
-    return "OE Dashboard";
-  };
+  const userMenuItems = [
+    { key: 'email', label: user?.emailId || user?.email || "OE User", disabled: true },
+    { type: 'divider' },
+    { key: 'profile', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/oe/profile') },
+    { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: handleLogout },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* TOP NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 py-2 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div className="flex items-center justify-between h-14">
-            {/* LEFT: Logo & Mobile Menu Toggle */}
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none"
-              >
-                {mobileMenuOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
-              </button>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#0891b2', // Teal/Cyan for OE
+          borderRadius: 12,
+        },
+      }}
+    >
+      <Layout style={{ minHeight: '100vh', background: '#f8fafc' }}>
+        {/* VIBRANT FLOATING HEADER (RM STYLE) */}
+        <div style={{ 
+          padding: scrolled ? '12px 24px' : '0', 
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
+          position: 'fixed', 
+          top: 0, 
+          width: '100%', 
+          zIndex: 1000 
+        }}>
+          <Header
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              background: scrolled 
+                ? 'rgba(15, 23, 42, 0.95)' 
+                : 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+              backdropFilter: 'blur(12px)',
+              padding: '0 24px',
+              height: '72px',
+              borderRadius: scrolled ? '20px' : '0',
+              boxShadow: scrolled 
+                ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
+                : 'none',
+              borderBottom: scrolled ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              color: 'white'
+            }}
+          >
+            {/* Logo Section */}
+            <div style={{ display: 'flex', alignItems: 'center', marginRight: '32px' }}>
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ color: 'white' }} />}
+                onClick={() => setMobileMenuOpen(true)}
+                className="mobile-toggle"
+                style={{ display: 'none', marginRight: '12px' }}
+              />
+              <Link to="/oe/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                <div style={{
+                  height: '40px',
+                  width: '40px',
+                  background: 'white',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#0891b2',
+                  fontWeight: 900,
+                  fontSize: '18px'
+                }}>
+                  OE
+                </div>
+                <div className="portal-title" style={{ lineHeight: 1.1 }}>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'white' }}>VPFinancial</div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#cffafe', textTransform: 'uppercase' }}>Operational Executive</div>
+                </div>
+              </Link>
             </div>
 
-            {/* CENTER: Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-0.5">
-              <div className="flex items-center bg-white border border-gray-200 rounded-lg px-1 pt-2 pb-2 shadow-sm">
-                {navigation.map((item) => (
-                  <button
-                    key={item.name}
-                    onClick={() => navigate(item.href)}
-                    className={`flex items-center px-3 py-1.5 mx-0.5 rounded-xl text-xs font-medium transition-all duration-200 ${
-                      isActive(item.href)
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="mr-1.5">{item.icon}</span>
-                    <div className="text-[10px] leading-tight">{item.name}</div>
-                    {item.count !== undefined && (
-                      <span className="ml-1.5 h-4 w-4 flex items-center justify-center text-[10px] font-bold bg-gray-700 text-white rounded-full">
-                        {item.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT: User Info & Logout */}
-            <div className="flex items-center ml-2 space-x-4">
-              {/* User Email & Code Display */}
-              <div className="hidden md:flex flex-col items-end">
-                <div className="text-xs font-medium text-gray-900 truncate max-w-[180px]">
-                  {user?.emailId || user?.email || "No email"}
-                </div>
-                <div className="text-[10px] text-gray-500">
-                  Code: {user?.employeeCode || "N/A"}
-                </div>
-              </div>
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
-                title="Logout"
-              >
-                <FaSignOutAlt size={12} />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-
-              {/* Mobile: User Avatar */}
-              <div className="md:hidden">
-                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                  <span className="text-white font-semibold text-xs">
-                    {user?.name?.charAt(0) || "O"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Navigation Menu */}
-        <div className={`md:hidden ${mobileMenuOpen ? "block" : "hidden"}`}>
-          <div className="px-3 py-2 border-t border-gray-200 bg-white">
-            <div className="space-y-0.5">
+            {/* Desktop Navigation */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '8px' }} className="desktop-nav">
               {navigation.map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    navigate(item.href);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`flex items-center w-full px-3 py-2.5 rounded-md text-sm font-medium ${
-                    isActive(item.href)
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <span className="mr-3">{item.icon}</span>
-                  <span className="flex-1 text-left">{item.name}</span>
-                  {item.count !== undefined && (
-                    <span className="h-5 w-5 flex items-center justify-center text-xs font-bold bg-gray-700 text-white rounded-full">
-                      {item.count}
-                    </span>
-                  )}
-                </button>
+                <Link key={item.name} to={item.href} style={{ textDecoration: 'none' }}>
+                  <div 
+                    style={{
+                      height: '44px',
+                      padding: '0 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      borderRadius: '10px',
+                      background: location.pathname.startsWith(item.href) ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = location.pathname.startsWith(item.href) ? 'rgba(255, 255, 255, 0.15)' : 'transparent'}
+                  >
+                    {React.cloneElement(item.icon, { style: { fontSize: '16px', color: 'white' } })}
+                    <span>{item.name}</span>
+                  </div>
+                </Link>
               ))}
             </div>
-          </div>
+
+            {/* User Profile & Right Actions */}
+            <Space size={16}>
+              <div style={{ textAlign: 'right', display: 'none' }} className="user-details">
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'white' }}>{user?.username || user?.name || "OE Exec"}</div>
+                <div style={{ fontSize: '10px', color: '#cffafe' }}>ID: {user?.employeeCode || "N/A"}</div>
+              </div>
+
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
+                <Avatar 
+                  size={40} 
+                  style={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                    border: '2px solid rgba(255, 255, 255, 0.3)', 
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: 'white'
+                  }}
+                >
+                  {user?.username?.charAt(0) || user?.name?.charAt(0) || "O"}
+                </Avatar>
+              </Dropdown>
+            </Space>
+          </Header>
         </div>
-      </nav>
 
-      {/* PAGE HEADER */}
-      <div className="bg-white border-b shadow-sm border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-              {getPageTitle()}
-            </h3>
-          </div>
-        </div>
-      </div>
+        {/* Mobile Sidebar */}
+        <Drawer
+          title={<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><ThunderboltOutlined style={{ color: '#0891b2' }} /><span>Operational Menu</span></div>}
+          placement="left"
+          onClose={() => setMobileMenuOpen(false)}
+          open={mobileMenuOpen}
+          width={280}
+          styles={{ body: { padding: 0 } }}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            style={{ borderRight: 0, padding: '12px' }}
+          />
+        </Drawer>
 
-      {/* MAIN CONTENT */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4">
-        <Routes>
-          <Route path="/" element={<Navigate to="/oe/dashboard" replace />} />
-          <Route
-            path="/dashboard"
-            element={
-              <OEDashboardHome stats={stats} assignedTasks={assignedTasks} />
-            }
-          />
-          <Route path="/profile" element={<OEProfile />} />
-          <Route path="/task-summary" element={<OETaskSummary />} />
-          <Route
-            path="/salary-history"
-            element={<PlaceholderComponent title="Salary History" />}
-          />
-          <Route
-            path="/incentive-history"
-            element={<PlaceholderComponent title="Incentive History" />}
-          />
-          <Route path="/task/details/:id" element={<OETaskSummary />} />
-          <Route path="/task/:taskId" element={<OETaskSummary />} />
-          <Route path="*" element={<Navigate to="/oe/dashboard" replace />} />
-        </Routes>
-      </main>
-
-      {/* FOOTER */}
-      <footer className="bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="text-xs text-gray-500">
-              © {new Date().getFullYear()} OE Dashboard
+        {/* Content Area */}
+        <Content style={{ padding: '0 24px', paddingTop: '100px' }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+            {/* Page Header */}
+            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 800, color: '#1e293b' }}>
+                  {navigation.find(n => location.pathname.includes(n.href))?.name || "OE Portal"}
+                </Title>
+                <Text type="secondary">Enterprise Operations & Task Management Hub</Text>
+              </div>
+              <Space>
+                <Tooltip title="Refresh Data">
+                  <Button icon={<ClockCircleOutlined />} style={{ borderRadius: '8px' }} onClick={() => fetchAssignedTasks(user?.id)} />
+                </Tooltip>
+                <Badge count={stats.pending} size="small">
+                  <Button icon={<BellOutlined />} style={{ borderRadius: '8px' }} />
+                </Badge>
+              </Space>
             </div>
-            <div className="mt-2 md:mt-0 flex flex-wrap items-center gap-x-4 gap-y-1">
-              <div className="flex items-center space-x-1 text-xs">
-                <span className="text-gray-500">Assigned:</span>
-                <span className="font-semibold text-gray-900">
-                  {stats.totalAssigned}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1 text-xs">
-                <span className="text-gray-500">Completed:</span>
-                <span className="font-semibold text-gray-900">
-                  {stats.completed}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1 text-xs">
-                <span className="text-gray-500">Today:</span>
-                <span className="font-semibold text-gray-900">
-                  {stats.todayTasks}
-                </span>
-              </div>
-            </div>
+
+            <Routes>
+              <Route path="/" element={<Navigate to="/oe/dashboard" replace />} />
+              <Route path="/dashboard" element={<OEDashboardHome stats={stats} assignedTasks={assignedTasks} />} />
+              <Route path="/profile" element={<OEProfile />} />
+              <Route path="/task-summary" element={<OETaskSummary />} />
+              <Route path="/salary-history" element={<PlaceholderComponent title="Salary History" />} />
+              <Route path="/incentive-history" element={<PlaceholderComponent title="Incentive History" />} />
+              <Route path="/task/details/:id" element={<OETaskSummary />} />
+              <Route path="/task/:taskId" element={<OETaskSummary />} />
+              <Route path="*" element={<Navigate to="/oe/dashboard" replace />} />
+            </Routes>
           </div>
-        </div>
-      </footer>
-    </div>
+        </Content>
+
+        {/* Modern Footer */}
+        <Footer style={{ 
+          background: 'transparent', 
+          padding: '32px 24px',
+          textAlign: 'center'
+        }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '24px', alignItems: 'center' }}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>© {new Date().getFullYear()} VPFinancial Operations • Operational Executive Portal v2.0</Text>
+            <Space split={<Divider type="vertical" />}>
+                <Space><ClockCircleOutlined style={{ color: '#0891b2' }} /><Text strong>{stats.todayTasks} Task(s) Today</Text></Space>
+                <Space><CheckSquareOutlined style={{ color: '#10b981' }} /><Text strong>{stats.completed}/{stats.totalAssigned} Completed</Text></Space>
+            </Space>
+          </div>
+        </Footer>
+
+        <style>{`
+          @media (max-width: 1200px) {
+            .desktop-nav { display: none !important; }
+            .mobile-toggle { display: inline-flex !important; }
+            .user-details { display: none !important; }
+            .portal-title { display: none !important; }
+          }
+          @media (min-width: 1201px) {
+            .user-details { display: block !important; }
+          }
+          .ant-layout-header {
+            line-height: 1 !important;
+          }
+        `}</style>
+      </Layout>
+    </ConfigProvider>
   );
 };
 

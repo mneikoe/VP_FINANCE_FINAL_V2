@@ -78,50 +78,128 @@ const AddCandidate = () => {
 
   const calculateMarks = (values) => {
     let marks = 0;
-    if (values.education === "Graduate in any") marks += 2;
-    if (values.education === "Graduate in Maths/Economics") marks += 3;
-    if (values.education === "MBA/PG with financial subject") marks += 4;
+    
+    // 1. Referred By: Max 3
+    const referredMarks = { "Internship": 3, "Referred By": 2, "Platofrm Indeep": 1, "Job Hai": 1 };
+    marks += referredMarks[values.referredBy] || 0;
 
-    if (values.ageGroup === "20-25yr") marks += 1;
-    if (values.ageGroup === "26-30yr") marks += 2;
-    if (values.ageGroup === "31-45yr") marks += 3;
-    if (values.ageGroup === "45 & above") marks += 2;
+    // 2. Age: Max 3
+    const ageMarks = { "31-45yr": 3, "26yr-30yr": 2, "20-25yr": 1 };
+    marks += ageMarks[values.ageGroup] || 0;
 
-    if (values.vehicle) marks += 4;
-    if (values.spokenEnglish) marks += 4;
+    // 3. Education: Max 3
+    const eduMarks = { "PG with any financial Subject": 3, "Maths/Economics/MBA": 2, "Graduate": 1 };
+    marks += eduMarks[values.education] || 0;
 
-    marks += (values.administrative || 0);
-    marks += (values.insuranceSales || 0);
-    marks += (values.anySales || 0);
-    marks += (values.fieldWork || 0);
-    marks += (values.dataManagement || 0);
-    marks += (values.backOffice || 0);
-    marks += (values.mis || 0);
+    // 4. Operations Experience: Max 10
+    if (values.insuranceField) marks += 4; // Insurance
+    if (values.dataManagement) marks += 3; // Data Mgmt + CPCT
+    if (values.backOffice) marks += 2;      // Back Office
+    if (values.expOther) marks += 1;        // Any other
 
-    const locMarks = { "H.B Road": 4, "Arera Colony": 3, "BHEL": 2, "Mandideep": 2, "Others": 1 };
+    // 5. Sales & Work Experience: Max 15
+    if (values.adminTeamMgmt) marks += 5;
+    if (values.salesInsFin) marks += 4;
+    if (values.salesAnyField) marks += 3;
+    if (values.fieldWork) marks += 2;
+    if (values.salesOther) marks += 1;
+
+    // 6. Computer Knowledge: Max 3
+    const compMarks = { "Advance (M.S office)": 3, "MIS + EXCEL": 2, "Basic": 1 };
+    marks += compMarks[values.computerKnowledge] || 0;
+
+    // 7. Resident in Bhopal: Max 2
+    const locMarks = { "H.B Road": 2, "Arera Colony": 2, "BHEL": 1, "Mandideep": 1, "Others": 1 };
     marks += locMarks[values.location] || 0;
 
-    if (values.nativePlace === "Bhopal") marks += 3;
+    // 8. Native Place: Max 2
+    if (values.nativePlace === "Bhopal") marks += 2;
     else if (values.nativePlace) marks += 1;
 
-    const salMarks = { "10K-12K": 4, "12-15K": 3, "15-18K": 3, "18-20K": 2, "20-25K": 2, "25K & Above": 1 };
-    marks += salMarks[values.salaryExpectation] || 0;
+    // 9. Salary Expectation: Max 3
+    const salaryMarks = { "12-15K": 3, "15-18K": 2, "18-20K": 1, "20-25k": 1 };
+    marks += salaryMarks[values.salaryExpectation] || 0;
+
+    // 10. Vehicle: Max 2
+    if (values.vehicle === "YES") marks += 2;
+    else if (values.vehicle === "NO") marks += 1;
 
     return marks;
   };
 
+  const getMarksBreakdown = (values) => {
+    return [
+      { 
+        label: "Referred By", 
+        score: { "Internship": 3, "Referred By": 2, "Platofrm Indeep": 1, "Job Hai": 1 }[values.referredBy] || 0, 
+        max: 3 
+      },
+      { 
+        label: "Age Group", 
+        score: values.ageGroup === "31-45yr" ? 3 : values.ageGroup === "26yr-30yr" ? 2 : values.ageGroup === "20-25yr" ? 1 : 0, 
+        max: 3 
+      },
+      { 
+        label: "Education", 
+        score: values.education === "PG with any financial Subject" ? 3 : values.education === "Maths/Economics/MBA" ? 2 : values.education === "Graduate" ? 1 : 0, 
+        max: 3 
+      },
+      { 
+        label: "Operations Experience", 
+        score: (values.insuranceField ? 4 : 0) + (values.dataManagement ? 3 : 0) + (values.backOffice ? 2 : 0) + (values.expOther ? 1 : 0), 
+        max: 10 
+      },
+      { 
+        label: "Sales Experience", 
+        score: (values.adminTeamMgmt ? 5 : 0) + (values.salesInsFin ? 4 : 0) + (values.salesAnyField ? 3 : 0) + (values.fieldWork ? 2 : 0) + (values.salesOther ? 1 : 0), 
+        max: 15 
+      },
+      { 
+        label: "Computer Knowledge", 
+        score: { "Advance (M.S office)": 3, "MIS + EXCEL": 2, "Basic": 1 }[values.computerKnowledge] || 0, 
+        max: 3 
+      },
+      { 
+        label: "Location (Resident)", 
+        score: { "H.B Road": 2, "Arera Colony": 2, "BHEL": 1, "Mandideep": 1, "Others": 1 }[values.location] || 0, 
+        max: 2 
+      },
+      { 
+        label: "Native Place", 
+        score: values.nativePlace === "Bhopal" ? 2 : values.nativePlace ? 1 : 0, 
+        max: 2 
+      },
+      { 
+        label: "Salary Expectation", 
+        score: { "12-15K": 3, "15-18K": 2, "18-20K": 1, "20-25k": 1 }[values.salaryExpectation] || 0, 
+        max: 3 
+      },
+      { 
+        label: "Vehicle", 
+        score: values.vehicle === "YES" ? 2 : values.vehicle === "NO" ? 1 : 0, 
+        max: 2 
+      }
+    ];
+  };
+
   const onFinish = async (values) => {
     setSubmitLoading(true);
+    
     const formData = new FormData();
+    
+    // Send all fields as individual entries to match candidateRoutes.js expectations
     Object.keys(values).forEach(key => {
-        if (values[key] !== undefined) {
-            if (key === 'interviewDate' && values[key]) {
+        if (values[key] !== undefined && values[key] !== null) {
+            if (key === 'interviewDate') {
                 formData.append(key, values[key].format('YYYY-MM-DD'));
             } else {
                 formData.append(key, values[key]);
             }
         }
     });
+
+    // Explicitly add totalMarks for backup (though backend calculates it)
+    formData.append("totalMarks", calculateMarks(values));
 
     if (resume) {
       formData.append("resume", resume);
@@ -151,16 +229,11 @@ const AddCandidate = () => {
       dataIndex: "candidateName",
       key: "name",
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction="vertical" size={0} style={{ textAlign: 'left' }}>
           <Text strong>{text}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>{record.email}</Text>
+          <Text type="secondary" style={{ fontSize: '11px' }}>{record.email || "No email"}</Text>
         </Space>
       ),
-    },
-    {
-      title: "Designation",
-      dataIndex: "designation",
-      key: "designation",
     },
     {
       title: "Mobile",
@@ -168,42 +241,71 @@ const AddCandidate = () => {
       key: "mobile",
     },
     {
-      title: "Marks",
+      title: "Qualification",
+      dataIndex: "education",
+      key: "education",
+      render: (edu) => <Text style={{ fontSize: '12px' }}>{edu || "N/A"}</Text>
+    },
+    {
+      title: "Evaluation Score",
       key: "marks",
       render: (_, record) => {
         const marks = record.totalMarks || calculateMarks(record);
-        return <Badge count={marks} showZero color={marks > 30 ? '#52c41a' : marks > 20 ? '#faad14' : '#f5222d'} />;
+        const color = marks > 35 ? '#52c41a' : marks > 20 ? '#faad14' : '#f5222d';
+        return (
+          <Space>
+            <Progress 
+                type="circle" 
+                percent={(marks / 61) * 100} 
+                size={30} 
+                strokeColor={color} 
+                format={() => marks} 
+            />
+            <Text type="secondary" style={{ fontSize: '10px' }}>/61</Text>
+          </Space>
+        );
       }
     },
     {
       title: "Stage",
       dataIndex: "currentStage",
       key: "stage",
-      render: (stage) => <Tag color="blue">{stage || "Applied"}</Tag>
+      render: (stage) => {
+        const colors = {
+            'Career Enquiry': 'default',
+            'Resume Shortlisted': 'cyan',
+            'Interview Process': 'blue',
+            'Selected': 'green',
+            'Joining Data': 'purple'
+        };
+        return <Tag color={colors[stage] || 'blue'}>{stage || "Applied"}</Tag>;
+      }
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Button 
-          type="text" 
-          icon={<EyeOutlined />} 
-          onClick={() => { setSelectedCandidate(record); setIsModalOpen(true); }}
-        />
+        <Tooltip title="View Profile & Evaluation">
+            <Button 
+              type="text" 
+              icon={<EyeOutlined style={{ color: '#1890ff' }} />} 
+              onClick={() => { setSelectedCandidate(record); setIsModalOpen(true); }}
+            />
+        </Tooltip>
       ),
     },
   ];
 
   return (
     <div className="fade-in">
-      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24 }}>
+      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 24, background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)' }}>
         <Row justify="space-between" align="middle">
           <Col>
-            <Title level={3} style={{ margin: 0 }}>Candidate Management</Title>
-            <Text type="secondary">Add, evaluate and track job applicants</Text>
+            <Title level={3} style={{ margin: 0, color: '#fff' }}>Recruitment Control Center</Title>
+            <Text style={{ color: 'rgba(255,255,255,0.85)' }}>Comprehensive evaluation & point-based candidate assessment</Text>
           </Col>
           <Col>
-             <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
+             <Button icon={<ReloadOutlined />} onClick={fetchData} style={{ borderRadius: 8 }}>Refresh Data</Button>
           </Col>
         </Row>
       </Card>
@@ -215,155 +317,260 @@ const AddCandidate = () => {
         items={[
           {
             key: "1",
-            label: <Space><UserAddOutlined /> Add Candidate</Space>,
+            label: <Space><UserAddOutlined /> New Candidate Evaluation</Space>,
             children: (
-              <Card bordered={false} style={{ borderRadius: '0 0 12px 12px' }}>
+              <Card bordered={false} style={{ borderRadius: '0 0 12px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Form
                   form={form}
                   layout="vertical"
                   onFinish={onFinish}
                   initialValues={{
                     administrative: 0, insuranceSales: 0, anySales: 0, fieldWork: 0,
-                    dataManagement: 0, backOffice: 0, mis: 0
+                    dataManagement: 0, backOffice: 0, mis: 0, nativePlace: "Bhopal"
                   }}
                 >
-                  <Title level={5} style={{ marginBottom: 20 }}><UserAddOutlined /> Personal & Education Details</Title>
                   <Row gutter={24}>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Full Name" name="candidateName" rules={[{ required: true }]}>
-                        <Input prefix={<UserAddOutlined />} placeholder="John Doe" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Mobile No" name="mobileNo" rules={[{ required: true }]}>
-                        <Input prefix={<PhoneOutlined />} placeholder="+91" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Email ID" name="email">
-                        <Input prefix={<MailOutlined />} placeholder="john@example.com" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Education" name="education">
-                        <Select placeholder="Select Qualification">
-                          <Option value="Graduate in any">Graduate in any</Option>
-                          <Option value="Graduate in Maths/Economics">Graduate in Maths/Economics</Option>
-                          <Option value="MBA/PG with financial subject">MBA/PG with financial subject</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Age Group" name="ageGroup">
-                        <Select placeholder="Select Age Group">
-                          <Option value="20-25yr">20-25yr</Option>
-                          <Option value="26-30yr">26-30yr</Option>
-                          <Option value="31-45yr">31-45yr</Option>
-                          <Option value="45 & above">45 & above</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Current Location" name="location">
-                        <Select placeholder="Select Area">
-                          <Option value="H.B Road">H.B Road</Option>
-                          <Option value="Arera Colony">Arera Colony</Option>
-                          <Option value="BHEL">BHEL</Option>
-                          <Option value="Mandideep">Mandideep</Option>
-                          <Option value="Others">Others</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                    <Col xs={24} lg={16}>
+                        <Divider orientation="left" style={{ marginTop: 0 }}><UserAddOutlined /> Basic Profile & Qualifications</Divider>
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item label="Full Name" name="candidateName" rules={[{ required: true }]}>
+                                    <Input prefix={<UserAddOutlined />} placeholder="Full Name" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item 
+                                    label="Mobile No" 
+                                    name="mobileNo" 
+                                    rules={[
+                                        { required: true, message: 'Mobile number is required' },
+                                        { pattern: /^[0-9]{10}$/, message: 'Please enter a valid 10-digit mobile number' }
+                                    ]}
+                                >
+                                    <Input prefix={<PhoneOutlined />} placeholder="10-digit number" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item 
+                                    label="Email ID" 
+                                    name="email"
+                                    rules={[
+                                        { type: 'email', message: 'Please enter a valid email' }
+                                    ]}
+                                >
+                                    <Input prefix={<MailOutlined />} placeholder="email@example.com" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Referred By" name="referredBy" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Reference">
+                                        <Option value="Internship">Internship (3 pts)</Option>
+                                        <Option value="Referred By">Referred By (2 pts)</Option>
+                                        <Option value="Platofrm Indeep">Platofrm Indeep (1 pt)</Option>
+                                        <Option value="Job Hai">Job Hai (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Education" name="education" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Qualification">
+                                        <Option value="PG with any financial Subject">PG Finance (3 pts)</Option>
+                                        <Option value="Maths/Economics/MBA">Maths/Economics/MBA (2 pts)</Option>
+                                        <Option value="Graduate">Graduate (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Age Group" name="ageGroup" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Age Group">
+                                        <Option value="31-45yr">31-45yr (3 pts)</Option>
+                                        <Option value="26yr-30yr">26yr-30yr (2 pts)</Option>
+                                        <Option value="20-25yr">20-25yr (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Computer Knowledge" name="computerKnowledge" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Proficiency">
+                                        <Option value="Advance (M.S office)">Advance (M.S office) (3 pts)</Option>
+                                        <Option value="MIS + EXCEL">MIS + EXCEL (2 pts)</Option>
+                                        <Option value="Basic">Basic (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Current Location" name="location" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Area">
+                                        <Option value="H.B Road">H.B Road (2 pts)</Option>
+                                        <Option value="Arera Colony">Arera Colony (2 pts)</Option>
+                                        <Option value="BHEL">BHEL (1 pt)</Option>
+                                        <Option value="Mandideep">Mandideep (1 pt)</Option>
+                                        <Option value="Others">Others (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Native Place" name="nativePlace" rules={[{ required: true }]}>
+                                    <Input placeholder="e.g. Bhopal" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Salary Expectation" name="salaryExpectation" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Range">
+                                        <Option value="12-15K">12-15K (3 pts)</Option>
+                                        <Option value="15-18K">15-18K (2 pts)</Option>
+                                        <Option value="18-20K">18-20K (1 pt)</Option>
+                                        <Option value="20-25k">20-25k (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Vehicle (Y/N)" name="vehicle" rules={[{ required: true }]}>
+                                    <Select placeholder="Vehicle Available?">
+                                        <Option value="YES">YES (2 pts)</Option>
+                                        <Option value="NO">NO (1 pt)</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item label="Applied For" name="appliedFor" rules={[{ required: true }]}>
+                                    <Select placeholder="Select Vacancy">
+                                        {vacancies.map(v => <Option key={v._id} value={v._id}>{v.designation}</Option>)}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
 
-                  <Divider />
-                  <Title level={5} style={{ marginBottom: 20 }}><TrophyOutlined /> Experience & Skill Evaluation (0-5 Marks)</Title>
-                  <Row gutter={24}>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="Admin" name="administrative">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="Ins. Sales" name="insuranceSales">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="Any Sales" name="anySales">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="Field Work" name="fieldWork">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="Data Mgmt" name="dataManagement">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="Back Office" name="backOffice">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="MIS" name="mis">
-                        <InputNumber min={0} max={5} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12} md={6} lg={3}>
-                      <Form.Item label="English" name="spokenEnglish" valuePropName="checked">
-                        <Checkbox>Spoken</Checkbox>
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                        <Divider orientation="left"><TrophyOutlined /> Sales & Work Experience (Screenshot 2)</Divider>
+                        <Row gutter={[16, 12]}>
+                            {[
+                                { name: 'adminTeamMgmt', label: 'Administrative Work & Team Management', pts: 5 },
+                                { name: 'salesInsFin', label: 'Sales in Insurance & Financial Field', pts: 4 },
+                                { name: 'salesAnyField', label: 'Sales & Services in any field', pts: 3 },
+                                { name: 'fieldWork', label: 'Field Work', pts: 2 },
+                                { name: 'salesOther', label: 'Others', pts: 1 },
+                            ].map(skill => (
+                                <Col span={8} key={skill.name}>
+                                    <Form.Item name={skill.name} valuePropName="checked" noStyle>
+                                        <Card size="small" hoverable style={{ border: '1px solid #f0f0f0' }} bodyStyle={{ padding: '8px 12px' }}>
+                                            <Checkbox style={{ width: '100%' }}>
+                                                <Text strong style={{ fontSize: '12px' }}>{skill.label}</Text>
+                                                <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{skill.pts} Points</div>
+                                            </Checkbox>
+                                        </Card>
+                                    </Form.Item>
+                                </Col>
+                            ))}
+                        </Row>
 
-                  <Divider />
-                  <Row gutter={24}>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Applied For" name="appliedFor" rules={[{ required: true }]}>
-                        <Select placeholder="Select Vacancy">
-                          {vacancies.map(v => <Option key={v._id} value={v._id}>{v.designation}</Option>)}
-                        </Select>
-                      </Form.Item>
+                        <Divider orientation="left"><TrophyOutlined /> Operations Experience (Screenshot 1)</Divider>
+                        <Row gutter={[16, 12]}>
+                            {[
+                                { name: 'insuranceField', label: 'Insurance & Financial Field', pts: 4 },
+                                { name: 'dataManagement', label: 'Data Management with CPCT', pts: 3 },
+                                { name: 'backOffice', label: 'Back Office Operations', pts: 2 },
+                                { name: 'expOther', label: 'Any other', pts: 1 },
+                            ].map(skill => (
+                                <Col span={12} key={skill.name}>
+                                    <Form.Item name={skill.name} valuePropName="checked" noStyle>
+                                        <Card size="small" hoverable style={{ border: '1px solid #f0f0f0' }} bodyStyle={{ padding: '8px 12px' }}>
+                                            <Checkbox style={{ width: '100%' }}>
+                                                <Text strong style={{ fontSize: '12px' }}>{skill.label}</Text>
+                                                <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{skill.pts} Points</div>
+                                            </Checkbox>
+                                        </Card>
+                                    </Form.Item>
+                                </Col>
+                            ))}
+                        </Row>
+                        <div style={{ marginTop: 12, background: '#fff7e6', padding: '8px 12px', borderRadius: 8, border: '1px solid #ffe7ba' }}>
+                            <Text type="warning" strong style={{ fontSize: 13 }}><StarOutlined /> NOTE: Minimum 2yrs experience required in work experience</Text>
+                        </div>
                     </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Interview Date" name="interviewDate">
-                        <DatePicker style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <Form.Item label="Resume (PDF)">
-                        <Upload 
-                          beforeUpload={(file) => { setResume(file); return false; }} 
-                          maxCount={1}
-                          fileList={resume ? [resume] : []}
-                          onRemove={() => setResume(null)}
+
+                    <Col xs={24} lg={8}>
+                        <Card 
+                            style={{ position: 'sticky', top: 0, borderRadius: 12, border: '1px solid #e8e8e8', background: '#fafafa' }}
+                            title={<Space><StarOutlined style={{ color: '#faad14' }} /> Real-time Evaluation Scorecard</Space>}
                         >
-                          <Button icon={<UploadOutlined />} block>Select File</Button>
-                        </Upload>
-                      </Form.Item>
+                            <Form.Item noStyle shouldUpdate>
+                                {() => {
+                                    const values = form.getFieldsValue();
+                                    const score = calculateMarks(values);
+                                    const breakdown = getMarksBreakdown(values);
+                                    const percent = (score / 46) * 100;
+                                    
+                                    return (
+                                        <div>
+                                            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                                <Progress 
+                                                    type="dashboard" 
+                                                    percent={percent} 
+                                                    strokeColor={{ '0%': '#108ee9', '100%': '#87d068' }}
+                                                    format={() => (
+                                                        <div>
+                                                            <div style={{ fontSize: 24, fontWeight: 'bold' }}>{score}</div>
+                                                            <div style={{ fontSize: 12, color: '#8c8c8c' }}>/ 46 Points</div>
+                                                        </div>
+                                                    )}
+                                                />
+                                                <div style={{ marginTop: 8 }}>
+                                                    <Tag color={score > 35 ? 'success' : score > 20 ? 'warning' : 'error'}>
+                                                        {score > 35 ? 'Highly Recommended' : score > 20 ? 'Potential Match' : 'Below Threshold'}
+                                                    </Tag>
+                                                </div>
+                                            </div>
+
+                                            <Title level={5} style={{ fontSize: 14, marginBottom: 12 }}>Points Breakdown</Title>
+                                            {breakdown.map((item, idx) => (
+                                                <div key={idx} style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <Text style={{ fontSize: 12 }}>{item.label}</Text>
+                                                    <Badge 
+                                                        count={`${item.score}/${item.max}`} 
+                                                        style={{ backgroundColor: item.score > 0 ? '#52c41a' : '#d9d9d9' }} 
+                                                    />
+                                                </div>
+                                            ))}
+
+                                            <Divider style={{ margin: '12px 0' }} />
+                                            <Form.Item label="Interview Date" name="interviewDate">
+                                                <DatePicker style={{ width: '100%' }} />
+                                            </Form.Item>
+                                            <Form.Item label="Resume (PDF)">
+                                                <Upload 
+                                                    beforeUpload={(file) => { setResume(file); return false; }} 
+                                                    maxCount={1}
+                                                    fileList={resume ? [resume] : []}
+                                                    onRemove={() => setResume(null)}
+                                                >
+                                                    <Button icon={<UploadOutlined />} block>Select PDF</Button>
+                                                </Upload>
+                                            </Form.Item>
+
+                                            <Button 
+                                                type="primary" 
+                                                block 
+                                                size="large" 
+                                                htmlType="submit" 
+                                                loading={submitLoading}
+                                                style={{ marginTop: 16, height: 45, borderRadius: 8 }}
+                                            >
+                                                Save Candidate Evaluation
+                                            </Button>
+                                        </div>
+                                    );
+                                }}
+                            </Form.Item>
+                        </Card>
                     </Col>
                   </Row>
-
-                  <div style={{ textAlign: 'right', marginTop: 24 }}>
-                    <Space>
-                      <Button onClick={() => form.resetFields()}>Reset</Button>
-                      <Button type="primary" size="large" htmlType="submit" loading={submitLoading} icon={<UserAddOutlined />}>
-                        Add Candidate
-                      </Button>
-                    </Space>
-                  </div>
                 </Form>
               </Card>
             )
           },
           {
             key: "2",
-            label: <Space><UnorderedListOutlined /> View Candidates</Space>,
+            label: <Space><UnorderedListOutlined /> Evaluation Pipeline</Space>,
             children: (
               <Card bordered={false} style={{ borderRadius: '0 0 12px 12px' }} bodyStyle={{ padding: 0 }}>
                 <Table 
@@ -381,94 +588,145 @@ const AddCandidate = () => {
       />
 
       <Modal
-        title={<Space><EyeOutlined style={{ color: '#1890ff' }} /> Candidate Evaluation Profile</Space>}
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '95%' }}>
+            <Space><EyeOutlined style={{ color: '#1890ff' }} /> Candidate Evaluation Report</Space>
+            {selectedCandidate && (
+                <Tag color={(selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 35 ? 'success' : (selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 20 ? 'warning' : 'error'}>
+                    {(selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 35 ? 'Highly Recommended' : (selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 20 ? 'Potential Match' : 'Below Threshold'}
+                </Tag>
+            )}
+          </div>
+        }
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
-        footer={[<Button key="close" type="primary" onClick={() => setIsModalOpen(false)}>Close Window</Button>]}
-        width={850}
+        footer={[<Button key="close" type="primary" onClick={() => setIsModalOpen(false)}>Close Evaluation</Button>]}
+        width={900}
         centered
         className="premium-modal"
       >
         {selectedCandidate && (
           <div className="fade-in">
-            <Descriptions 
-                bordered 
-                column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }} 
-                size="small"
-                labelStyle={{ background: '#fafafa', fontWeight: 600, width: '100px' }}
-            >
-              <Descriptions.Item label="Full Name" span={1}><Text strong>{selectedCandidate.candidateName}</Text></Descriptions.Item>
-              <Descriptions.Item label="Phone" span={1}>{selectedCandidate.mobileNo}</Descriptions.Item>
-              <Descriptions.Item label="Email" span={1}><div style={{ minWidth: '180px' }}>{selectedCandidate.email || "N/A"}</div></Descriptions.Item>
-              <Descriptions.Item label="Designation">
-                <Tag color="cyan">{selectedCandidate.designation || selectedCandidate.appliedFor?.designation || "Not Specified"}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Education">{selectedCandidate.education}</Descriptions.Item>
-              <Descriptions.Item label="Location">{selectedCandidate.location}</Descriptions.Item>
-              <Descriptions.Item label="Total Score">
-                <Badge 
-                    count={selectedCandidate.totalMarks || calculateMarks(selectedCandidate)} 
-                    overflowCount={100}
-                    color={ (selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 30 ? '#52c41a' : '#faad14'} 
-                />
-              </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color="processing" icon={<SyncOutlined spin />}>{selectedCandidate.currentStage || "Applied"}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Applied Date">
-                {dayjs(selectedCandidate.createdAt).format("DD MMM YYYY")}
-              </Descriptions.Item>
-            </Descriptions>
-            
-            <Divider orientation="left"><TrophyOutlined /> Experience & Skill Breakdown</Divider>
-            
-            <Row gutter={[32, 16]}>
-              {[
-                { label: 'Admin', key: 'administrative', parent: 'experienceFields' },
-                { label: 'Ins. Sales', key: 'insuranceSales', parent: 'experienceFields' },
-                { label: 'Any Sales', key: 'anySales', parent: 'experienceFields' },
-                { label: 'Field Work', key: 'fieldWork', parent: 'experienceFields' },
-                { label: 'Data Mgmt', key: 'dataManagement', parent: 'operationalActivities' },
-                { label: 'Back Office', key: 'backOffice', parent: 'operationalActivities' },
-                { label: 'MIS', key: 'mis', parent: 'operationalActivities' }
-              ].map(item => {
-                const value = selectedCandidate[item.key] || selectedCandidate[item.parent]?.[item.key] || 0;
-                return (
-                  <Col span={8} key={item.key}>
-                    <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
-                      <Text type="secondary">{item.label}</Text>
-                      <Text strong>{value}/5</Text>
-                    </div>
+            <Row gutter={24} style={{ marginBottom: 24 }}>
+                <Col span={16}>
+                    <Descriptions 
+                        bordered 
+                        column={2} 
+                        size="small"
+                        labelStyle={{ background: '#fafafa', fontWeight: 600, width: '120px' }}
+                    >
+                        <Descriptions.Item label="Candidate" span={2}><Text strong style={{ fontSize: 16 }}>{selectedCandidate.candidateName}</Text></Descriptions.Item>
+                        <Descriptions.Item label="Mobile">{selectedCandidate.mobileNo}</Descriptions.Item>
+                        <Descriptions.Item label="Email">{selectedCandidate.email || 'N/A'}</Descriptions.Item>
+                        <Descriptions.Item label="Education" span={2}><Tag color="blue">{selectedCandidate.education}</Tag></Descriptions.Item>
+                        <Descriptions.Item label="Location">{selectedCandidate.location}</Descriptions.Item>
+                        <Descriptions.Item label="Native">{selectedCandidate.nativePlace}</Descriptions.Item>
+                        <Descriptions.Item label="Designation" span={2}>{selectedCandidate.designation || selectedCandidate.appliedFor?.designation || "N/A"}</Descriptions.Item>
+                    </Descriptions>
+                </Col>
+                <Col span={8} style={{ textAlign: 'center', borderLeft: '1px solid #f0f0f0' }}>
                     <Progress 
-                      percent={value * 20} 
-                      size="small" 
-                      showInfo={false} 
-                      strokeColor={ value >= 4 ? '#52c41a' : value >= 2 ? '#faad14' : '#ff4d4f' }
+                        type="dashboard" 
+                        percent={((selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) / 46) * 100} 
+                        strokeColor={{ '0%': '#108ee9', '100%': '#87d068' }}
+                        format={() => (
+                            <div>
+                                <div style={{ fontSize: 28, fontWeight: 'bold' }}>{selectedCandidate.totalMarks || calculateMarks(selectedCandidate)}</div>
+                                <div style={{ fontSize: 12, color: '#8c8c8c' }}>/ 46 Total</div>
+                            </div>
+                        )}
                     />
-                  </Col>
-                );
-              })}
-              <Col span={8}>
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9f9f9', borderRadius: 8, padding: '8px 12px' }}>
-                   <Space direction="vertical" align="center" size={0}>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>Spoken English</Text>
-                      <Tag color={selectedCandidate.spokenEnglish ? "success" : "error"} style={{ marginTop: 4 }}>
-                        {selectedCandidate.spokenEnglish ? "Excellent" : "Needs Improvement"}
-                      </Tag>
-                   </Space>
-                </div>
+                    <div style={{ marginTop: 10 }}>
+                        <Text type="secondary">Evaluation Date: {dayjs(selectedCandidate.appliedDate).format('DD MMM YYYY')}</Text>
+                    </div>
+                </Col>
+            </Row>
+            
+            <Divider orientation="left"><StarOutlined /> Sales & Operations Breakdown</Divider>
+            
+            <Row gutter={[24, 16]}>
+              <Col span={12}>
+                <Text strong style={{ display: 'block', marginBottom: 10 }}>Sales & Field (Max 15)</Text>
+                {[
+                    { label: 'Admin & Team', key: 'adminTeamMgmt', max: 5 },
+                    { label: 'Sales Ins/Fin', key: 'salesInsFin', max: 4 },
+                    { label: 'Sales Any', key: 'salesAnyField', max: 3 },
+                    { label: 'Field Work', key: 'fieldWork', max: 2 },
+                    { label: 'Others', key: 'salesOther', max: 1 }
+                ].map(item => {
+                    const checked = selectedCandidate[item.key] === true || selectedCandidate.salesExperience?.[item.key] === true;
+                    return (
+                        <div key={item.key} style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 11 }}>{item.label}</Text>
+                            <Tag color={checked ? 'green' : 'default'} style={{ fontSize: 10 }}>{checked ? item.max : 0} pts</Tag>
+                        </div>
+                    );
+                })}
+              </Col>
+              <Col span={12} style={{ borderLeft: '1px solid #f0f0f0' }}>
+                <Text strong style={{ display: 'block', marginBottom: 10 }}>Operations (Max 10)</Text>
+                {[
+                    { label: 'Insurance Field', key: 'insuranceField', max: 4 },
+                    { label: 'Data Mgmt', key: 'dataManagement', max: 3 },
+                    { label: 'Back Office', key: 'backOffice', max: 2 },
+                    { label: 'Any Other', key: 'expOther', max: 1 }
+                ].map(item => {
+                    const checked = selectedCandidate[item.key] === true || selectedCandidate.operationalActivities?.[item.key] === true;
+                    return (
+                        <div key={item.key} style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 11 }}>{item.label}</Text>
+                            <Tag color={checked ? 'green' : 'default'} style={{ fontSize: 10 }}>{checked ? item.max : 0} pts</Tag>
+                        </div>
+                    );
+                })}
               </Col>
             </Row>
 
+            <Divider orientation="left"><StarOutlined /> Full Marks Distribution (Max 46)</Divider>
+            <Table
+                size="small"
+                pagination={false}
+                bordered
+                dataSource={getMarksBreakdown(selectedCandidate).map((item, index) => ({ ...item, key: index }))}
+                columns={[
+                    { title: 'Scoring Category', dataIndex: 'label', key: 'label', render: (t) => <Text strong>{t}</Text> },
+                    { 
+                        title: 'Points Earned', 
+                        dataIndex: 'score', 
+                        key: 'score', 
+                        align: 'center', 
+                        render: (s, r) => <Text strong color={s > 0 ? '#52c41a' : '#000'}>{s} / {r.max}</Text> 
+                    },
+                    { 
+                        title: 'Achievement', 
+                        key: 'percent', 
+                        render: (_, r) => <Progress percent={(r.score / r.max) * 100} size="small" strokeColor={r.score === r.max ? '#52c41a' : '#1890ff'} /> 
+                    }
+                ]}
+                summary={() => (
+                    <Table.Summary.Row style={{ background: '#fafafa' }}>
+                        <Table.Summary.Cell index={0}><Text strong>TOTAL AGGREGATE SCORE</Text></Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="center">
+                            <Text strong style={{ fontSize: 16, color: (selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 30 ? '#52c41a' : '#1890ff' }}>
+                                {selectedCandidate.totalMarks || calculateMarks(selectedCandidate)} / 46
+                            </Text>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={2}>
+                            <Progress 
+                                percent={((selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) / 46) * 100} 
+                                strokeColor={(selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 30 ? '#52c41a' : '#1890ff'}
+                            />
+                        </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                )}
+            />
+
             {selectedCandidate.resumeUrl && (
-              <>
-                <Divider />
-                <div style={{ textAlign: 'center' }}>
-                  <Button type="dashed" size="large" icon={<FilePdfOutlined />} onClick={() => window.open(selectedCandidate.resumeUrl, '_blank')} block>
-                    Open Candidate Resume / CV
-                  </Button>
-                </div>
-              </>
+              <div style={{ textAlign: 'center', marginTop: 32 }}>
+                <Button type="primary" ghost size="large" icon={<FilePdfOutlined />} onClick={() => window.open(selectedCandidate.resumeUrl, '_blank')} style={{ borderRadius: 8 }}>
+                  View Candidate Resume / Documents
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -476,15 +734,18 @@ const AddCandidate = () => {
 
       <style>{`
         .custom-table .ant-table-thead > tr > th {
-          background-color: #FFCC00 !important;
-          color: #000 !important;
-          font-weight: bold !important;
-          text-align: center !important;
+          background-color: #f0f2f5 !important;
+          color: #262626 !important;
+          font-weight: 600 !important;
+          border-bottom: 2px solid #e8e8e8 !important;
         }
-        .custom-table .ant-table-tbody > tr > td {
-          text-align: center !important;
+        .premium-modal .ant-modal-content {
+          border-radius: 12px;
+          overflow: hidden;
         }
-        .ant-divider { margin: 24px 0 !important; }
+        .ant-divider-horizontal { margin: 24px 0 !important; }
+        .ant-card { transition: all 0.3s; }
+        .ant-card-hoverable:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
       `}</style>
     </div>
   );

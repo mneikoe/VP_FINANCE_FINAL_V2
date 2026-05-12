@@ -83,49 +83,51 @@ const DashboardQuickLinks = () => {
       </div>
       <Row gutter={[16, 16]}>
         {categories.map((cat, index) => (
-          <Col xs={24} sm={12} lg={6} xl={cat.title === "Masters" ? 12 : 6} key={index}>
+          <Col xs={24} sm={12} xl={24} key={index}>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
             >
               <Link to={cat.to}>
                 <Card
                   hoverable
-                  bodyStyle={{ padding: "20px" }}
+                  styles={{ body: { padding: "16px" } }}
                   style={{
-                    borderRadius: "16px",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                    borderRadius: "14px",
+                    border: "1px solid #f1f5f9",
+                    background: "white",
+                    boxShadow: "none",
                     overflow: "hidden"
                   }}
+                  className="quick-link-card"
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                     <div
                       style={{
-                        width: "48px",
-                        height: "48px",
-                        borderRadius: "12px",
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "10px",
                         background: cat.bgColor,
                         color: cat.color,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "24px",
+                        fontSize: "20px",
                         flexShrink: 0
                       }}
                     >
                       {cat.icon}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <Title level={5} style={{ margin: "0 0 4px 0", fontSize: "16px" }}>
+                      <Title level={5} style={{ margin: 0, fontSize: "14px", fontWeight: 700 }}>
                         {cat.title}
                       </Title>
-                      <Text type="secondary" style={{ fontSize: "13px" }}>
+                      <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>
                         {cat.desc}
                       </Text>
                     </div>
-                    <FiChevronRight style={{ color: "#bfbfbf", marginTop: "4px" }} />
+                    <FiChevronRight style={{ color: "#cbd5e1" }} />
                   </div>
                 </Card>
               </Link>
@@ -133,6 +135,12 @@ const DashboardQuickLinks = () => {
           </Col>
         ))}
       </Row>
+      <style>{`
+        .quick-link-card:hover {
+          border-color: #3b82f6 !important;
+          background: #f8fafc !important;
+        }
+      `}</style>
     </div>
   );
 };

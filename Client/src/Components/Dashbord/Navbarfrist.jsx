@@ -1,52 +1,52 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logoutUser } from "../../redux/feature/auth/authThunx";
 import {
-  FiGrid,
-  FiLayers,
-  FiUsers,
-  FiBriefcase,
-  FiHome,
-  FiMessageSquare,
-  FiCheckSquare,
-  FiFileText,
-  FiChevronDown,
-  FiMenu,
-  FiLogOut,
-  FiX,
-  FiUser,
-  FiBell,
-  FiTrendingUp,
-} from "react-icons/fi";
+  Layout,
+  Menu,
+  Button,
+  Dropdown,
+  Space,
+  Badge,
+  Avatar,
+  Drawer,
+  Typography,
+  Card,
+  Divider,
+  Popover,
+  Tooltip
+} from "antd";
+import {
+  DashboardOutlined,
+  DatabaseOutlined,
+  TeamOutlined,
+  ShopOutlined,
+  CheckSquareOutlined,
+  FileTextOutlined,
+  BellOutlined,
+  RiseOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  DownOutlined,
+  ThunderboltOutlined,
+  SearchOutlined
+} from "@ant-design/icons";
+
+const { Header } = Layout;
+const { Text, Title } = Typography;
 
 const Navbarfristn = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
   const [scrolled, setScrolled] = useState(false);
-  const navbarRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showNotification, setShowNotification] = useState(false);
-  const [showProfileCard, setShowProfileCard] = useState(false);
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-
-
-  // 🔔 Notification State
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "New client added", read: false },
-    { id: 2, text: "Task assigned to you", read: false },
-    { id: 3, text: "Meeting scheduled", read: true },
-  ]);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -56,167 +56,14 @@ const Navbarfristn = () => {
     navigate("/auth/login");
   };
 
-  const isPathActive = (paths = []) =>
-    paths.some((path) =>
-      path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)
-    );
-
-  const handleDropdownClick = (name) => {
-    setOpenDropdown((prev) => (prev === name ? null : name));
-  };
-
-  const closeAllDropdowns = () => {
-    setOpenDropdown(null);
-    setIsMobileMenuOpen(false);
-  };
-
-  useEffect(() => {
-    const handleOutsideClick = (event) => {
-      if (navbarRef.current && !navbarRef.current.contains(event.target)) {
-        setOpenDropdown(null);
-        setShowNotification(false);
-        setShowProfileCard(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
-
-  useEffect(() => {
-    setOpenDropdown(null);
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  // Navigation Item
-  const NavItem = ({ to, icon: Icon, label, active, onClick }) => (
-    <Link
-      to={to}
-      onClick={onClick}
-      className={`
-        relative flex h-12 min-w-[60px] lg:min-w-[64px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
-        rounded-lg px-1 xl:px-2 transition-all duration-200
-        ${active ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
-      `}
-    >
-      <Icon className="text-base xl:text-lg" />
-      <span className="text-[9px] xl:text-[11px] font-medium tracking-wide text-center">{label}</span>
-      {active && (
-        <span className="absolute bottom-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-blue-600" />
-      )}
-    </Link>
-  );
-
-  // ✅ FIX: Dropdown Container - handles hover for both trigger and menu
-  const DropdownContainer = ({ name, icon: Icon, label, width = "600px", children }) => {
-    const isOpen = openDropdown === name;
-
-    // Determine alignment based on menu name
-    const isRightAligned = ["task", "reports", "depart"].includes(name);
-
-    return (
-      <div className="relative">
-        {/* Trigger Button */}
-        <button
-          type="button"
-          onClick={() => handleDropdownClick(name)}
-          className={`
-            relative flex h-12 min-w-[60px] lg:min-w-[64px] xl:min-w-[80px] cursor-pointer flex-col items-center justify-center 
-            rounded-lg px-1 xl:px-2 transition-all duration-200
-            ${isOpen ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
-          `}
-        >
-          <Icon className="text-base xl:text-lg" />
-          <div className="flex items-center">
-            <span className="text-[9px] xl:text-[11px] font-medium tracking-wide">{label}</span>
-            <FiChevronDown
-              className={`ml-0.5 text-[9px] xl:text-[10px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-                }`}
-            />
-          </div>
-          {isOpen && (
-            <span className="absolute bottom-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-blue-600" />
-          )}
-        </button>
-
-        {/* Click-open menu avoids hover gap issues on dense pages */}
-        {isOpen && (
-          <div
-            className={`absolute top-full z-[110] mt-1 max-h-[min(75vh,560px)] overflow-y-auto rounded-lg border border-gray-100 bg-white shadow-xl
-              ${isRightAligned ? "right-0" : "left-0"} 
-              ${name === "depart" || name === "employee" ? "lg:-translate-x-1/4 xl:-translate-x-1/2 xl:left-1/2" : ""}
-            `}
-            style={{ width: `min(${width}, 92vw)` }}
-          >
-            <div className="p-4 xl:p-5">{children}</div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Menu Section
-  const MenuSection = ({ title, items }) => (
-    <div>
-      <h6 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-black">
-        {title}
-      </h6>
-      <div className="space-y-0.5">
-        {items.map((item, idx) => (
-          <Link
-            key={idx}
-            to={item.to}
-            className="block rounded-md px-3 py-2 text-sm text-gray-600 transition-all hover:bg-gray-50 hover:text-blue-600"
-            onClick={closeAllDropdowns}
-          >
-            {item.name}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-
-  // Mobile Menu Section
-  const MobileMenuSection = ({ title, items }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-      <div className="border-b border-gray-100 last:border-0">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          <span>{title}</span>
-          <FiChevronDown
-            className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-              }`}
-          />
-        </button>
-        {isOpen && (
-          <div className="bg-gray-50 px-4 py-2">
-            {items.map((item, idx) => (
-              <Link
-                key={idx}
-                to={item.to}
-                className="block py-2 pl-4 text-sm text-gray-600 hover:text-blue-600"
-                onClick={closeAllDropdowns}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Menu configuration
   const menuConfig = {
     masters: {
-      width: "780px",
+      label: "Masters",
+      icon: <DatabaseOutlined />,
+      width: 780,
       sections: [
         {
-          title: "Task ",
+          title: "Task",
           items: [
             { name: "Composite Task", to: "/composite" },
             { name: "Marketing Task", to: "/marketing-task" },
@@ -224,18 +71,17 @@ const Navbarfristn = () => {
           ],
         },
         {
-          title: "Area ",
+          title: "Area",
           items: [
             { name: "Add Area", to: "/area" },
             { name: "Add Sub Area", to: "/sub-area" },
           ],
         },
         {
-          title: "Lead ",
+          title: "Lead",
           items: [
             { name: "Lead Source", to: "/lead-type" },
             { name: "Lead Name", to: "/lead-source" },
-
             { name: "Occupation Type", to: "/occupation-type" },
             { name: "Occupation Name", to: "/lead-occupation" },
             { name: "Calling Purpose", to: "/calling-purpose" },
@@ -245,28 +91,15 @@ const Navbarfristn = () => {
           title: "Document",
           items: [
             { name: "Document Type", to: "/kycdocument" },
-            { name: "Document Name ", to: "/kyc-document-name-master" },
-          ],
-        },
-      ],
-    },
-    financial: {
-      width: "360px",
-      sections: [
-        {
-          title: "Financial Services",
-          items: [
-            { name: "Financial Products", to: "/financial-product-list" },
-            { name: "Company Name", to: "/company-name" },
-            { name: "MF Registrar", to: "/mutual-fund/registrar" },
-            { name: "MF AMC Name", to: "/mutual-fund/amc" },
-            { name: "Other Product", to: "/other-product" },
+            { name: "Document Name", to: "/kyc-document-name-master" },
           ],
         },
       ],
     },
     customers: {
-      width: "560px",
+      label: "Customers",
+      icon: <UserOutlined />,
+      width: 560,
       sections: [
         {
           title: "Suspect",
@@ -293,27 +126,24 @@ const Navbarfristn = () => {
       ],
     },
     employee: {
-      width: "720px",
+      label: "Employee",
+      icon: <TeamOutlined />,
+      width: 720,
       sections: [
         {
           title: "Office Admin",
           items: [
             { name: "Job Profile & Target", to: "/job-profile-target-admin" },
             { name: "All Employee", to: "/all-employee" },
-
           ],
         },
         {
           title: "Telecaller",
-          items: [
-            { name: "Job Profile & Target", to: "/job-profile-target-telecaller" },
-          ],
+          items: [{ name: "Job Profile & Target", to: "/job-profile-target-telecaller" }],
         },
         {
           title: "CRE",
-          items: [
-            { name: "Job Profile & Target", to: "/job-profile-target-cre" },
-          ],
+          items: [{ name: "Job Profile & Target", to: "/job-profile-target-cre" }],
         },
         {
           title: "HR",
@@ -324,20 +154,35 @@ const Navbarfristn = () => {
         },
         {
           title: "Telemarketer",
-          items: [
-            { name: "Job Profile & Target", to: "/job-profile-target-telemarketer" },
-          ],
+          items: [{ name: "Job Profile & Target", to: "/job-profile-target-telemarketer" }],
         },
         {
           title: "Office Executive",
+          items: [{ name: "Job Profile & Target", to: "/job-profile-target-office-executive" }],
+        },
+      ],
+    },
+    financial: {
+      label: "Financial",
+      icon: <RiseOutlined />,
+      width: 360,
+      sections: [
+        {
+          title: "Financial Services",
           items: [
-            { name: "Job Profile & Target", to: "/job-profile-target-office-executive" },
+            { name: "Financial Products", to: "/financial-product-list" },
+            { name: "Company Name", to: "/company-name" },
+            { name: "MF Registrar", to: "/mutual-fund/registrar" },
+            { name: "MF AMC Name", to: "/mutual-fund/amc" },
+            { name: "Other Product", to: "/other-product" },
           ],
         },
       ],
     },
-    departments: {
-      width: "780px",
+    depart: {
+      label: "Department",
+      icon: <ShopOutlined />,
+      width: 780,
       sections: [
         {
           title: "Marketing",
@@ -365,9 +210,10 @@ const Navbarfristn = () => {
         },
       ],
     },
-
     task: {
-      width: "400px",
+      label: "Task",
+      icon: <CheckSquareOutlined />,
+      width: 400,
       sections: [
         {
           title: "Task Categories",
@@ -387,7 +233,9 @@ const Navbarfristn = () => {
       ],
     },
     reports: {
-      width: "320px",
+      label: "Reports",
+      icon: <FileTextOutlined />,
+      width: 320,
       sections: [
         {
           title: "Reports",
@@ -403,228 +251,304 @@ const Navbarfristn = () => {
     },
   };
 
-  const dropdownMenus = {
-    masters: { ...menuConfig.masters, icon: FiLayers, label: "Masters" },
-    customers: { ...menuConfig.customers, icon: FiUser, label: "Customers" },
-    employee: { ...menuConfig.employee, icon: FiUsers, label: "Employee" },
-    financial: { ...menuConfig.financial, icon: FiTrendingUp, label: "Financial" },
-    depart: { ...menuConfig.departments, icon: FiBriefcase, label: "Department" },
-    task: { ...menuConfig.task, icon: FiCheckSquare, label: "Task" },
-    reports: { ...menuConfig.reports, icon: FiFileText, label: "Reports" },
-  };
+
+  const renderMegaMenu = (config) => (
+    <Card
+      styles={{ body: { padding: '24px' } }}
+      style={{
+        width: config.width,
+        maxWidth: '92vw',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '20px',
+        background: 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(10px)'
+      }}
+    >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${config.sections.length > 3 ? 4 : config.sections.length}, 1fr)`,
+        gap: '32px'
+      }}>
+        {config.sections.map((section, idx) => (
+          <div key={idx}>
+            <Title level={5} style={{
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: '#3b82f6',
+              marginBottom: '16px',
+              fontWeight: 800,
+              borderLeft: '3px solid #3b82f6',
+              paddingLeft: '10px'
+            }}>
+              {section.title}
+            </Title>
+            <Space direction="vertical" style={{ width: '100%' }} size={2}>
+              {section.items.map((item, i) => (
+                <Link
+                  key={i}
+                  to={item.to}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    color: '#1e293b',
+                    fontSize: '14px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    textDecoration: 'none',
+                    fontWeight: 500
+                  }}
+                  className="mega-menu-link"
+                >
+                  <ThunderboltOutlined style={{ marginRight: '8px', fontSize: '12px', opacity: 0.5 }} className="link-icon" />
+                  {item.name}
+                </Link>
+              ))}
+            </Space>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        .mega-menu-link:hover {
+          background: #eff6ff !important;
+          color: #2563eb !important;
+          transform: translateX(5px);
+        }
+        .mega-menu-link:hover .link-icon {
+          opacity: 1 !important;
+          color: #f59e0b;
+        }
+      `}</style>
+    </Card>
+  );
 
   return (
-    <div
-      ref={navbarRef}
-      className="font-sans border shadow-md"
-      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-    >
-      <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-blue-400 to-blue-500" />
-
-      <nav
-        className={`
-          sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur-sm
-          transition-shadow duration-200
-          ${scrolled ? "shadow-sm" : ""}
-        `}
+    <div style={{ padding: scrolled ? '12px 24px' : '0', transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', position: 'fixed', top: 0, width: '100%', zIndex: 1000 }}>
+      <Header
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          background: scrolled 
+            ? 'rgba(15, 23, 42, 0.95)' 
+            : 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%)',
+          backdropFilter: 'blur(12px)',
+          padding: '0 24px',
+          height: '72px',
+          borderRadius: scrolled ? '20px' : '0',
+          boxShadow: scrolled 
+            ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
+            : 'none',
+          borderBottom: scrolled ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          color: 'white'
+        }}
       >
-        <div className="mx-auto w-full max-w-[1800px] px-4 lg:px-6 ">
-          <div className="flex h-14 items-center justify-between gap-1 lg:gap-2 xl:gap-4">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <button
-                className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 lg:hidden"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-              </button>
-
-              <Link to="/" onClick={closeAllDropdowns} className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
-                  <span className="text-base font-bold text-white">VP</span>
-                </div>
-                <div className="hidden lg:block">
-                  <div className="text-base font-semibold leading-tight text-gray-800">
-                    VPFinancial
-                  </div>
-                  <div className="text-[10px] font-medium text-blue-500">Nest</div>
-                </div>
-              </Link>
+        {/* Brand Section */}
+        <div style={{ display: 'flex', alignItems: 'center', marginRight: '40px' }}>
+          <Button
+            type="text"
+            icon={<MenuOutlined style={{ color: 'white' }} />}
+            onClick={() => setIsMobileMenuOpen(true)}
+            style={{ display: 'none', marginRight: '12px' }}
+            className="mobile-menu-btn"
+          />
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '14px', textDecoration: 'none' }}>
+            <div style={{
+              height: '42px',
+              width: '42px',
+              background: 'white',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#1e40af',
+              fontWeight: 900,
+              fontSize: '18px',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+            }}>
+              VP
             </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden flex-1 overflow-visible lg:flex lg:items-center border shadow-sm rounded-full lg:justify-center lg:gap-px xl:gap-0.5 bg-gray-50/50">
-              <NavItem
-                to="/"
-                icon={FiGrid}
-                label="Dashboard"
-                active={isPathActive(["/"])}
-                onClick={closeAllDropdowns}
-              />
-
-              {Object.entries(dropdownMenus).map(([key, menu]) => (
-                <DropdownContainer
-                  key={key}
-                  name={key}
-                  icon={menu.icon}
-                  label={menu.label}
-                  width={menu.width}
-                >
-                  <div
-                    className="grid gap-4 xl:gap-6"
-                    style={{
-                      gridTemplateColumns: `repeat(${menu.sections.length === 1 ? 1 : menu.sections.length === 2 ? 2 : menu.sections.length === 4 ? 4 : 3}, minmax(0, 1fr))`,
-                    }}
-                  >
-                    {menu.sections.map((section, idx) => (
-                      <MenuSection key={idx} title={section.title} items={section.items} />
-                    ))}
-                  </div>
-                </DropdownContainer>
-              ))}
-
-              <NavItem
-                to="/notification-manager"
-                icon={FiBell}
-                label="Notifications"
-                active={isPathActive(["/notification-manager"])}
-                onClick={closeAllDropdowns}
-              />
+            <div style={{ lineHeight: 1.1 }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: 'white', letterSpacing: '-0.03em' }}>VPFinancial</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Nest</div>
             </div>
-
-            {/* Notification Icon */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowNotification((prev) => !prev)}
-                className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
-                aria-label="Notifications"
-              >
-                <FiBell className="text-lg" />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {showNotification && (
-                <div className="absolute right-0 top-11 z-50 w-72 rounded-lg border border-gray-100 bg-white p-3 shadow-lg">
-                  <div className="mb-2 text-sm font-semibold text-gray-700">Notifications</div>
-                  <div className="space-y-2">
-                    {notifications.length === 0 ? (
-                      <p className="text-xs text-gray-500">No new notifications</p>
-                    ) : (
-                      notifications.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`rounded-md px-2 py-1.5 text-xs ${item.read ? "bg-gray-50 text-gray-500" : "bg-blue-50 text-blue-700"
-                            }`}
-                        >
-                          {item.text}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Profile Icon */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowProfileCard((prev) => !prev)}
-                className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
-                aria-label="Profile details"
-              >
-                <FiUser className="text-lg" />
-              </button>
-
-              {showProfileCard && (
-                <div className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-gray-100 bg-white p-3 shadow-lg">
-                  <div className="mb-2 text-sm font-semibold text-gray-700">
-                    Logged In User
-                  </div>
-                  <div className="space-y-1 text-xs text-gray-700">
-                    <div>
-                      <span className="font-medium">Name: </span>
-                      {loggedInUser.username || loggedInUser.name || "-"}
-                    </div>
-                    <div>
-                      <span className="font-medium">Role: </span>
-                      {loggedInUser.role || "-"}
-                    </div>
-                    <div>
-                      <span className="font-medium">Email: </span>
-                      {loggedInUser.email || "-"}
-                    </div>
-                    <div>
-                      <span className="font-medium">Mobile: </span>
-                      {loggedInUser.mobileno || loggedInUser.mobileNo || "-"}
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-2 border-t border-gray-100">
-                    <Link
-                      to={loggedInUser.role === "HR" ? `/dashboard/employee/${loggedInUser._id || loggedInUser.id}` : `/employee/${loggedInUser._id || loggedInUser.id}`}
-                      className="flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-xs font-medium text-blue-600 transition-all hover:bg-blue-100"
-                      onClick={() => setShowProfileCard(false)}
-                    >
-                      <FiUser size={14} />
-                      View My Profile
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50/50 px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-100"
-            >
-              <FiLogOut className="text-sm" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          <div
-            className={`
-              overflow-hidden transition-all duration-200 lg:hidden
-              ${isMobileMenuOpen ? "max-h-[500px] border-t border-gray-100" : "max-h-0"}
-            `}
-          >
-            <div className="max-h-[500px] overflow-y-auto py-2">
-              <Link
-                to="/"
-                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={closeAllDropdowns}
-              >
-                <FiGrid size={18} />
-                <span>Dashboard</span>
-              </Link>
-
-              {Object.entries(dropdownMenus).map(([key, menu]) => (
-                <MobileMenuSection
-                  key={key}
-                  title={menu.label}
-                  items={menu.sections.flatMap(s => s.items)}
-                />
-              ))}
-
-              <Link
-                to="/notification-manager"
-                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={closeAllDropdowns}
-              >
-                <FiBell size={18} />
-                <span>Notifications</span>
-              </Link>
-            </div>
-          </div>
+          </Link>
         </div>
-      </nav>
+
+        {/* Navigation Grid */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '12px' }} className="desktop-nav">
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <div 
+              style={{
+                height: '48px',
+                padding: '0 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                borderRadius: '12px',
+                background: location.pathname === '/' ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = location.pathname === '/' ? 'rgba(255, 255, 255, 0.15)' : 'transparent'}
+            >
+              <DashboardOutlined style={{ fontSize: '18px' }} />
+              <span>Dashboard</span>
+            </div>
+          </Link>
+
+          {Object.entries(menuConfig).map(([key, config]) => (
+            <Dropdown
+              key={key}
+              dropdownRender={() => renderMegaMenu(config)}
+              trigger={['click']}
+              placement="bottom"
+              arrow={{ pointAtCenter: true }}
+            >
+              <div 
+                style={{
+                  height: '48px',
+                  padding: '0 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  borderRadius: '12px',
+                  background: location.pathname.includes(key) ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = location.pathname.includes(key) ? 'rgba(255, 255, 255, 0.15)' : 'transparent'}
+              >
+                {config.icon}
+                <span>{config.label}</span>
+                <DownOutlined style={{ fontSize: '10px', opacity: 0.7 }} />
+              </div>
+            </Dropdown>
+          ))}
+        </div>
+
+        {/* Global Utilities */}
+        <Space size={20}>
+          <Tooltip title="Global Search">
+            <Button 
+              type="text" 
+              icon={<SearchOutlined style={{ color: 'white', fontSize: '20px' }} />} 
+              style={{ width: '44px', height: '44px', borderRadius: '12px' }}
+              className="util-btn"
+            />
+          </Tooltip>
+
+          <Badge count={3} size="small" offset={[-4, 4]} color="#f59e0b">
+            <Popover
+              content={<div style={{ width: '300px', padding: '12px' }}>No new system alerts.</div>}
+              trigger="click"
+              placement="bottomRight"
+            >
+              <Button 
+                type="text" 
+                icon={<BellOutlined style={{ color: 'white', fontSize: '20px' }} />} 
+                style={{ width: '44px', height: '44px', borderRadius: '12px' }}
+                className="util-btn"
+              />
+            </Popover>
+          </Badge>
+
+          <Divider type="vertical" style={{ background: 'rgba(255, 255, 255, 0.2)', height: '24px' }} />
+
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'user-info',
+                  label: (
+                    <div style={{ padding: '8px' }}>
+                      <Text strong style={{ display: 'block', fontSize: '16px' }}>{loggedInUser.username || "Operations Associate"}</Text>
+                      <Text type="secondary">{loggedInUser.role || "Administrator"}</Text>
+                    </div>
+                  ),
+                  disabled: true
+                },
+                { type: 'divider' },
+                {
+                  key: 'profile',
+                  icon: <UserOutlined />,
+                  label: 'Account Settings',
+                  onClick: () => navigate(loggedInUser.role === "HR" ? `/dashboard/employee/${loggedInUser._id || loggedInUser.id}` : `/employee/${loggedInUser._id || loggedInUser.id}`)
+                },
+                {
+                  key: 'logout',
+                  icon: <LogoutOutlined />,
+                  label: 'Secure Logout',
+                  danger: true,
+                  onClick: handleLogout
+                }
+              ]
+            }}
+            placement="bottomRight"
+          >
+            <Avatar
+              size={44}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                cursor: 'pointer',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                fontWeight: 800
+              }}
+            >
+              {loggedInUser.username?.[0]?.toUpperCase() || 'OA'}
+            </Avatar>
+          </Dropdown>
+        </Space>
+      </Header>
+
+      {/* Mobile Control Drawer */}
+      <Drawer
+        title={<span style={{ fontWeight: 800 }}>VPCorp Navigation</span>}
+        placement="left"
+        onClose={() => setIsMobileMenuOpen(false)}
+        open={isMobileMenuOpen}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Menu
+          mode="inline"
+          items={[
+            { key: 'dashboard', icon: <DashboardOutlined />, label: <Link to="/">Dashboard Overview</Link> },
+            ...Object.entries(menuConfig).map(([key, config]) => ({
+              key,
+              icon: config.icon,
+              label: config.label,
+              children: config.sections.flatMap(s => s.items.map(i => ({
+                key: i.to,
+                label: <Link to={i.to}>{i.name}</Link>
+              })))
+            }))
+          ]}
+        />
+      </Drawer>
+
+      <style>{`
+        .ant-layout-header {
+          line-height: 1 !important;
+        }
+        .util-btn:hover {
+          background: rgba(255, 255, 255, 0.1) !important;
+        }
+        @media (max-width: 1200px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: inline-flex !important; }
+        }
+      `}</style>
     </div>
   );
 };

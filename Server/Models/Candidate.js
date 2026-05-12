@@ -59,6 +59,16 @@ const candidateSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    referredBy: {
+      type: String,
+      default: "None",
+      trim: true,
+    },
+    computerKnowledge: {
+      type: String,
+      default: "None",
+      trim: true,
+    },
 
     // Experience Fields
     experienceFields: {
@@ -70,9 +80,18 @@ const candidateSchema = new mongoose.Schema(
 
     // Operational Activities
     operationalActivities: {
-      dataManagement: { type: Number, default: 0, min: 0, max: 5 },
-      backOffice: { type: Number, default: 0, min: 0, max: 5 },
-      mis: { type: Number, default: 0, min: 0, max: 5 },
+      dataManagement: { type: Boolean, default: false }, // Data Management with CPCT
+      backOffice: { type: Boolean, default: false },     // Back Office Operations
+      mis: { type: Boolean, default: false },            // (unused now)
+      insuranceField: { type: Boolean, default: false }, // Insurance & Financial Field
+      anyOther: { type: Boolean, default: false },       // Any other
+    },
+    salesExperience: {
+      adminTeamMgmt: { type: Boolean, default: false }, // Administrative Work & Team Management
+      salesInsFin: { type: Boolean, default: false },   // Sales in Insurance & Financial Field
+      salesAnyField: { type: Boolean, default: false }, // Sales & Services in any field
+      fieldWork: { type: Boolean, default: false },      // Field Work
+      salesOther: { type: Boolean, default: false },     // Others
     },
 
     // Grading System (Existing)
@@ -240,76 +259,48 @@ candidateSchema.pre("save", function (next) {
 function calculateMarks(candidate) {
   let marks = 0;
 
-  // Education marks
-  switch (candidate.education) {
-    case "Graduate in any":
-      marks += 2;
-      break;
-    case "Graduate in Maths/Economics":
-      marks += 3;
-      break;
-    case "MBA/PG with financial subject":
-      marks += 4;
-      break;
-  }
+  // 1. Referred By
+  const referredMarks = { "Internship": 3, "Referred By": 2, "Platofrm Indeep": 1, "Job Hai": 1 };
+  marks += referredMarks[candidate.referredBy] || 0;
 
-  // Age group marks
-  switch (candidate.ageGroup) {
-    case "20-25yr":
-      marks += 1;
-      break;
-    case "26-30yr":
-      marks += 2;
-      break;
-    case "31-45yr":
-      marks += 3;
-      break;
-    case "45 & above":
-      marks += 2;
-      break;
-  }
+  // 2. Age group marks
+  const ageMarks = { "31-45yr": 3, "26yr-30yr": 2, "20-25yr": 1 };
+  marks += ageMarks[candidate.ageGroup] || 0;
 
-  // Vehicle marks
-  if (candidate.vehicle) marks += 4;
+  // 3. Education marks
+  const eduMarks = { "PG with any financial Subject": 3, "Maths/Economics/MBA": 2, "Graduate": 1 };
+  marks += eduMarks[candidate.education] || 0;
 
-  // Experience fields marks
-  marks += candidate.experienceFields?.administrative || 0;
-  marks += candidate.experienceFields?.insuranceSales || 0;
-  marks += candidate.experienceFields?.anySales || 0;
-  marks += candidate.experienceFields?.fieldWork || 0;
+  // 4. Operations Experience (Max 10)
+  marks += candidate.operationalActivities?.insuranceField ? 4 : 0;
+  marks += candidate.operationalActivities?.dataManagement ? 3 : 0;
+  marks += candidate.operationalActivities?.backOffice ? 2 : 0;
+  marks += candidate.operationalActivities?.anyOther ? 1 : 0;
 
-  // Operational activities marks
-  marks += candidate.operationalActivities?.dataManagement || 0;
-  marks += candidate.operationalActivities?.backOffice || 0;
-  marks += candidate.operationalActivities?.mis || 0;
+  // 5. Sales & Work Experience (NEW - Max 15)
+  marks += candidate.salesExperience?.adminTeamMgmt ? 5 : 0;
+  marks += candidate.salesExperience?.salesInsFin ? 4 : 0;
+  marks += candidate.salesExperience?.salesAnyField ? 3 : 0;
+  marks += candidate.salesExperience?.fieldWork ? 2 : 0;
+  marks += candidate.salesExperience?.salesOther ? 1 : 0;
 
-  // Location marks
-  const locationMarks = {
-    "H.B Road": 4,
-    "Arera Colony": 3,
-    BHEL: 2,
-    Mandideep: 2,
-    Others: 1,
-  };
+  // 6. Computer Knowledge
+  const compMarks = { "Advance (M.S office)": 3, "MIS + EXCEL": 2, "Basic": 1 };
+  marks += compMarks[candidate.computerKnowledge] || 0;
+
+  // 7. Location marks
+  const locationMarks = { "H.B Road": 2, "Arera Colony": 2, "BHEL": 1, "Mandideep": 1, "Others": 1 };
   marks += locationMarks[candidate.location] || 0;
 
-  // Native place marks
-  if (candidate.nativePlace === "Bhopal") marks += 3;
-  else marks += 1;
+  // 8. Native place marks
+  marks += candidate.nativePlace === "Bhopal" ? 2 : 1;
 
-  // Spoken English marks
-  if (candidate.spokenEnglish) marks += 4;
-
-  // Salary expectation marks
-  const salaryMarks = {
-    "10K-12K": 4,
-    "12-15K": 3,
-    "15-18K": 3,
-    "18-20K": 2,
-    "20-25K": 2,
-    "25K & Above": 1,
-  };
+  // 9. Salary expectation marks
+  const salaryMarks = { "12-15K": 3, "15-18K": 2, "18-20K": 1, "20-25k": 1 };
   marks += salaryMarks[candidate.salaryExpectation] || 0;
+
+  // 10. Vehicle marks
+  marks += candidate.vehicle ? 2 : 1;
 
   return marks;
 }

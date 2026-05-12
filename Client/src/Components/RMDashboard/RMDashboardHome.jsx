@@ -1,16 +1,34 @@
 import React from "react";
-import {
-  FaTasks,
-  FaCheckCircle,
-  FaCalendarDay,
-  FaRegCalendarCheck,
-  FaPhoneAlt,
-  FaIdCard,
-  FaBuilding,
-  FaUser,
-  FaArrowRight,
-} from "react-icons/fa";
+import { 
+  Card, 
+  Row, 
+  Col, 
+  Statistic, 
+  Table, 
+  Tag, 
+  Button, 
+  Typography, 
+  Space, 
+  Avatar, 
+  Tooltip,
+  Empty
+} from "antd";
+import { 
+  ThunderboltOutlined, 
+  CheckCircleOutlined, 
+  CalendarOutlined, 
+  ClockCircleOutlined, 
+  ArrowRightOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  IdcardOutlined,
+  BarChartOutlined,
+  SafetyCertificateOutlined
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+
+const { Title, Text } = Typography;
 
 const RMDashboardHome = ({ stats, assignedSuspects }) => {
   const navigate = useNavigate();
@@ -21,313 +39,277 @@ const RMDashboardHome = ({ stats, assignedSuspects }) => {
     return dateObj.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
+      year: "numeric"
     });
   };
 
-  const formatTime = (time) => {
-    if (!time || time === "-") return "";
-    return time;
-  };
-
-  const getStatusBadge = (status) => {
+  const getStatusTag = (status) => {
     const config = {
-      suspect: "bg-blue-100 text-blue-800",
-      prospect: "bg-yellow-100 text-yellow-800",
-      client: "bg-green-100 text-green-800",
-      assigned: "bg-purple-100 text-purple-800",
-      completed: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800",
+      suspect: { color: "blue", icon: <UserOutlined /> },
+      prospect: { color: "gold", icon: <ThunderboltOutlined /> },
+      client: { color: "green", icon: <CheckCircleOutlined /> },
+      assigned: { color: "purple", icon: <IdcardOutlined /> },
+      completed: { color: "success", icon: <CheckCircleOutlined /> },
+      cancelled: { color: "error", icon: <ClockCircleOutlined /> },
     };
 
+    const { color, icon } = config[status?.toLowerCase()] || { color: "default", icon: null };
+
     return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${config[status] || "bg-gray-100 text-gray-800"
-          }`}
-      >
-        {status?.charAt(0).toUpperCase() + status?.slice(1) || "N/A"}
-      </span>
+      <Tag icon={icon} color={color} style={{ borderRadius: '6px', fontWeight: 600, textTransform: 'capitalize' }}>
+        {status || "N/A"}
+      </Tag>
     );
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Stats Overview - Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Total Assigned Card */}
-        <div className="bg-white h-[80px] flex items-center rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow transition-shadow duration-200">
-          <div className="flex items-center w-full">
-            <div className="bg-gray-100 rounded-lg p-2 mr-3">
-              <FaTasks className="text-gray-700 text-xs" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 font-medium">
-                Total Assign
-              </div>
-              <div className="text-lg font-bold text-gray-800 mt-1">
-                {stats.totalAssigned}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Completed Card */}
-        <div className="bg-white h-[80px] flex items-center rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow transition-shadow duration-200">
-          <div className="flex items-center w-full">
-            <div className="bg-green-50 rounded-lg p-2 mr-3">
-              <FaCheckCircle className="text-green-600 text-xs" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 font-medium">Completed</div>
-              <div className="text-lg font-bold text-gray-800 mt-1">
-                {stats.completed}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Today's Schedule Card */}
-        <div className="bg-white h-[80px] flex items-center rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow transition-shadow duration-200">
-          <div className="flex items-center w-full">
-            <div className="bg-blue-50 rounded-lg p-2 mr-3">
-              <FaCalendarDay className="text-blue-600 text-xs" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 font-medium">
-                Today's Schedule
-              </div>
-              <div className="text-lg font-bold text-gray-800 mt-1">
-                {stats.todayAppointments}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Upcoming Card */}
-        <div className="bg-white h-[80px] flex items-center rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow transition-shadow duration-200">
-          <div className="flex items-center w-full">
-            <div className="bg-purple-50 rounded-lg p-2 mr-3">
-              <FaRegCalendarCheck className="text-purple-600 text-xs" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs text-gray-500 font-medium">Upcoming</div>
-              <div className="text-lg font-bold text-gray-800 mt-1">
-                {stats.upcomingAppointments}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent suspects Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Card Header */}
-        <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+  const columns = [
+    {
+      title: "Group Details",
+      dataIndex: "groupName",
+      key: "groupName",
+      render: (text, record) => (
+        <Space size="middle">
+          <Avatar 
+            shape="square" 
+            icon={<IdcardOutlined />} 
+            style={{ backgroundColor: '#f1f5f9', color: '#64748b', borderRadius: '8px' }} 
+          />
           <div>
-            <h4 className="text-base font-semibold text-gray-800">
-              Recent Suspects
-            </h4>
+            <Text strong style={{ fontSize: '14px', display: 'block' }}>{text || "N/A"}</Text>
+            <Text type="secondary" style={{ fontSize: '12px' }}>Code: {record.groupCode || "N/A"}</Text>
           </div>
-          <button
-            onClick={() => navigate("/rm/assigned-tasks")}
-            className="flex items-center px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-medium rounded-md transition-colors duration-200"
-          >
-            View All
-            <FaArrowRight className="ml-1.5 text-[10px]" />
-          </button>
-        </div>
+        </Space>
+      ),
+    },
+    {
+      title: "Contact",
+      dataIndex: "mobile",
+      key: "mobile",
+      render: (text) => (
+        <Space direction="vertical" size={0}>
+          <Text style={{ fontSize: '13px' }}><PhoneOutlined style={{ fontSize: '11px', marginRight: '6px', color: '#94a3b8' }} />{text || "N/A"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Schedule",
+      dataIndex: "appointmentDate",
+      key: "appointmentDate",
+      render: (date, record) => (
+        date ? (
+          <div>
+            <Text strong style={{ fontSize: '13px', color: '#4f46e5' }}>{formatDate(date)}</Text>
+            {record.appointmentTime && (
+              <div style={{ marginTop: '2px' }}>
+                <Tag icon={<ClockCircleOutlined />} style={{ fontSize: '10px', margin: 0 }}>{record.appointmentTime}</Tag>
+              </div>
+            )}
+          </div>
+        ) : <Text type="secondary" italic>Not Scheduled</Text>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Tooltip title="View Details">
+          <Button 
+            type="text" 
+            icon={<ArrowRightOutlined />} 
+            onClick={() => navigate(`/rm/suspect/details/${record.id || record._id}`)} 
+          />
+        </Tooltip>
+      ),
+    },
+  ];
 
-        {/* Table Container */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaIdCard className="mr-1.5 text-gray-400 text-[10px]" />
-                    Group Code
-                  </div>
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Group Name
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaPhoneAlt className="mr-1.5 text-gray-400 text-[10px]" />
-                    Contact
-                  </div>
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center">
-                    <FaCalendarDay className="mr-1.5 text-gray-400 text-[10px]" />
-                    Appointment
-                  </div>
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {assignedSuspects.length > 0 ? (
-                assignedSuspects.slice(0, 5).map((suspect) => (
-                  <tr
-                    key={suspect.id}
-                    className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
-                    onClick={() => navigate(`/rm/assigned-tasks`)}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-7 w-7 bg-gray-100 rounded-md flex items-center justify-center">
-                          <FaIdCard className="text-gray-500 text-xs" />
-                        </div>
-                        <div className="ml-2">
-                          <div className="text-xs font-medium text-gray-900">
-                            {suspect.groupCode || "N/A"}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-xs text-gray-900">
-                        {suspect.groupName || "N/A"}
-                      </div>
-                      {suspect.grade && (
-                        <div className="text-[10px] text-gray-500 mt-0.5">
-                          Grade: {suspect.grade}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FaPhoneAlt className="text-gray-400 mr-1.5 text-xs" />
-                        <div>
-                          <div className="text-xs text-gray-900">
-                            {suspect.mobile || "N/A"}
-                          </div>
-                          {suspect.contactNo && suspect.contactNo !== "N/A" && (
-                            <div className="text-[10px] text-gray-500">
-                              Alt: {suspect.contactNo}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {suspect.appointmentDate ? (
-                        <div>
-                          <div className="text-xs font-medium text-gray-900 flex items-center">
-                            <FaCalendarDay className="text-gray-400 mr-1.5 text-[10px]" />
-                            {formatDate(suspect.appointmentDate)}
-                          </div>
-                          {suspect.appointmentTime && (
-                            <div className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-0.5">
-                              {formatTime(suspect.appointmentTime)}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-gray-500 italic">
-                          Not scheduled
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getStatusBadge(suspect.status)}
-                        {suspect.assignmentStatus &&
-                          suspect.assignmentStatus !== "assigned" && (
-                            <div className="ml-1.5 text-[10px] text-gray-500">
-                              ({suspect.assignmentStatus})
-                            </div>
-                          )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <FaUser className="text-gray-300 text-2xl mb-2" />
-                      <div className="text-sm text-gray-500 font-medium">
-                        No suspects assigned yet
-                      </div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        You'll see suspects here once they're assigned to you
-                      </div>
+  const statCards = [
+    { 
+      title: "Total Assigned", 
+      value: stats.totalAssigned, 
+      icon: <ThunderboltOutlined />, 
+      color: "#4f46e5", 
+      bg: "#eef2ff" 
+    },
+    { 
+      title: "Completed", 
+      value: stats.completed, 
+      icon: <CheckCircleOutlined />, 
+      color: "#10b981", 
+      bg: "#ecfdf5" 
+    },
+    { 
+      title: "Today's Schedule", 
+      value: stats.todayAppointments, 
+      icon: <CalendarOutlined />, 
+      color: "#3b82f6", 
+      bg: "#eff6ff" 
+    },
+    { 
+      title: "Upcoming (7 Days)", 
+      value: stats.upcomingAppointments, 
+      icon: <ClockCircleOutlined />, 
+      color: "#8b5cf6", 
+      bg: "#f5f3ff" 
+    },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Stats Grid */}
+      <Row gutter={[16, 16]}>
+        {statCards.map((stat, idx) => (
+          <Col xs={24} sm={12} lg={6} key={idx}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+            >
+              <Card 
+                bordered={false} 
+                style={{ 
+                  borderRadius: '16px', 
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                  height: '110px'
+                }}
+                styles={{ body: { padding: '20px' } }}
+              >
+                <Statistic
+                  title={<Text type="secondary" strong style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.title}</Text>}
+                  value={stat.value}
+                  valueStyle={{ color: '#1e293b', fontWeight: 800, fontSize: '28px' }}
+                  prefix={
+                    <div style={{ 
+                      background: stat.bg, 
+                      color: stat.color, 
+                      width: '40px', 
+                      height: '40px', 
+                      borderRadius: '10px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      marginRight: '12px',
+                      fontSize: '20px'
+                    }}>
+                      {stat.icon}
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  }
+                />
+              </Card>
+            </motion.div>
+          </Col>
+        ))}
+      </Row>
 
-        {/* Card Footer */}
-        {assignedSuspects.length > 5 && (
-          <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
-            <div className="text-[10px] text-gray-500">
-              Showing 5 of {assignedSuspects.length} suspects
+      {/* Main Table Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card
+          bordered={false}
+          style={{ 
+            borderRadius: '20px', 
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
+            overflow: 'hidden'
+          }}
+          title={
+            <Space>
+              <BarChartOutlined style={{ color: '#4f46e5' }} />
+              <span style={{ fontWeight: 800 }}>Recent Assignments</span>
+            </Space>
+          }
+          extra={
+            <Button 
+              type="primary" 
+              icon={<ArrowRightOutlined />} 
+              onClick={() => navigate("/rm/assigned-suspects")}
+              style={{ borderRadius: '8px' }}
+            >
+              View Full Pipeline
+            </Button>
+          }
+          styles={{ body: { padding: 0 } }}
+        >
+          <Table
+            columns={columns}
+            dataSource={assignedSuspects.slice(0, 5)}
+            pagination={false}
+            rowKey={(record) => record.id || record._id}
+            locale={{
+              emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No active assignments found" />
+            }}
+            onRow={(record) => ({
+              onClick: () => navigate(`/rm/suspect/details/${record.id || record._id}`),
+              style: { cursor: 'pointer' }
+            })}
+          />
+          {assignedSuspects.length > 5 && (
+            <div style={{ padding: '16px 24px', textAlign: 'right', borderTop: '1px solid #f1f5f9' }}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                Displaying 5 of {assignedSuspects.length} total records
+              </Text>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </Card>
+      </motion.div>
 
-      {/* Quick Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Pending Tasks Card */}
-        <div className="bg-white h-20 flex items-center rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between w-full">
-            <div className="space-y-1 justify-center">
-              <h6 className="text-sm font-medium text-gray-500">
-                Pending Tasks
-              </h6>
-              <p className="text-xl font-bold text-gray-900">{stats.pending}</p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-2.5">
-              <FaTasks className="text-yellow-600 text-sm" />
-            </div>
-          </div>
-        </div>
-
-        {/* Conversion Rate Card */}
-        <div className="bg-white h-20 flex items-center rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between w-full">
-            <div className="space-y-1">
-              <h6 className="text-sm font-medium text-gray-500">
-                Conversion Rate
-              </h6>
-              <p className="text-xl font-bold text-gray-900">
-                {stats.totalAssigned > 0
-                  ? `${Math.round(
-                    (stats.completed / stats.totalAssigned) * 100
-                  )}%`
-                  : "0%"}
-              </p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-2.5">
-              <FaCheckCircle className="text-green-600 text-sm" />
-            </div>
-          </div>
-        </div>
-
-        {/* Active Assignments Card */}
-        <div className="bg-white h-20 flex items-center rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between w-full">
-            <div className="space-y-1">
-              <h6 className="text-sm font-medium text-gray-500">
-                Active Assignments
-              </h6>
-              <p className="text-xl font-bold text-gray-900">
-                {stats.totalAssigned - stats.completed}
-              </p>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-2.5">
-              <FaBuilding className="text-blue-600 text-sm" />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Quick Metrics Footer Grid */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={8}>
+          <Card bordered={false} style={{ borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <Space align="start" size={16}>
+              <div style={{ background: '#fef3c7', color: '#d97706', padding: '12px', borderRadius: '12px' }}>
+                <ClockCircleOutlined style={{ fontSize: '24px' }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>Pending Effort</Title>
+                <Text type="secondary">{stats.pending} tasks awaiting action</Text>
+                <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 800 }}>{stats.pending}</div>
+              </div>
+            </Space>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card bordered={false} style={{ borderRadius: '16px', background: '#f0fdf4', border: '1px solid #dcfce7' }}>
+            <Space align="start" size={16}>
+              <div style={{ background: '#dcfce7', color: '#16a34a', padding: '12px', borderRadius: '12px' }}>
+                <SafetyCertificateOutlined style={{ fontSize: '24px' }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>Success Ratio</Title>
+                <Text type="secondary">Based on completions</Text>
+                <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 800 }}>
+                  {stats.totalAssigned > 0 ? `${Math.round((stats.completed / stats.totalAssigned) * 100)}%` : "0%"}
+                </div>
+              </div>
+            </Space>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card bordered={false} style={{ borderRadius: '16px', background: '#eff6ff', border: '1px solid #dbeafe' }}>
+            <Space align="start" size={16}>
+              <div style={{ background: '#dbeafe', color: '#2563eb', padding: '12px', borderRadius: '12px' }}>
+                <BarChartOutlined style={{ fontSize: '24px' }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>Active Pipeline</Title>
+                <Text type="secondary">In-progress assignments</Text>
+                <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 800 }}>
+                  {stats.totalAssigned - stats.completed}
+                </div>
+              </div>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

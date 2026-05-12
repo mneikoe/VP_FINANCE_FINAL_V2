@@ -1,862 +1,224 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { Spinner, Alert, Button, Badge, Row, Col } from "react-bootstrap";
-import { FiUser, FiPhone, FiMail, FiMapPin } from "react-icons/fi";
+import axios from "../../../config/axios";
 import {
-  FaBusinessTime,
-  FaIdCardAlt,
-  FaUsers,
-  FaMoneyBillWave,
-  FaBriefcase,
-  FaCalendarAlt,
-  FaHome,
-  FaCity,
-  FaShieldAlt,
-  FaUniversity,
-  FaFileAlt,
-  FaKey,
-  FaFileContract,
-  FaFilePdf,
-} from "react-icons/fa";
+  Layout,
+  Row,
+  Col,
+  Card,
+  Typography,
+  Tabs,
+  Tag,
+  Descriptions,
+  Avatar,
+  Space,
+  Button,
+  Badge,
+  Spin,
+  Alert,
+  Divider,
+  Statistic,
+  List,
+  ConfigProvider
+} from "antd";
+import {
+  UserOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  EnvironmentOutlined,
+  IdcardOutlined,
+  BankOutlined,
+  SolutionOutlined,
+  CalendarOutlined,
+  FilePdfOutlined,
+  ArrowLeftOutlined,
+  HistoryOutlined,
+  SafetyCertificateOutlined,
+  RocketOutlined,
+  ThunderboltOutlined,
+  HomeOutlined,
+  GlobalOutlined
+} from "@ant-design/icons";
+import { motion } from "framer-motion";
+
+const { Content } = Layout;
+const { Title, Text } = Typography;
 
 const RMProfile = () => {
-  const [tabIndex, setTabIndex] = useState(0);
-  const [employee, setEmployee] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchRMData();
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [employee, setEmployee] = useState(null);
+  const [error, setError] = useState(null);
 
   const fetchRMData = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const userStr = localStorage.getItem("user");
-      if (!userStr) {
-        throw new Error("User not found. Please login again.");
-      }
-
+      if (!userStr) throw new Error("Authentication stale. Re-login required.");
       const user = JSON.parse(userStr);
       const userId = user._id || user.id;
-
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
 
       const response = await axios.get("/api/employee/getEmployeeById", {
         params: { employeeId: userId },
       });
 
-      if (response.data.success && response.data.data) {
-        const profileData = mapEmployeeToUI(response.data.data);
-        setEmployee(profileData);
+      if (response.data.success) {
+        setEmployee(response.data.data);
       } else {
-        throw new Error(response.data.message || "Failed to fetch profile");
+        throw new Error(response.data.message || "Synthesis failed.");
       }
     } catch (err) {
-      console.error("❌ Error fetching RM profile:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const mapEmployeeToUI = (empData) => {
-    return {
-      _id: empData._id,
-      name: empData.name,
-      emailId: empData.emailId,
-      mobileNo: empData.mobileNo,
-      role: empData.role,
-      employeeCode: empData.employeeCode,
-      designation: empData.designation,
-      gender: empData.gender,
-      dob: empData.dob,
-      marriageDate: empData.marriageDate,
-      presentAddress: empData.presentAddress,
-      permanentAddress: empData.permanentAddress,
-      homeTown: empData.homeTown,
-      familyContactPerson: empData.familyContactPerson,
-      familyContactMobile: empData.familyContactMobile,
-      emergencyContactPerson: empData.emergencyContactPerson,
-      emergencyContactMobile: empData.emergencyContactMobile,
-      officeMobile: empData.officeMobile,
-      officeEmail: empData.officeEmail,
-      allottedLoginId: empData.allottedLoginId,
-      allocatedWorkArea: empData.allocatedWorkArea,
-      dateOfJoining: empData.dateOfJoining,
-      dateOfTermination: empData.dateOfTermination,
-      salaryOnJoining: empData.salaryOnJoining,
-      expenses: empData.expenses,
-      incentives: empData.incentives,
-      bankName: empData.bankName,
-      accountNo: empData.accountNo,
-      ifscCode: empData.ifscCode,
-      micr: empData.micr,
-      panNo: empData.panNo,
-      aadharNo: empData.aadharNo,
-      officeKit: empData.officeKit,
-      offerLetter: empData.offerLetter,
-      undertaking: empData.undertaking,
-      trackRecord: empData.trackRecord,
-      drawerKeyName: empData.drawerKeyName,
-      drawerKeyNumber: empData.drawerKeyNumber,
-      officeKey: empData.officeKey,
-      onFirstJoining: empData.onFirstJoining,
-      onSixMonthCompletion: empData.onSixMonthCompletion,
-      onTwelveMonthCompletion: empData.onTwelveMonthCompletion,
-      jobProfile: empData.jobProfile,
-      target: empData.target,
-      status: "Active",
-    };
-  };
+  useEffect(() => { fetchRMData(); }, []);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Not specified";
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  const calculateAge = (dob) => {
-    if (!dob) return "N/A";
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A";
 
   const calculateExperience = (doj) => {
     if (!doj) return "N/A";
     const joinDate = new Date(doj);
     const today = new Date();
-
     let years = today.getFullYear() - joinDate.getFullYear();
     let months = today.getMonth() - joinDate.getMonth();
-
-    if (months < 0) {
-      years--;
-      months += 12;
-    }
-
-    if (years === 0) {
-      return `${months} month${months !== 1 ? "s" : ""}`;
-    }
-
-    return `${years} year${years !== 1 ? "s" : ""} ${months} month${months !== 1 ? "s" : ""
-      }`;
+    if (months < 0) { years--; months += 12; }
+    return `${years}Y ${months}M`;
   };
 
-  const tabs = [
-    { id: 0, label: "Personal", icon: FiUser },
-    { id: 1, label: "Official", icon: FaUsers },
-    { id: 2, label: "Address", icon: FiMapPin },
-    { id: 3, label: "Bank", icon: FaMoneyBillWave },
-    // { id: 4, label: "Employment", icon: FaBriefcase },
-    // { id: 5, label: "Emergency", icon: FaShieldAlt },
-    { id: 4, label: "HR Actions", icon: FaBriefcase }
+  if (loading) return <div style={{ height: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Spin size="large" tip="Synthesizing Profile..." /></div>;
+
+  if (error || !employee) return (
+    <Content style={{ padding: 40 }}>
+      <Alert message="Profile Inaccessible" description={error} type="error" showIcon action={<Button onClick={fetchRMData}>Retry</Button>} />
+    </Content>
+  );
+
+  const tabItems = [
+    {
+      key: 'personal',
+      label: <Space><UserOutlined /><span>Personal</span></Space>,
+      children: (
+        <Card bordered={false}>
+          <Descriptions column={{ xxl: 2, xl: 2, lg: 1, md: 1 }} bordered size="small">
+            <Descriptions.Item label="Identity">{employee.name}</Descriptions.Item>
+            <Descriptions.Item label="Gender">{employee.gender || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Birth Date">{formatDate(employee.dob)}</Descriptions.Item>
+            <Descriptions.Item label="Marriage Date">{formatDate(employee.marriageDate)}</Descriptions.Item>
+            <Descriptions.Item label="Mobile Primary">{employee.mobileNo}</Descriptions.Item>
+            <Descriptions.Item label="Email Primary">{employee.emailId}</Descriptions.Item>
+            <Descriptions.Item label="Emergency Contact">{employee.emergencyContactPerson} ({employee.emergencyContactMobile})</Descriptions.Item>
+            <Descriptions.Item label="Family Liaison">{employee.familyContactPerson} ({employee.familyContactMobile})</Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )
+    },
+    {
+      key: 'official',
+      label: <Space><SolutionOutlined /><span>Official</span></Space>,
+      children: (
+        <Card bordered={false}>
+          <Descriptions column={{ xxl: 2, xl: 2, lg: 1, md: 1 }} bordered size="small">
+            <Descriptions.Item label="Employee Code"><Tag color="purple">{employee.employeeCode}</Tag></Descriptions.Item>
+            <Descriptions.Item label="Designation">{employee.designation || 'Relationship Manager'}</Descriptions.Item>
+            <Descriptions.Item label="Service Tenure"><Tag color="blue">{calculateExperience(employee.dateOfJoining)}</Tag></Descriptions.Item>
+            <Descriptions.Item label="Joining Date">{formatDate(employee.dateOfJoining)}</Descriptions.Item>
+            <Descriptions.Item label="Work Jurisdiction">{employee.workArea || 'General'}</Descriptions.Item>
+            <Descriptions.Item label="Office digital">{employee.officeEmail || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Base Compensation">{employee.salaryOnJoining || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Target Allocation">{employee.target?.path ? <Button size="small" type="link" icon={<FilePdfOutlined />} href={`${axios.defaults.baseURL}${employee.target.path}`} target="_blank">View Docs</Button> : 'N/A'}</Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )
+    },
+    {
+      key: 'address',
+      label: <Space><EnvironmentOutlined /><span>Address</span></Space>,
+      children: (
+        <Row gutter={[16, 16]}>
+          <Col span={12}>
+            <Card title="Current Residence" size="small" style={{ borderRadius: 12 }}>
+              <Text>{employee.presentAddress || 'Not registered'}</Text>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card title="Permanent Domicile" size="small" style={{ borderRadius: 12 }}>
+              <Text>{employee.permanentAddress || 'Not registered'}</Text>
+            </Card>
+          </Col>
+        </Row>
+      )
+    },
+    {
+      key: 'financial',
+      label: <Space><BankOutlined /><span>Bank</span></Space>,
+      children: (
+        <Card bordered={false}>
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Institution">{employee.bankName || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Account Identity">{employee.accountNo || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="IFSC Code">{employee.ifscCode || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="PAN Identity">{employee.panNo || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Aadhar Identity">{employee.aadharNo || 'N/A'}</Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )
+    }
   ];
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="text-center py-8">
-          <Spinner animation="border" role="status" />
-          <p className="mt-2 text-sm text-gray-600">Loading RM profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !employee) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <Alert variant="danger" className="max-w-lg mx-auto">
-          <Alert.Heading className="text-base font-semibold">
-            Error
-          </Alert.Heading>
-          {error || "RM profile not found"}
-          <div className="mt-3">
-            <Button variant="primary" size="sm" onClick={fetchRMData}>
-              Retry
-            </Button>
-          </div>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-4 max-w-6xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-gray-800">Employee Profile</h1>
-          {/* <Badge bg="primary" className="text-xs px-2 py-1">
-            {employee.role}
-          </Badge>
-          <Badge bg="success" className="text-xs px-2 py-1">
-            Relationship Manager
-          </Badge> */}
-        </div>
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          onClick={() => navigate("/rm/dashboard")}
-          className="flex items-center gap-1"
-        >
-          ← Back to Dashboard
-        </Button>
-      </div>
-
-      {/* Profile Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Left Profile Card */}
-        <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="space-y-3">
-            <div>
-              <h5 className="text-md font-semibold text-gray-800 truncate">
-                {employee.name || "N/A"}
-              </h5>
-              <div className="flex flex-wrap gap-1 mt-1">
-                <Badge bg="primary" className="text-xs px-2 py-0.5">
-                  {employee.employeeCode || "N/A"}
-                </Badge>
-
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <FaBriefcase className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Designation</p>
-                  <p className="font-medium text-gray-800">
-                    {employee.designation || "Relationship Manager"}
-                  </p>
+    <ConfigProvider theme={{ token: { colorPrimary: '#4f46e5', borderRadius: 16 } }}>
+      <Content style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+        <Row gutter={[24, 24]}>
+          {/* Sidebar */}
+          <Col xs={24} lg={7}>
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+              <Card 
+                style={{ borderRadius: 24, textAlign: 'center', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
+                bordered={false}
+              >
+                <Avatar size={100} icon={<UserOutlined />} style={{ border: '4px solid rgba(255,255,255,0.2)', marginBottom: 16 }} />
+                <Title level={3} style={{ color: 'white', margin: 0 }}>{employee.name}</Title>
+                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{employee.designation || 'Strategic Partner'}</Text>
+                <div style={{ marginTop: 16 }}><Tag color="white" style={{ color: '#4f46e5' }}>{employee.employeeCode}</Tag></div>
+                
+                <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                
+                <div style={{ textAlign: 'left' }}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Text style={{ color: 'white' }}><MailOutlined /> {employee.emailId}</Text>
+                    <Text style={{ color: 'white' }}><PhoneOutlined /> {employee.mobileNo}</Text>
+                    <Text style={{ color: 'white' }}><GlobalOutlined /> {employee.workArea || 'Unassigned'}</Text>
+                  </Space>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FiPhone className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Mobile No.</p>
-                  <p className="font-medium text-gray-800">
-                    {employee.mobileNo || "N/A"}
-                  </p>
+              </Card>
+
+              <Card style={{ marginTop: 24, borderRadius: 24 }}>
+                <Statistic title="Service Tenure" value={calculateExperience(employee.dateOfJoining)} prefix={<HistoryOutlined />} />
+                <Divider />
+                <Statistic title="Strategic Area" value={employee.workArea || 'Global'} prefix={<EnvironmentOutlined />} />
+              </Card>
+            </motion.div>
+          </Col>
+
+          {/* Main Content */}
+          <Col xs={24} lg={17}>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <Card style={{ borderRadius: 24 }} styles={{ body: { padding: '24px 32px' } }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+                  <Title level={4} style={{ margin: 0 }}>Employee Profile</Title>
+                  <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/rm/dashboard")}>Return</Button>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FiMail className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Email</p>
-                  <p className="font-medium text-gray-800 truncate">
-                    {employee.emailId || "N/A"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FaBusinessTime className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Alloted Area</p>
-                  <p className="font-medium text-gray-800">
-                    {employee.allotedArea || "N/A"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FaBusinessTime className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Total Customers</p>
-                  <p className="font-medium text-gray-800">
-                    {employee.totalCustomers || "N/A"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FaCalendarAlt className="text-gray-500 text-xs" />
-                <div>
-                  <p className="text-xs text-gray-500">Date of Allotment</p>
-                  <p className="font-medium text-gray-800">
-                    {formatDate(employee.dateOfJoining)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Job Profile and Target (View Only) */}
-              <div className="pt-3 mt-3 border-t border-gray-200 space-y-3">
-                <div className="flex items-start gap-2 text-sm">
-                  <FaFilePdf className="text-red-500 mt-1 text-xs" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-500">Job Profile</p>
-                    {employee.jobProfile?.path ? (
-                      <div className="mt-1">
-                        <a
-                          href={`${axios.defaults.baseURL || ""}${employee.jobProfile.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-                        >
-                          <FaFilePdf size={10} /> View PDF
-                        </a>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
-                          Uploaded: {formatDate(employee.jobProfile.uploadDate)}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 italic">No PDF uploaded</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 text-sm">
-                  <FaFilePdf className="text-cyan-500 mt-1 text-xs" />
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-500">Target Details</p>
-                    {employee.target?.path ? (
-                      <div className="mt-1">
-                        <a
-                          href={`${axios.defaults.baseURL || ""}${employee.target.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-800 font-medium text-xs bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200"
-                        >
-                          <FaFilePdf size={10} /> View PDF
-                        </a>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
-                          Uploaded: {formatDate(employee.target.uploadDate)}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 italic">No PDF uploaded</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* Right Content Area */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Quick Info Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-3">
-              <div className="bg-blue-50 rounded-lg p-2">
-                <FaCalendarAlt className="text-blue-600 text-sm" />
-              </div>
-              <div>
-                <h3 className="text-xs font-medium text-gray-500">
-                  Joining Date
-                </h3>
-                <p className="text-sm font-semibold text-gray-800">
-                  {formatDate(employee.dateOfJoining)}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-3">
-              <div className="bg-green-50 rounded-lg p-2">
-                <FaIdCardAlt className="text-green-600 text-sm" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800">
-                  {employee.name || "N/A"}
-                </h3>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-3">
-              <div className="bg-purple-50 rounded-lg p-2">
-                <FaBusinessTime className="text-purple-600 text-sm" />
-              </div>
-              <div>
-                <h3 className="text-xs font-medium text-gray-500">Alloted Area</h3>
-                <p className="text-sm font-semibold text-gray-800 truncate">
-                  {employee.allocatedWorkArea || "N/A"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            {/* Tabs Header */}
-            <div className="flex flex-wrap border-b border-gray-200">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all ${tabIndex === tab.id
-                    ? "border-blue-500 text-blue-600 bg-blue-50"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                    }`}
-                  onClick={() => setTabIndex(tab.id)}
-                >
-                  <tab.icon className="text-xs" />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="p-4">
-              {/* Personal Details */}
-              {tabIndex === 0 && (
-                <div className="space-y-4">
-
-                  <Row>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Basic Information
-                        </h5>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Full Name:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.name || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Gender:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.gender || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Date of Birth:</span>
-                          <span className="font-medium text-gray-800">
-                            {formatDate(employee.dob)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Age:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.dob
-                              ? calculateAge(employee.dob) + " years"
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Marriage Date:</span>
-                          <span className="font-medium text-gray-800">
-                            {formatDate(employee.marriageDate)}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="space-y-4">
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                            Contact Information
-                          </h5>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Mobile No:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.mobileNo || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Email:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.emailId || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              Office Mobile:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.officeMobile || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Office Email:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.officeEmail || "N/A"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                            Identification
-                          </h5>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">PAN No:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.panNo || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Aadhar No:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.aadharNo || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Driving License No:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.drivingLicenseNo || "N/A"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-
-              {/* Official Details */}
-              {tabIndex === 1 && (
-                <div className="space-y-4">
-
-                  <Row>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Employment Details
-                        </h5>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Employee Code:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.employeeCode || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Designation:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.designation || "RM"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Role:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.role || "RM"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Date of Joining:
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {formatDate(employee.dateOfJoining)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Date of Termination:
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {formatDate(employee.dateOfTermination)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Home Town:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.homeTown || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="space-y-4">
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                            Office Information
-                          </h5>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              Allotted Login ID:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.allottedLoginId || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              Allocated Work Area:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.allocatedWorkArea || "N/A"}
-                            </span>
-                          </div>
-
-                        </div>
-
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                            Compensation
-                          </h5>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              Salary on Joining:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.salaryOnJoining || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Expenses:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.expenses || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Incentives:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.incentives || "N/A"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-
-              {/* Address Details */}
-              {tabIndex === 2 && (
-                <div className="space-y-4">
-
-                  <Row>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Present Local Address
-                        </h5>
-                        <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm min-h-[80px]">
-                          {employee.presentAddress || "Not specified"}
-                        </div>
-                      </div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Permanent Address
-                        </h5>
-                        <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm min-h-[80px]">
-                          {employee.permanentAddress || "Not specified"}
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-
-              {/* Bank Details */}
-              {tabIndex === 3 && (
-                <div className="space-y-4">
-
-                  <Row>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Account Details
-                        </h5>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Bank Name:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.bankName || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Branch Name:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.branchName || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Account Number:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.accountNo || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">IFSC Code:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.ifscCode || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">MICR Code:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.micr || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-
-              {/* Employment Details */}
-              {/* {tabIndex === 4 && (
-                <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Employment Documents & Assets
-                  </h3>
-                  <Row>
-                    <Col md={6}>
-                      <div className="space-y-4">
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                            Documents
-                          </h5>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Offer Letter:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.offerLetter || "Not provided"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Undertaking:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.undertaking || "Not provided"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Track Record:</span>
-                            <span className="font-medium text-gray-800">
-                              {employee.trackRecord || "Not provided"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                            Alerts
-                          </h5>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              On First Joining:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.onFirstJoining || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              On 6 Month Completion:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.onSixMonthCompletion || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              On 12 Month Completion:
-                            </span>
-                            <span className="font-medium text-gray-800">
-                              {employee.onTwelveMonthCompletion || "N/A"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Office Assets
-                        </h5>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Office Kit:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.officeKit || "Not provided"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Drawer Key:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.drawerKeyName
-                              ? `${employee.drawerKeyName} (${employee.drawerKeyNumber || "No number"
-                              })`
-                              : "Not assigned"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Office Key:</span>
-                          <span className="font-medium text-gray-800">
-                            {employee.officeKey || "Not assigned"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-
-           
-              {tabIndex === 5 && (
-                <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Emergency Contacts
-                  </h3>
-                  <Row>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Family Contacts
-                        </h5>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Family Contact Person:
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {employee.familyContactPerson || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Family Contact Mobile:
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {employee.familyContactMobile || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-blue-600 pb-2 border-b border-gray-200">
-                          Emergency Contacts
-                        </h5>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Emergency Contact Person:
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {employee.emergencyContactPerson || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Emergency Contact Mobile:
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {employee.emergencyContactMobile || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              )} */}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                <Tabs items={tabItems} type="card" />
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
+      </Content>
+    </ConfigProvider>
   );
 };
 

@@ -1,31 +1,56 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Card, Table, Badge, Button, Modal, Form,
-  Row, Col, Spinner, ListGroup, Alert,
-} from "react-bootstrap";
-import axios from "axios";
+  Card,
+  Table,
+  Tag,
+  Button,
+  Modal,
+  Form,
+  Row,
+  Col,
+  Statistic,
+  Space,
+  Typography,
+  Badge,
+  Tooltip,
+  Avatar,
+  Empty,
+  Spin,
+  Alert,
+  Input,
+  Select,
+  Divider,
+  List,
+  ConfigProvider
+} from "antd";
 import {
-  FaSync, FaTasks, FaShareAlt, FaCheckCircle, FaClock,
-  FaUser, FaMapMarkerAlt, FaPhone, FaIdCard, FaStickyNote,
-  FaEye, FaUserTie, FaUserFriends, FaFlag, FaInfoCircle,
-  FaCalendarAlt, FaHistory, FaArrowRight,
-} from "react-icons/fa";
+  SyncOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  UserOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  IdcardOutlined,
+  EyeOutlined,
+  TeamOutlined,
+  ShareAltOutlined,
+  HistoryOutlined,
+  ArrowRightOutlined,
+  FlagOutlined,
+  InfoCircleOutlined,
+  CalendarOutlined,
+  ThunderboltOutlined,
+  SolutionOutlined,
+  BuildOutlined
+} from "@ant-design/icons";
+import axios from "../../config/axios";
 import { format, parseISO } from "date-fns";
+import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 
-const statusColors = {
-  assigned: "secondary",
-  "in-progress": "info",
-  completed: "success",
-  overdue: "danger",
-  pending: "warning",
-};
-
-const priorityColors = {
-  urgent: "danger",
-  high: "warning",
-  medium: "primary",
-  low: "secondary",
-};
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+const { Option } = Select;
 
 const OETaskSummary = () => {
   const [tasks, setTasks] = useState([]);
@@ -50,6 +75,21 @@ const OETaskSummary = () => {
   const [loadingRMs, setLoadingRMs] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const statusConfig = {
+    assigned: { color: "default", text: "Assigned", icon: <ClockCircleOutlined /> },
+    "in-progress": { color: "processing", text: "In Progress", icon: <SyncOutlined spin /> },
+    completed: { color: "success", text: "Completed", icon: <CheckCircleOutlined /> },
+    overdue: { color: "error", text: "Overdue", icon: <FlagOutlined /> },
+    pending: { color: "warning", text: "Pending", icon: <ClockCircleOutlined /> },
+  };
+
+  const priorityConfig = {
+    urgent: { color: "error", text: "Urgent" },
+    high: { color: "warning", text: "High" },
+    medium: { color: "blue", text: "Medium" },
+    low: { color: "default", text: "Low" },
+  };
+
   // ─── Fetch tasks ───────────────────────────────────────────
   const fetchTasks = async () => {
     const id = oeId || JSON.parse(localStorage.getItem("user") || "{}")?.id;
@@ -58,8 +98,12 @@ const OETaskSummary = () => {
     try {
       const res = await axios.get("/api/OE/assigned-tasks", { params: { oeId: id } });
       setTasks(res.data?.success && Array.isArray(res.data?.data) ? res.data.data : []);
-    } catch { setTasks([]); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      setTasks([]); 
+      toast.error("Failed to synchronize tasks.");
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   // ─── Fetch RM list ─────────────────────────────────────────
@@ -69,8 +113,11 @@ const OETaskSummary = () => {
     try {
       const res = await axios.get("/api/OE/rm-list");
       setRmList(res.data?.data || []);
-    } catch { setRmList([]); }
-    finally { setLoadingRMs(false); }
+    } catch (err) { 
+      setRmList([]); 
+    } finally { 
+      setLoadingRMs(false); 
+    }
   };
 
   useEffect(() => { fetchTasks(); }, [oeId]);
@@ -82,11 +129,8 @@ const OETaskSummary = () => {
     catch { return "—"; }
   };
 
-  const isForwardedByRM = (t) =>
-    t?.forwardedFromRM && (t.forwardedFromRM.forwardedAt || t.forwardedFromRM.remark);
-
-  const isForwardedByOE = (t) =>
-    t?.oeForwardedToRM && t.oeForwardedToRM.forwardedAt;
+  const isForwardedByRM = (t) => t?.forwardedFromRM && (t.forwardedFromRM.forwardedAt || t.forwardedFromRM.remark);
+  const isForwardedByOE = (t) => t?.oeForwardedToRM && t.oeForwardedToRM.forwardedAt;
 
   // ─── Open Detail Modal ─────────────────────────────────────
   const openDetail = (task) => {
@@ -107,7 +151,7 @@ const OETaskSummary = () => {
   // ─── Submit Forward ────────────────────────────────────────
   const handleForwardToRM = async () => {
     if (!forwardTask || !oeId) return;
-    if (!forwardRmId) { alert("Please select an RM to forward to."); return; }
+    if (!forwardRmId) { toast.warning("Please select an RM to forward to."); return; }
     setSubmitting(true);
     try {
       const res = await axios.put("/api/OE/forward-to-rm", {
@@ -118,574 +162,367 @@ const OETaskSummary = () => {
         remark: forwardRemark,
       });
       if (res.data?.success) {
-        alert("✅ Task forwarded to RM successfully.");
+        toast.success("Task forwarded to RM successfully.");
         setShowForwardModal(false);
         fetchTasks();
       } else {
-        alert(res.data?.message || "Failed to forward.");
+        toast.error(res.data?.message || "Failed to forward.");
       }
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to forward.");
+      toast.error(err.response?.data?.message || err.message || "Failed to forward.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ─── Client / Prospect display helper ─────────────────────
-  const EntityCard = ({ entities, type, color }) => {
-    if (!entities?.length) return null;
-    return (
-      <Card className={`border-${color} mb-2`}>
-        <Card.Header className={`bg-${color} text-white py-2 d-flex align-items-center gap-2`}>
-          {type === "Client" ? <FaUserTie size={12} /> : <FaUserFriends size={12} />}
-          <small className="fw-bold">{type}s ({entities.length})</small>
-        </Card.Header>
-        <ListGroup variant="flush" style={{ maxHeight: 160, overflowY: "auto" }}>
-          {entities.map((e, i) => {
-            const pd = e?.personalDetails || e;
-            return (
-              <ListGroup.Item key={i} className="py-2 px-3">
-                <div className="fw-semibold small">
-                  {pd?.groupName || pd?.name || `${type} ${i + 1}`}
-                </div>
-                {pd?.mobileNo && (
-                  <div className="text-muted" style={{ fontSize: 11 }}>
-                    <FaPhone size={9} className="me-1" />{pd.mobileNo}
-                  </div>
-                )}
-                {pd?.preferredMeetingArea && (
-                  <div className="text-muted" style={{ fontSize: 11 }}>
-                    <FaMapMarkerAlt size={9} className="me-1" />{pd.preferredMeetingArea}
-                  </div>
-                )}
-              </ListGroup.Item>
-            );
-          })}
-        </ListGroup>
-      </Card>
-    );
-  };
-
-  // ─── Forwarding Chain Banner ───────────────────────────────
-  const ForwardingChain = ({ task }) => {
-    const fwdByRM = isForwardedByRM(task);
-    const fwdByOE = isForwardedByOE(task);
-    if (!fwdByRM && !fwdByOE) return null;
-    return (
-      <div className="px-0 pb-2">
-        {fwdByRM && (
-          <Alert variant="primary" className="py-2 mb-2 d-flex align-items-start gap-2">
-            <FaShareAlt className="mt-1 flex-shrink-0" />
-            <div>
-              <strong>Forwarded by RM</strong>
-              {task.forwardedFromRM?.forwardedBy?.name && (
-                <span className="ms-1 text-muted small">
-                  ({task.forwardedFromRM.forwardedBy.name})
-                </span>
-              )}
-              {task.forwardedFromRM?.forwardedAt && (
-                <span className="ms-2 text-muted small">
-                  on {fmt(task.forwardedFromRM.forwardedAt)}
-                </span>
-              )}
-              {task.forwardedFromRM?.remark && (
-                <div className="mt-1 small fst-italic">"{task.forwardedFromRM.remark}"</div>
-              )}
-            </div>
-          </Alert>
-        )}
-        {fwdByOE && (
-          <Alert variant="warning" className="py-2 mb-2 d-flex align-items-start gap-2">
-            <FaHistory className="mt-1 flex-shrink-0" />
-            <div>
-              <strong>Previously forwarded to RM</strong>
-              {task.oeForwardedToRM?.forwardedAt && (
-                <span className="ms-2 text-muted small">on {fmt(task.oeForwardedToRM.forwardedAt)}</span>
-              )}
-              {task.oeForwardedToRM?.remark && (
-                <div className="mt-1 small fst-italic">"{task.oeForwardedToRM.remark}"</div>
-              )}
-            </div>
-          </Alert>
-        )}
-      </div>
-    );
-  };
-
-  // ─── Loading ───────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="container-fluid mt-4">
-        <Card className="border-0 shadow-sm">
-          <Card.Body className="text-center py-5">
-            <Spinner animation="border" variant="primary" className="mb-3" />
-            <h5 className="text-dark mb-2">Loading tasks...</h5>
-          </Card.Body>
-        </Card>
-      </div>
-    );
-  }
-
-  // ─── Stats ─────────────────────────────────────────────────
-  const stats = {
+  const stats = useMemo(() => ({
     total: tasks.length,
     fromRM: tasks.filter(isForwardedByRM).length,
     inProgress: tasks.filter((t) => t.status === "in-progress").length,
     overdue: tasks.filter((t) => t.status === "overdue").length,
-  };
+  }), [tasks]);
+
+  const columns = [
+    {
+      title: "Task",
+      key: "task",
+      width: 250,
+      render: (_, t) => (
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ fontSize: '14px' }}>{t.name}</Text>
+          <Space size={4}>
+            {isForwardedByRM(t) && <Tag color="blue" icon={<ShareAltOutlined />} style={{ fontSize: '10px' }}>Fwd by RM</Tag>}
+            {isForwardedByOE(t) && <Tag color="orange" icon={<HistoryOutlined />} style={{ fontSize: '10px' }}>Prev. Fwd RM</Tag>}
+          </Space>
+        </Space>
+      )
+    },
+    {
+      title: "Organisation",
+      key: "organisation",
+      render: (_, t) => (
+        <div>
+          <div style={{ fontSize: '13px' }}>{t.company || "—"}</div>
+          {t.product && <Text type="secondary" style={{ fontSize: '11px' }}>{t.product}</Text>}
+        </div>
+      )
+    },
+    {
+      title: "Timeline",
+      dataIndex: "dueDate",
+      width: 130,
+      render: (d) => <Text style={{ fontSize: '13px' }}>{fmt(d)}</Text>
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      width: 110,
+      render: (p) => {
+        const cfg = priorityConfig[p] || priorityConfig.medium;
+        return <Tag color={cfg.color} style={{ borderRadius: '6px', fontWeight: 600 }}>{cfg.text.toUpperCase()}</Tag>;
+      }
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      width: 130,
+      render: (s) => {
+        const cfg = statusConfig[s] || statusConfig.assigned;
+        return <Tag color={cfg.color} icon={cfg.icon} style={{ borderRadius: '6px' }}>{cfg.text.toUpperCase()}</Tag>;
+      }
+    },
+    {
+      title: "Network",
+      key: "entities",
+      width: 140,
+      render: (_, t) => (
+        <Space size={8}>
+          <Tooltip title="Clients"><Badge count={t.assignedClients?.length || 0} style={{ backgroundColor: '#10b981' }} overflowCount={99} /></Tooltip>
+          <Tooltip title="Prospects"><Badge count={t.assignedProspects?.length || 0} style={{ backgroundColor: '#0891b2' }} overflowCount={99} /></Tooltip>
+        </Space>
+      )
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      fixed: 'right',
+      width: 180,
+      render: (_, t) => (
+        <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => openDetail(t)}>View</Button>
+          <Button size="small" type="primary" icon={<ShareAltOutlined />} onClick={() => openForward(t)}>Fwd RM</Button>
+        </Space>
+      )
+    }
+  ];
 
   return (
-    <div className="container-fluid mt-3">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h5 className="fw-bold text-dark mb-0">Task Summary (OE)</h5>
-          <small className="text-muted">All assigned &amp; forwarded tasks</small>
+    <ConfigProvider theme={{ token: { colorPrimary: '#0891b2', borderRadius: 12 } }}>
+      <div style={{ paddingBottom: '40px' }}>
+        {/* Header Section */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>Task Summary (OE)</Title>
+            <Text type="secondary">Monitor and forward operational assignments</Text>
+          </div>
+          <Button icon={<SyncOutlined />} onClick={fetchTasks} loading={loading} size="large">Sync</Button>
         </div>
-        <Button variant="outline-primary" size="sm" onClick={fetchTasks}>
-          <FaSync className="me-1" />Refresh
-        </Button>
-      </div>
 
-      {/* Stat Cards */}
-      <Row className="g-2 mb-3">
-        {[
-          { label: "Total Tasks", val: stats.total, color: "primary", icon: <FaTasks /> },
-          { label: "Forwarded by RM", val: stats.fromRM, color: "info", icon: <FaShareAlt /> },
-          { label: "In Progress", val: stats.inProgress, color: "warning", icon: <FaClock /> },
-          { label: "Overdue", val: stats.overdue, color: "danger", icon: <FaFlag /> },
-        ].map((s) => (
-          <Col xs={6} md={3} key={s.label}>
-            <Card className={`border-0 shadow-sm border-start border-${s.color} border-3`}>
-              <Card.Body className="py-2 px-3 d-flex align-items-center gap-3">
-                <div className={`text-${s.color} fs-4`}>{s.icon}</div>
-                <div>
-                  <div className="fw-bold fs-5">{s.val}</div>
-                  <small className="text-muted">{s.label}</small>
-                </div>
-              </Card.Body>
-            </Card>
+        {/* Stats Row */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={12} md={6}>
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card bordered={false} style={{ background: '#ecfeff', borderRadius: 16 }}>
+                  <Statistic title="Total Tasks" value={stats.total} prefix={<ThunderboltOutlined style={{ color: '#0891b2' }} />} />
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card bordered={false} style={{ background: '#f0f9ff', borderRadius: 16 }}>
+                  <Statistic title="From RM" value={stats.fromRM} prefix={<ShareAltOutlined style={{ color: '#0369a1' }} />} />
+                </Card>
+              </Col>
+            </Row>
           </Col>
-        ))}
-      </Row>
+          <Col xs={12} md={6}>
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card bordered={false} style={{ background: '#fffbeb', borderRadius: 16 }}>
+                  <Statistic title="In Progress" value={stats.inProgress} prefix={<ClockCircleOutlined style={{ color: '#d97706' }} />} />
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card bordered={false} style={{ background: '#fef2f2', borderRadius: 16 }}>
+                  <Statistic title="Overdue" value={stats.overdue} prefix={<FlagOutlined style={{ color: '#dc2626' }} />} />
+                </Card>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
 
-      {/* Task Table */}
-      <Card className="border-0 shadow-sm">
-        <Card.Header className="bg-white border-0 py-3">
-          <h6 className="fw-bold text-dark mb-0">
-            Assigned / Forwarded Tasks ({tasks.length})
-          </h6>
-        </Card.Header>
-        <Card.Body className="p-0">
-          {tasks.length === 0 ? (
-            <div className="text-center py-5 text-muted">
-              <FaTasks size={40} className="mb-2" />
-              <p className="mb-0">No tasks assigned or forwarded yet.</p>
-            </div>
-          ) : (
-            <Table responsive hover className="mb-0 align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th>#</th>
-                  <th>Task</th>
-                  <th>Company / Product</th>
-                  <th>Due</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th>Clients/Prospects</th>
-                  <th>Source</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task, idx) => (
-                  <tr key={task._id || task.id}>
-                    <td className="text-muted small">{idx + 1}</td>
-                    <td>
-                      <div className="fw-semibold">{task.name}</div>
-                      {isForwardedByRM(task) && (
-                        <span className="badge bg-primary" style={{ fontSize: 10 }}>
-                          <FaShareAlt className="me-1" />Fwd by RM
-                        </span>
-                      )}
-                      {isForwardedByOE(task) && (
-                        <span className="badge bg-warning text-dark ms-1" style={{ fontSize: 10 }}>
-                          <FaHistory className="me-1" />Prev. Fwd to RM
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="small">{task.company || "—"}</div>
-                      {task.product && <div className="text-muted" style={{ fontSize: 11 }}>{task.product}</div>}
-                    </td>
-                    <td className="small">{fmt(task.dueDate)}</td>
-                    <td>
-                      <Badge bg={priorityColors[task.priority] || "secondary"} pill>
-                        {(task.priority || "medium").toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge bg={statusColors[task.status] || "secondary"}>
-                        {task.status || "assigned"}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div className="small">
-                        {task.assignedClients?.length > 0 && (
-                          <span className="me-2 text-success fw-semibold">
-                            C: {task.assignedClients.length}
-                          </span>
-                        )}
-                        {task.assignedProspects?.length > 0 && (
-                          <span className="text-primary fw-semibold">
-                            P: {task.assignedProspects.length}
-                          </span>
-                        )}
-                        {!task.assignedClients?.length && !task.assignedProspects?.length && (
-                          <span className="text-muted">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      {isForwardedByRM(task) ? (
-                        <Badge bg="primary">
-                          <FaShareAlt className="me-1" />RM
-                          {task.forwardedFromRM?.forwardedBy?.name && (
-                            <span className="ms-1">({task.forwardedFromRM.forwardedBy.name})</span>
-                          )}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted small">Direct</span>
-                      )}
-                    </td>
-                    <td className="text-end">
-                      <div className="d-flex gap-1 justify-content-end">
-                        <Button
-                          variant="outline-secondary"
-                          size="sm"
-                          onClick={() => openDetail(task)}
-                          title="View Details"
-                        >
-                          <FaEye />
-                        </Button>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => openForward(task)}
-                          title="Forward to RM"
-                        >
-                          <FaShareAlt className="me-1" />Fwd RM
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </Card.Body>
-      </Card>
+        {/* Table Container */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card 
+            bordered={false} 
+            style={{ borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)', overflow: 'hidden' }}
+            styles={{ body: { padding: 0 } }}
+          >
+            <Table 
+              columns={columns} 
+              dataSource={tasks} 
+              rowKey="_id" 
+              loading={loading}
+              scroll={{ x: 1200 }}
+              pagination={{ pageSize: 10, style: { padding: '16px 24px' } }}
+              locale={{ emptyText: <Empty description="No operational tasks registered" /> }}
+            />
+          </Card>
+        </motion.div>
 
-      {/* ─── Detail Modal ──────────────────────────────────────── */}
-      <Modal
-        show={showDetailModal}
-        onHide={() => setShowDetailModal(false)}
-        centered size="lg" scrollable
-      >
-        <Modal.Header closeButton className="border-bottom">
-          <Modal.Title className="fw-bold">{selectedTask?.name}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+        {/* ─── Detail Modal ──────────────────────────────────────── */}
+        <Modal
+          title={<Title level={4} style={{ margin: 0 }}>Assignment Details</Title>}
+          open={showDetailModal}
+          onCancel={() => setShowDetailModal(false)}
+          width={900}
+          footer={[
+            <Button key="close" onClick={() => setShowDetailModal(false)}>Close</Button>,
+            <Button key="fwd" type="primary" icon={<ShareAltOutlined />} onClick={() => { setShowDetailModal(false); openForward(selectedTask); }}>Forward to RM</Button>
+          ]}
+        >
           {selectedTask && (
-            <>
+            <div style={{ padding: '12px 0' }}>
               {/* Forwarding Chain */}
-              <ForwardingChain task={selectedTask} />
+              <div style={{ marginBottom: 20 }}>
+                {isForwardedByRM(selectedTask) && (
+                  <Alert 
+                    message="Forwarded by RM" 
+                    description={
+                      <div>
+                        <Text strong>{selectedTask.forwardedFromRM?.forwardedBy?.name || "RM User"}</Text> 
+                        <Text type="secondary"> on {fmt(selectedTask.forwardedFromRM?.forwardedAt)}</Text>
+                        {selectedTask.forwardedFromRM?.remark && <div style={{ marginTop: 4, fontStyle: 'italic' }}>"{selectedTask.forwardedFromRM.remark}"</div>}
+                      </div>
+                    }
+                    type="info" showIcon icon={<ShareAltOutlined />} style={{ marginBottom: 12 }}
+                  />
+                )}
+                {isForwardedByOE(selectedTask) && (
+                  <Alert 
+                    message="Previously forwarded to RM" 
+                    description={
+                      <div>
+                        <Text type="secondary">Processed on {fmt(selectedTask.oeForwardedToRM?.forwardedAt)}</Text>
+                        {selectedTask.oeForwardedToRM?.remark && <div style={{ marginTop: 4, fontStyle: 'italic' }}>"{selectedTask.oeForwardedToRM.remark}"</div>}
+                      </div>
+                    }
+                    type="warning" showIcon icon={<HistoryOutlined />}
+                  />
+                )}
+              </div>
 
-              {/* Task Info */}
-              <Row className="g-3 mb-3">
-                <Col md={6}>
-                  <Card className="border h-100">
-                    <Card.Body>
-                      <h6 className="fw-bold text-dark mb-3">Task Info</h6>
-                      {[
-                        ["Company", selectedTask.company],
-                        ["Product", selectedTask.product],
-                        ["Due Date", fmt(selectedTask.dueDate)],
-                        ["Priority", (
-                          <Badge bg={priorityColors[selectedTask.priority] || "secondary"} pill>
-                            {(selectedTask.priority || "medium").toUpperCase()}
-                          </Badge>
-                        )],
-                        ["Status", (
-                          <Badge bg={statusColors[selectedTask.status] || "secondary"}>
-                            {selectedTask.status || "assigned"}
-                          </Badge>
-                        )],
-                      ].map(([label, val]) => (
-                        <div key={label} className="mb-2">
-                          <small className="text-muted d-block">{label}</small>
-                          <span className="fw-semibold">{val || "—"}</span>
-                        </div>
-                      ))}
-                    </Card.Body>
+              <Row gutter={[24, 24]}>
+                <Col xs={24} md={12}>
+                  <Card size="small" title="Core Information" style={{ borderRadius: 12 }}>
+                    <List size="small">
+                      <List.Item><Text type="secondary">Company</Text> <Text strong>{selectedTask.company || "—"}</Text></List.Item>
+                      <List.Item><Text type="secondary">Product</Text> <Text strong>{selectedTask.product || "—"}</Text></List.Item>
+                      <List.Item><Text type="secondary">Due Date</Text> <Tag color="blue">{fmt(selectedTask.dueDate)}</Tag></List.Item>
+                      <List.Item><Text type="secondary">Priority</Text> <Tag color={priorityConfig[selectedTask.priority]?.color}>{selectedTask.priority?.toUpperCase()}</Tag></List.Item>
+                      <List.Item><Text type="secondary">Status</Text> <Tag color={statusConfig[selectedTask.status]?.color}>{selectedTask.status?.toUpperCase()}</Tag></List.Item>
+                    </List>
                   </Card>
                 </Col>
-                <Col md={6}>
-                  <Card className="border h-100">
-                    <Card.Body>
-                      <h6 className="fw-bold text-dark mb-3">Assignment Details</h6>
-                      {[
-                        ["Assigned At", fmt(selectedTask.assignedAt)],
-                        ["Remarks", selectedTask.remarks],
-                        ["Checklist Items", selectedTask.checklists?.length || 0],
-                        ["Estimated Days", selectedTask.estimatedDays],
-                        ["OE Type", selectedTask.oeType || "—"],
-                      ].map(([label, val]) => (
-                        <div key={label} className="mb-2">
-                          <small className="text-muted d-block">{label}</small>
-                          <span className="fw-semibold">{val || "—"}</span>
+                <Col xs={24} md={12}>
+                  <Card size="small" title="Execution Details" style={{ borderRadius: 12 }}>
+                    <List size="small">
+                      <List.Item><Text type="secondary">Assigned At</Text> <Text strong>{fmt(selectedTask.assignedAt)}</Text></List.Item>
+                      <List.Item><Text type="secondary">Est. Days</Text> <Badge count={selectedTask.estimatedDays} style={{ backgroundColor: '#0891b2' }} /></List.Item>
+                      <List.Item><Text type="secondary">OE Type</Text> <Tag>{selectedTask.oeType || "General"}</Tag></List.Item>
+                      <List.Item>
+                        <div>
+                          <Text type="secondary">Initial Remarks</Text>
+                          <div style={{ fontSize: '12px', marginTop: 4 }}>{selectedTask.remarks || "No remarks provided"}</div>
                         </div>
-                      ))}
-                    </Card.Body>
+                      </List.Item>
+                    </List>
                   </Card>
                 </Col>
               </Row>
 
-              {/* Clients & Prospects */}
-              {(selectedTask.assignedClients?.length > 0 || selectedTask.assignedProspects?.length > 0) && (
+              <Divider orientation="left">Network Engagement</Divider>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} md={12}>
+                  <Card size="small" title={<Space><SolutionOutlined /><span>Clients ({selectedTask.assignedClients?.length || 0})</span></Space>} style={{ borderRadius: 12 }} styles={{ body: { padding: 0 } }}>
+                    <List
+                      dataSource={selectedTask.assignedClients}
+                      renderItem={c => (
+                        <List.Item style={{ padding: '8px 16px' }}>
+                          <Space>
+                            <Avatar size="small" style={{ backgroundColor: '#10b981' }}>C</Avatar>
+                            <div>
+                              <Text strong style={{ fontSize: '12px' }}>{c.personalDetails?.groupName || c.groupName}</Text>
+                              <div style={{ fontSize: '10px', color: '#64748b' }}>{c.personalDetails?.mobileNo || c.mobileNo}</div>
+                            </div>
+                          </Space>
+                        </List.Item>
+                      )}
+                      locale={{ emptyText: <Text type="secondary" style={{ padding: 12, display: 'block' }}>No clients linked</Text> }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Card size="small" title={<Space><TeamOutlined /><span>Prospects ({selectedTask.assignedProspects?.length || 0})</span></Space>} style={{ borderRadius: 12 }} styles={{ body: { padding: 0 } }}>
+                    <List
+                      dataSource={selectedTask.assignedProspects}
+                      renderItem={p => (
+                        <List.Item style={{ padding: '8px 16px' }}>
+                          <Space>
+                            <Avatar size="small" style={{ backgroundColor: '#0891b2' }}>P</Avatar>
+                            <div>
+                              <Text strong style={{ fontSize: '12px' }}>{p.personalDetails?.groupName || p.groupName}</Text>
+                              <div style={{ fontSize: '10px', color: '#64748b' }}>{p.personalDetails?.mobileNo || p.mobileNo}</div>
+                            </div>
+                          </Space>
+                        </List.Item>
+                      )}
+                      locale={{ emptyText: <Text type="secondary" style={{ padding: 12, display: 'block' }}>No prospects linked</Text> }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+
+              {selectedTask.checklists?.length > 0 && (
                 <>
-                  <h6 className="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
-                    <FaUserFriends /> Associated Clients &amp; Prospects
-                    <Badge bg="secondary" pill>
-                      {(selectedTask.assignedClients?.length || 0) + (selectedTask.assignedProspects?.length || 0)}
-                    </Badge>
-                  </h6>
-                  <Row className="g-2">
-                    <Col md={6}>
-                      <EntityCard
-                        entities={selectedTask.assignedClients}
-                        type="Client"
-                        color="success"
-                      />
-                    </Col>
-                    <Col md={6}>
-                      <EntityCard
-                        entities={selectedTask.assignedProspects}
-                        type="Prospect"
-                        color="primary"
-                      />
-                    </Col>
-                  </Row>
+                  <Divider orientation="left">Compliance Checklist</Divider>
+                  <Card size="small" style={{ borderRadius: 12, background: '#f8fafc' }}>
+                    <List
+                      dataSource={selectedTask.checklists}
+                      renderItem={item => <List.Item style={{ fontSize: '12px' }}><Space><CheckCircleOutlined style={{ color: '#10b981' }} />{item}</Space></List.Item>}
+                    />
+                  </Card>
                 </>
               )}
-
-              {/* Checklists */}
-              {selectedTask.checklists?.length > 0 && (
-                <Card className="border mt-3">
-                  <Card.Header className="bg-light py-2">
-                    <small className="fw-bold">Checklist Items</small>
-                  </Card.Header>
-                  <ListGroup variant="flush">
-                    {selectedTask.checklists.map((item, i) => (
-                      <ListGroup.Item key={i} className="py-2 small">
-                        <span className="me-2">•</span>{item}
-                      </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-                </Card>
-              )}
-            </>
+            </div>
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="light" onClick={() => setShowDetailModal(false)}>Close</Button>
-          <Button
-            variant="primary"
-            onClick={() => { setShowDetailModal(false); openForward(selectedTask); }}
-          >
-            <FaShareAlt className="me-2" />Forward to RM
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </Modal>
 
-      {/* ─── Forward to RM Modal ───────────────────────────────── */}
-      <Modal
-        show={showForwardModal}
-        onHide={() => setShowForwardModal(false)}
-        centered size="lg" scrollable
-      >
-        <Modal.Header
-          closeButton
-          style={{ background: "linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)", color: "white" }}
+        {/* ─── Forward to RM Modal ───────────────────────────────── */}
+        <Modal
+          title={<Title level={4} style={{ margin: 0, color: '#0891b2' }}>Forward Task to RM</Title>}
+          open={showForwardModal}
+          onCancel={() => setShowForwardModal(false)}
+          onOk={handleForwardToRM}
+          confirmLoading={submitting}
+          okText="Dispatch Assignment"
+          width={700}
         >
-          <Modal.Title className="d-flex align-items-center gap-2">
-            <FaShareAlt />Forward Task to RM
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="p-0">
           {forwardTask && (
-            <>
-              {/* Task Banner */}
-              <div className="bg-light border-bottom px-4 py-3">
-                <div className="d-flex justify-content-between flex-wrap gap-2">
-                  <div>
-                    <h6 className="fw-bold text-dark mb-1">{forwardTask.name}</h6>
-                    <div className="d-flex flex-wrap gap-2">
-                      <Badge bg="light" text="dark" className="border">{forwardTask.company}</Badge>
-                      <Badge bg={priorityColors[forwardTask.priority] || "secondary"} pill>
-                        {(forwardTask.priority || "medium").toUpperCase()}
-                      </Badge>
-                      <Badge bg={statusColors[forwardTask.status] || "secondary"}>
-                        Current: {forwardTask.status || "assigned"}
-                      </Badge>
-                    </div>
-                  </div>
-                  {forwardTask.dueDate && (
-                    <Badge bg="warning" text="dark">
-                      <FaCalendarAlt className="me-1" />Due: {fmt(forwardTask.dueDate)}
-                    </Badge>
-                  )}
-                </div>
-              </div>
+            <div style={{ padding: '12px 0' }}>
+              <Card size="small" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: 20, borderRadius: 12 }}>
+                <Row justify="space-between" align="middle">
+                  <Col>
+                    <Text strong style={{ fontSize: '16px' }}>{forwardTask.name}</Text>
+                    <div><Text type="secondary">{forwardTask.company} • </Text><Tag color={priorityConfig[forwardTask.priority]?.color}>{forwardTask.priority?.toUpperCase()}</Tag></div>
+                  </Col>
+                  {forwardTask.dueDate && <Col><Tag icon={<CalendarOutlined />} color="warning">Due: {fmt(forwardTask.dueDate)}</Tag></Col>}
+                </Row>
+              </Card>
 
-              {/* Forwarding Chain History */}
               {isForwardedByRM(forwardTask) && (
-                <div className="px-4 pt-3">
-                  <Alert variant="primary" className="py-2 d-flex align-items-start gap-2">
-                    <FaHistory className="mt-1 flex-shrink-0" />
-                    <div>
-                      <strong>Originally forwarded by RM</strong>
-                      {forwardTask.forwardedFromRM?.forwardedBy?.name && (
-                        <span className="ms-1 text-muted small">({forwardTask.forwardedFromRM.forwardedBy.name})</span>
-                      )}
-                      {forwardTask.forwardedFromRM?.remark && (
-                        <div className="mt-1 small fst-italic">"{forwardTask.forwardedFromRM.remark}"</div>
-                      )}
-                    </div>
-                  </Alert>
-                </div>
+                <Alert 
+                  message="Forwarding Chain Notice"
+                  description={`This task was originally received from ${forwardTask.forwardedFromRM?.forwardedBy?.name || "RM"}. Forwarding it back will return it to the RM registry.`}
+                  type="info" showIcon style={{ marginBottom: 20 }}
+                />
               )}
 
-              {/* Clients & Prospects Preview */}
-              {(forwardTask.assignedClients?.length > 0 || forwardTask.assignedProspects?.length > 0) && (
-                <div className="px-4 pt-2 pb-1">
-                  <div className="fw-semibold small text-dark mb-2 d-flex align-items-center gap-1">
-                    <FaUserFriends size={12} />
-                    Associated Clients &amp; Prospects (will be forwarded with task)
-                    <Badge bg="secondary" pill className="ms-1">
-                      {(forwardTask.assignedClients?.length || 0) + (forwardTask.assignedProspects?.length || 0)}
-                    </Badge>
-                  </div>
-                  <Row className="g-2">
-                    <Col md={6}>
-                      <EntityCard entities={forwardTask.assignedClients} type="Client" color="success" />
-                    </Col>
-                    <Col md={6}>
-                      <EntityCard entities={forwardTask.assignedProspects} type="Prospect" color="primary" />
-                    </Col>
-                  </Row>
-                </div>
-              )}
-
-              {/* Form Fields */}
-              <div className="px-4 py-3">
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">
-                        <FaUserTie className="me-1 text-primary" />
-                        Select RM <span className="text-danger">*</span>
-                      </Form.Label>
-                      {loadingRMs ? (
-                        <div className="d-flex align-items-center gap-2 p-2 border rounded">
-                          <Spinner size="sm" animation="border" />
-                          <small className="text-muted">Loading RM list...</small>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          value={forwardRmId}
-                          onChange={(e) => setForwardRmId(e.target.value)}
-                          isInvalid={!forwardRmId}
-                        >
-                          <option value="">-- Select RM --</option>
-                          {rmList.map((rm) => (
-                            <option key={rm.id || rm._id} value={rm.id || rm._id}>
-                              {rm.name}
-                              {rm.employeeCode ? ` [${rm.employeeCode}]` : ""}
-                              {rm.designation ? ` — ${rm.designation}` : ""}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      )}
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">
-                        <FaFlag className="me-1 text-warning" />
-                        Task Status
-                      </Form.Label>
-                      <Form.Select
-                        value={forwardStatus}
-                        onChange={(e) => setForwardStatus(e.target.value)}
+              <Form layout="vertical">
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item label="Target Relationship Manager (RM)" required>
+                      <Select 
+                        placeholder="Select RM..." 
+                        loading={loadingRMs} 
+                        value={forwardRmId} 
+                        onChange={setForwardRmId}
+                        size="large"
                       >
-                        <option value="in-progress">In Progress</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                        <option value="assigned">Assigned</option>
-                      </Form.Select>
-                    </Form.Group>
+                        {rmList.map(rm => (
+                          <Option key={rm.id || rm._id} value={rm.id || rm._id}>
+                            {rm.name} {rm.employeeCode ? `[${rm.employeeCode}]` : ""}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
                   </Col>
-                  <Col xs={12}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">
-                        <FaStickyNote className="me-1 text-secondary" />
-                        Remark / Message for RM
-                      </Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={3}
-                        placeholder="Add your remarks, update, or instructions for the RM..."
-                        value={forwardRemark}
-                        onChange={(e) => setForwardRemark(e.target.value)}
-                      />
-                    </Form.Group>
+                  <Col span={12}>
+                    <Form.Item label="Completion Status" required>
+                      <Select value={forwardStatus} onChange={setForwardStatus} size="large">
+                        <Option value="in-progress">In Progress</Option>
+                        <Option value="pending">Pending</Option>
+                        <Option value="completed">Completed</Option>
+                        <Option value="assigned">Assigned</Option>
+                      </Select>
+                    </Form.Item>
                   </Col>
                 </Row>
+                <Form.Item label="Execution Remarks / Notes">
+                  <TextArea rows={4} value={forwardRemark} onChange={e => setForwardRemark(e.target.value)} placeholder="Detail your findings, updates or notes for the RM..." />
+                </Form.Item>
+              </Form>
 
-                <Alert variant="info" className="mt-3 mb-0 py-2">
-                  <FaInfoCircle className="me-2" />
-                  <strong>Note:</strong> The full task with all clients &amp; prospects will be forwarded
-                  to the selected RM. The RM will see this task in their Task Summary.
-                </Alert>
-              </div>
-            </>
+              <Alert 
+                icon={<InfoCircleOutlined />}
+                message={<Text strong style={{ fontSize: '12px' }}>Network Persistence</Text>}
+                description="The full network of clients and prospects associated with this task will be preserved during dispatch."
+                type="info" showIcon
+              />
+            </div>
           )}
-        </Modal.Body>
-
-        <Modal.Footer className="border-top">
-          <Button
-            variant="light"
-            onClick={() => setShowForwardModal(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleForwardToRM}
-            disabled={submitting || !forwardRmId}
-          >
-            {submitting ? (
-              <><Spinner animation="border" size="sm" className="me-2" />Forwarding...</>
-            ) : (
-              <><FaShareAlt className="me-2" />Forward to RM</>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+        </Modal>
+      </div>
+    </ConfigProvider>
   );
 };
 

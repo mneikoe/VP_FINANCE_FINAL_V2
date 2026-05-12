@@ -1,39 +1,50 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Container,
+  Layout,
   Row,
   Col,
   Card,
-  Badge,
-  Alert,
-  Spinner,
-  Tabs,
-  Tab,
   Table,
+  Tag,
   Button,
-  Form,
-  InputGroup,
-} from "react-bootstrap";
+  Tabs,
+  Typography,
+  Space,
+  Badge,
+  Input,
+  Select,
+  Statistic,
+  Spin,
+  Alert,
+  Tooltip,
+  Divider,
+  Avatar,
+  ConfigProvider
+} from "antd";
 import {
-  FaMapMarkerAlt,
-  FaSync,
-  FaUsers,
-  FaFilter,
-  FaSearch,
-  FaEye,
-  FaPhone,
-  FaUser,
-  FaBuilding,
-  FaCity,
-  FaHashtag,
-  FaList,
-  FaLocationArrow,
-  FaChartBar,
-  FaUserCheck,
-  FaUserPlus,
-} from "react-icons/fa";
-import axios from "axios";
+  EnvironmentOutlined,
+  SyncOutlined,
+  TeamOutlined,
+  FilterOutlined,
+  SearchOutlined,
+  EyeOutlined,
+  PhoneOutlined,
+  UserOutlined,
+  ShopOutlined,
+  EnvironmentTwoTone,
+  DashboardOutlined,
+  CheckCircleOutlined,
+  UserAddOutlined,
+  BlockOutlined,
+  GlobalOutlined
+} from "@ant-design/icons";
+import axios from "../../../config/axios";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+
+const { Content } = Layout;
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 const AreaOfWork = () => {
   const navigate = useNavigate();
@@ -46,721 +57,224 @@ const AreaOfWork = () => {
   const [activeTab, setActiveTab] = useState("area");
   const [error, setError] = useState(null);
 
-  // Filters for clients
   const [filters, setFilters] = useState({
-    clientType: "all", // "all", "client", "prospect"
+    clientType: "all",
     search: "",
     subArea: "all",
   });
 
-  // Get current user
-  const [currentUser] = useState(() => {
+  const currentUser = useMemo(() => {
     try {
       const userData = localStorage.getItem("user");
       return userData ? JSON.parse(userData) : null;
-    } catch (err) {
-      return null;
-    }
-  });
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchRmData();
-    } else {
-      setError("User not found");
-      setLoading(false);
-    }
-  }, [currentUser]);
+    } catch (err) { return null; }
+  }, []);
 
   const fetchRmData = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const rmId = currentUser?.id || currentUser?._id;
+      if (!rmId) { setError("Identity undefined"); return; }
 
-      if (!rmId) {
-        setError("RM ID not found");
-        setLoading(false);
-        return;
-      }
-
-      // Fetch RM details
-      const rmResponse = await axios.get(
-        `/api/employee/getEmployeeById?employeeId=${rmId}`
-      );
-
+      const rmResponse = await axios.get(`/api/employee/getEmployeeById?employeeId=${rmId}`);
       if (rmResponse.data.success) {
-        const rmData = rmResponse.data.data;
-        setRmData(rmData);
-
-        if (rmData.workArea) {
-          await fetchAreasAndSubAreas(rmData.workArea);
-          // Fetch only clients and prospects (no suspects)
-          fetchClientsAndProspectsByArea(rmData.workArea);
+        const data = rmResponse.data.data;
+        setRmData(data);
+        if (data.workArea) {
+          await Promise.all([fetchAreasAndSubAreas(), fetchClientsAndProspects(data.workArea)]);
         } else {
-          setError("No work area assigned");
+          setError("No operational jurisdiction assigned.");
         }
       }
-    } catch (error) {
-      setError("Error loading data");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError("Data synthesis failed."); }
+    finally { setLoading(false); }
   };
 
-  const fetchAreasAndSubAreas = async (workArea) => {
+  const fetchAreasAndSubAreas = async () => {
     try {
-      // Fetch all areas
-      const areaResponse = await axios.get("/api/leadarea");
-      setAreas(areaResponse.data || []);
-
-      // Fetch all subareas
-      const subAreaResponse = await axios.get("/api/leadsubarea");
-      setSubAreas(subAreaResponse.data || []);
-    } catch (error) {
-      console.error("Error fetching areas/subareas:", error);
-    }
+      const [aRes, sRes] = await Promise.all([
+        axios.get("/api/leadarea"),
+        axios.get("/api/leadsubarea")
+      ]);
+      setAreas(aRes.data || []);
+      setSubAreas(sRes.data || []);
+    } catch (err) { console.error("Auxiliary fetch failed", err); }
   };
 
-  // Fetch only clients and prospects (no suspects)
-  const fetchClientsAndProspectsByArea = async (area, subArea = null) => {
+  const fetchClientsAndProspects = async (area, subArea = null) => {
     setLoadingClients(true);
     try {
-      // Build URL - specifically exclude suspects
-      let url = `/api/employee/getClientsByArea?area=${encodeURIComponent(
-        area
-      )}`;
-
-      // Add subArea filter if selected
-      if (subArea && subArea !== "all") {
-        url += `&subArea=${encodeURIComponent(subArea)}`;
-      }
-
-      console.log("📡 Fetching clients/prospects from:", url);
-
+      let url = `/api/employee/getClientsByArea?area=${encodeURIComponent(area)}`;
+      if (subArea && subArea !== "all") url += `&subArea=${encodeURIComponent(subArea)}`;
+      
       const response = await axios.get(url);
-
       if (response.data.success) {
-        // Filter out suspects, keep only clients and prospects
-        const filteredData = (response.data.data || []).filter(
-          (item) => item.status === "client" || item.status === "prospect"
-        );
-
-        console.log("✅ Clients & Prospects found:", filteredData.length);
-        setClients(filteredData);
-      } else {
-        console.error("❌ API Error:", response.data.message);
-        setClients([]);
+        setClients((response.data.data || []).filter(i => i.status === "client" || i.status === "prospect"));
       }
-    } catch (error) {
-      console.error("❌ Error fetching clients/prospects:", error);
-      setClients([]);
-    } finally {
-      setLoadingClients(false);
-    }
+    } finally { setLoadingClients(false); }
   };
 
-  // Get RM's assigned area object
-  const getRmAreaDetails = () => {
-    if (!rmData || !rmData.workArea) return null;
-    return areas.find((area) => area.name === rmData.workArea);
-  };
+  useEffect(() => { if (currentUser) fetchRmData(); }, [currentUser]);
 
-  // Get subareas for RM's area
-  const getSubAreasForRm = () => {
-    const rmArea = getRmAreaDetails();
-    if (!rmArea) return [];
+  const rmAreaDetails = useMemo(() => areas.find(a => a.name === rmData?.workArea), [areas, rmData]);
+  const rmSubAreas = useMemo(() => {
+    if (!rmAreaDetails) return [];
+    return subAreas.filter(s => (s.areaId?._id || s.areaId) === rmAreaDetails._id);
+  }, [subAreas, rmAreaDetails]);
 
-    return subAreas.filter(
-      (sub) =>
-        sub.areaId &&
-        (sub.areaId._id === rmArea._id || sub.areaId === rmArea._id)
-    );
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (name, value) => {
-    const newFilters = { ...filters, [name]: value };
-    setFilters(newFilters);
-
-    // If subArea filter changes, fetch new clients
-    if (name === "subArea" && rmData?.workArea) {
-      fetchClientsAndProspectsByArea(
-        rmData.workArea,
-        value === "all" ? null : value
-      );
-    }
-  };
-
-  // Filter clients based on filters
-  const filteredClients = clients.filter((client) => {
-    // Filter by client type (client/prospect)
-    if (filters.clientType !== "all" && client.status !== filters.clientType) {
-      return false;
-    }
-
-    // Filter by search term
-    if (filters.search) {
+  const displayClients = useMemo(() => {
+    return clients.filter(c => {
+      const typeMatch = filters.clientType === "all" || c.status === filters.clientType;
       const searchLower = filters.search.toLowerCase();
-      return (
-        client.name?.toLowerCase().includes(searchLower) ||
-        client.mobileNo?.toLowerCase().includes(searchLower) ||
-        client.emailId?.toLowerCase().includes(searchLower) ||
-        client.groupCode?.toLowerCase().includes(searchLower) ||
-        client.organisation?.toLowerCase().includes(searchLower)
-      );
+      const searchMatch = !filters.search || 
+        c.name?.toLowerCase().includes(searchLower) || 
+        c.mobileNo?.toLowerCase().includes(searchLower) ||
+        c.organisation?.toLowerCase().includes(searchLower);
+      return typeMatch && searchMatch;
+    });
+  }, [clients, filters]);
+
+  const stats = useMemo(() => ({
+    total: clients.length,
+    clients: clients.filter(c => c.status === "client").length,
+    prospects: clients.filter(c => c.status === "prospect").length,
+  }), [clients]);
+
+  const columns = [
+    {
+      title: "Name",
+      key: "name",
+      render: (_, c) => (
+        <Space>
+          <Avatar icon={<UserOutlined />} style={{ backgroundColor: c.status === 'client' ? '#10b981' : '#3b82f6' }} />
+          <div>
+            <Text strong>{c.name}</Text>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>{c.groupCode || 'No Code'}</div>
+          </div>
+        </Space>
+      )
+    },
+    {
+      title: "Contact",
+      dataIndex: "mobileNo",
+      render: (m) => <Space><PhoneOutlined style={{ color: '#10b981' }} /> {m}</Space>
+    },
+    {
+      title: "Category",
+      dataIndex: "status",
+      render: (s) => (
+        <Tag color={s === 'client' ? 'green' : 'blue'} icon={s === 'client' ? <CheckCircleOutlined /> : <UserAddOutlined />}>
+          {s.toUpperCase()}
+        </Tag>
+      )
+    },
+    {
+      title: "Sub-Area",
+      dataIndex: "subArea",
+      render: (sa) => <Tag color="geekblue">{sa || 'Main'}</Tag>
+    },
+    {
+      title: "Enterprise",
+      dataIndex: "organisation",
+      render: (o) => <Space><ShopOutlined style={{ color: '#f59e0b' }} /> {o || 'Individual'}</Space>
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, c) => (
+        <Button type="primary" ghost icon={<EyeOutlined />} onClick={() => navigate(`/rm/suspect/details/${c._id}`)}>View Profile</Button>
+      )
     }
+  ];
 
-    return true;
-  });
-
-  // Get stats (only clients and prospects)
-  const getStats = () => {
-    const prospects = clients.filter((c) => c.status === "prospect").length;
-    const activeClients = clients.filter((c) => c.status === "client").length;
-
-    return {
-      total: clients.length,
-      prospects,
-      activeClients,
-    };
-  };
-
-  // Get status badge (only for client and prospect)
-  const getStatusBadge = (status) => {
-    if (status === "client") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          <FaUserCheck className="mr-1" /> Client
-        </span>
-      );
-    } else if (status === "prospect") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          <FaUserPlus className="mr-1" /> Prospect
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-        {status}
-      </span>
-    );
-  };
-
-  // Navigate to client details
-  const viewClientDetails = (clientId) => {
-    navigate(`/rm/suspect/details/${clientId}`);
-  };
-
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-3">Loading work area...</p>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container fluid className="p-4">
-        <div className="border rounded bg-light p-4">
-          <Alert variant="danger">
-            <strong>Error:</strong> {error}
-          </Alert>
-          <button className="btn btn-primary mt-3" onClick={fetchRmData}>
-            <FaSync /> Retry
-          </button>
-        </div>
-      </Container>
-    );
-  }
-
-  const rmAreaDetails = getRmAreaDetails();
-  const rmSubAreas = getSubAreasForRm();
-  const stats = getStats();
+  if (loading) return <div style={{ height: '70vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Spin size="large" tip="Mapping Jurisdiction..." /></div>;
 
   return (
-    <Container fluid className="p-4">
-      <div className="border rounded shadow-sm bg-light p-4">
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <Button variant="outline-dark" onClick={fetchRmData}>
-            Refresh
-          </Button>
-        </div>
+    <ConfigProvider theme={{ token: { colorPrimary: '#4f46e5', borderRadius: 12 } }}>
+      <Content style={{ padding: '24px' }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Row gutter={[24, 24]}>
+            {/* Jurisdiction Info */}
+            <Col xs={24} lg={8}>
+              <Card 
+                title={<Space><GlobalOutlined /><span>Work Area Summary</span></Space>}
+                extra={<Button icon={<SyncOutlined />} onClick={fetchRmData} />}
+                style={{ borderRadius: 20, height: '100%' }}
+              >
+                {rmAreaDetails ? (
+                  <Space direction="vertical" style={{ width: '100%' }} size={24}>
+                    <div style={{ textAlign: 'center', padding: '20px 0', background: 'linear-gradient(135deg, #4f46e510, #8b5cf610)', borderRadius: 16 }}>
+                      <EnvironmentTwoTone twoToneColor="#4f46e5" style={{ fontSize: 40 }} />
+                      <Title level={3} style={{ margin: '8px 0 0 0' }}>{rmAreaDetails.name}</Title>
+                      <Text type="secondary">{rmAreaDetails.city} • {rmAreaDetails.pincode}</Text>
+                    </div>
+                    <Row gutter={[16, 16]}>
+                      <Col span={12}><Statistic title="Active Clients" value={stats.clients} valueStyle={{ color: '#10b981' }} /></Col>
+                      <Col span={12}><Statistic title="Target Prospects" value={stats.prospects} valueStyle={{ color: '#3b82f6' }} /></Col>
+                    </Row>
+                    <Divider style={{ margin: '8px 0' }} />
+                    <Text strong><BlockOutlined /> Sub-Areas Defined</Text>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {rmSubAreas.map(s => <Tag key={s._id} color="indigo">{s.subAreaName}</Tag>)}
+                      {rmSubAreas.length === 0 && <Text type="secondary">Primary Sector Only</Text>}
+                    </div>
+                  </Space>
+                ) : <Alert message="Area Unassigned" type="warning" showIcon />}
+              </Card>
+            </Col>
 
-        {/* Area Stats */}
-        {rmAreaDetails && (
-          <Row className="mb-4">
-            <Col md={3}>
-              <Card className="text-center border-b-[1px] shadow-lg">
-                <Card.Body>
-                  <h6 className="text-black mb-2">Area</h6>
-                  <div className="fw-small">{rmAreaDetails.name}</div>
-                  <small className="text-muted">
-                    {rmAreaDetails.city} ({rmAreaDetails.pincode})
-                  </small>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={3}>
-              <Card className="text-center border-b-[1px] shadow-lg">
-                <Card.Body>
-                  <h6 className="text-black mb-2">Sub Areas</h6>
-                  <div className="fw-small">{rmSubAreas.length}</div>
-                  <small className="text-muted">Total sub-areas</small>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={3}>
-              <Card className="text-center border-b-[1px] shadow-lg">
-                <Card.Body>
-                  <h6 className="text-black mb-2">Clients</h6>
-                  <div className="fw-small">{stats.activeClients}</div>
-                  <small className="text-muted">Active clients</small>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={3}>
-              <Card className="text-center border-b-[1px] shadow-lg">
-                <Card.Body>
-                  <h6 className="text-black mb-2">Prospects</h6>
-                  <div className="fw-small">{stats.prospects}</div>
-                  <small className="text-muted">Potential clients</small>
-                </Card.Body>
+            {/* Clients Management */}
+            <Col xs={24} lg={16}>
+              <Card style={{ borderRadius: 20 }}>
+                <Tabs 
+                  activeKey={activeTab} 
+                  onChange={setActiveTab}
+                  items={[
+                    {
+                      key: 'area',
+                      label: <Space><DashboardOutlined /><span>Area Overview</span></Space>,
+                      children: (
+                        <div style={{ padding: '20px 0' }}>
+                          <Alert message="Strategic Area Overview" description="Manage your assigned territory efficiently. Filter by sub-area or customer type to identify key opportunities." type="info" showIcon />
+                        </div>
+                      )
+                    },
+                    {
+                      key: 'clients',
+                      label: <Space><TeamOutlined /><span>Client/Prospect List</span></Space>,
+                      children: (
+                        <div style={{ marginTop: 20 }}>
+                          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+                            <Col xs={24} md={8}>
+                              <Input prefix={<SearchOutlined />} placeholder="Search by name/enterprise..." value={filters.search} onChange={e => setFilters({...filters, search: e.target.value})} size="large" allowClear />
+                            </Col>
+                            <Col xs={24} md={8}>
+                              <Select style={{ width: '100%' }} value={filters.clientType} onChange={v => setFilters({...filters, clientType: v})} size="large">
+                                <Option value="all">All Portfolios</Option>
+                                <Option value="client">Active Clients</Option>
+                                <Option value="prospect">Future Prospects</Option>
+                              </Select>
+                            </Col>
+                            <Col xs={24} md={8}>
+                              <Select style={{ width: '100%' }} value={filters.subArea} onChange={v => { setFilters({...filters, subArea: v}); fetchClientsAndProspects(rmData?.workArea, v); }} size="large">
+                                <Option value="all">All Sub-Areas</Option>
+                                {rmSubAreas.map(s => <Option key={s._id} value={s.subAreaName}>{s.subAreaName}</Option>)}
+                              </Select>
+                            </Col>
+                          </Row>
+                          <Table columns={columns} dataSource={displayClients} rowKey="_id" loading={loadingClients} pagination={{ pageSize: 8 }} scroll={{ x: 800 }} />
+                        </div>
+                      )
+                    }
+                  ]}
+                />
               </Card>
             </Col>
           </Row>
-        )}
-
-        {/* Main Tabs */}
-        <Tabs
-          activeKey={activeTab}
-          onSelect={(k) => setActiveTab(k)}
-          className="mb-4 border-b-2 shadow-sm"
-          fill
-        >
-          {/* AREA DETAILS TAB */}
-          <Tab
-            eventKey="area"
-            title={
-              <span>
-                <FaLocationArrow className="me-2" />
-                Area Details
-              </span>
-            }
-          >
-            {rmAreaDetails ? (
-              <Card>
-                <Card.Header className="bg-black text-white">
-                  <h5 className="mb-0">{rmAreaDetails.name}</h5>
-                </Card.Header>
-                <Card.Body>
-                  <Row>
-                    <Col md={6}>
-                      <div className="mb-4">
-                        <h5 className="mb-3">
-                          <FaBuilding className="text-gray me-2" />
-                          Area Information
-                        </h5>
-                        <Table borderless>
-                          <tbody>
-                            <tr>
-                              <td>
-                                <strong>Pincode:</strong>
-                              </td>
-                              <td>{rmAreaDetails.pincode}</td>
-                            </tr>
-                          </tbody>
-                        </Table>
-                      </div>
-                    </Col>
-                    <Col md={6}>
-                      <div className="mb-4">
-                        <h5 className="mb-3">
-                          <FaList className="text-success me-2" />
-                          Sub-Areas ({rmSubAreas.length})
-                        </h5>
-                        {rmSubAreas.length > 0 ? (
-                          <div className="border rounded p-3 bg-white">
-                            <Row>
-                              {rmSubAreas.map((subArea, index) => (
-                                <Col md={6} key={subArea._id} className="mb-2">
-                                  <div className="d-flex align-items-center p-2 border rounded">
-                                    <Badge bg="primary" className="me-2">
-                                      {index + 1}
-                                    </Badge>
-                                    <span>{subArea.subAreaName}</span>
-                                  </div>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        ) : (
-                          <Alert variant="info">
-                            No sub-areas defined for this area.
-                          </Alert>
-                        )}
-                      </div>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-            ) : (
-              <Alert variant="warning">
-                <strong>No area assigned!</strong> Please contact administrator.
-              </Alert>
-            )}
-          </Tab>
-
-          {/* CLIENTS & PROSPECTS TAB */}
-          <Tab
-            eventKey="clients"
-            title={
-              <span>
-                <FaUsers className="me-2" />
-                Clients & Prospects
-                {clients.length > 0 && (
-                  <Badge bg="light" text="dark" className="ms-2">
-                    {clients.length}
-                  </Badge>
-                )}
-              </span>
-            }
-          >
-            <Card>
-              <Card.Header className="bg-primary text-white">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">
-                    <FaUsers className="me-2" />
-                    Clients & Prospects in {rmAreaDetails?.name || "Your Area"}
-                  </h5>
-                  <div className="d-flex gap-2">
-                    <Button
-                      variant="light"
-                      size="sm"
-                      onClick={() =>
-                        fetchClientsAndProspectsByArea(rmData?.workArea)
-                      }
-                      disabled={loadingClients || !rmData?.workArea}
-                    >
-                      <FaSync className={loadingClients ? "fa-spin" : ""} />
-                    </Button>
-                  </div>
-                </div>
-              </Card.Header>
-
-              {/* Filters */}
-              <Card.Body>
-                <Row className="mb-3">
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>
-                        <FaFilter className="me-1" /> Type
-                      </Form.Label>
-                      <Form.Select
-                        value={filters.clientType}
-                        onChange={(e) =>
-                          handleFilterChange("clientType", e.target.value)
-                        }
-                        size="sm"
-                      >
-                        <option value="all">All (Clients & Prospects)</option>
-                        <option value="client">Clients Only</option>
-                        <option value="prospect">Prospects Only</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>
-                        <FaMapMarkerAlt className="me-1" /> Sub Area
-                      </Form.Label>
-                      <Form.Select
-                        value={filters.subArea}
-                        onChange={(e) =>
-                          handleFilterChange("subArea", e.target.value)
-                        }
-                        size="sm"
-                        disabled={!rmSubAreas.length}
-                      >
-                        <option value="all">All Sub-Areas</option>
-                        {rmSubAreas.map((sub) => (
-                          <option key={sub._id} value={sub.subAreaName}>
-                            {sub.subAreaName}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>
-                        <FaSearch className="me-1" /> Search
-                      </Form.Label>
-                      <InputGroup size="sm">
-                        <Form.Control
-                          placeholder="Search by name, mobile, email..."
-                          value={filters.search}
-                          onChange={(e) =>
-                            handleFilterChange("search", e.target.value)
-                          }
-                        />
-                      </InputGroup>
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                {/* Summary Badges */}
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                  <span className="badge bg-success d-flex align-items-center px-3 py-2">
-                    <FaUserCheck className="me-1" /> Clients:{" "}
-                    {stats.activeClients}
-                  </span>
-                  <span className="badge bg-info d-flex align-items-center px-3 py-2">
-                    <FaUserPlus className="me-1" /> Prospects: {stats.prospects}
-                  </span>
-                  <span className="badge bg-secondary d-flex align-items-center px-3 py-2">
-                    Total: {stats.total}
-                  </span>
-                </div>
-
-                {/* TAILWIND HORIZONTAL SCROLLABLE TABLE */}
-                {loadingClients ? (
-                  <div className="text-center py-8">
-                    <Spinner animation="border" variant="primary" />
-                    <p className="mt-2 text-gray-600">
-                      Loading clients & prospects...
-                    </p>
-                  </div>
-                ) : filteredClients.length === 0 ? (
-                  <Alert variant="info">
-                    <FaUsers className="me-2" />
-                    {clients.length === 0
-                      ? `No clients or prospects found in ${
-                          rmAreaDetails?.name || "your area"
-                        }.`
-                      : "No records match your filters."}
-                  </Alert>
-                ) : (
-                  <div className="mt-4">
-                    {/* Horizontal Scroll Indicator */}
-                    <div className="flex justify-end items-center mb-2 text-sm text-gray-500">
-                      <FaSearch className="mr-1" />
-                      <span>Scroll horizontally to view all columns →</span>
-                    </div>
-
-                    {/* Scrollable Table Container */}
-                    <div className="relative">
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm bg-white">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          {/* Fixed Header */}
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12"
-                              >
-                                #
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]"
-                              >
-                                <div className="flex items-center">
-                                  <FaUser className="mr-2 text-blue-500" />
-                                  Name
-                                </div>
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[130px]"
-                              >
-                                <div className="flex items-center">
-                                  <FaPhone className="mr-2 text-green-500" />
-                                  Mobile
-                                </div>
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]"
-                              >
-                                Email
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]"
-                              >
-                                Type
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[160px]"
-                              >
-                                <div className="flex items-center">
-                                  <FaMapMarkerAlt className="mr-2 text-red-500" />
-                                  Area
-                                </div>
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]"
-                              >
-                                Sub Area
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]"
-                              >
-                                <div className="flex items-center">
-                                  <FaBuilding className="mr-2 text-yellow-500" />
-                                  Organisation
-                                </div>
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]"
-                              >
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-
-                          {/* Scrollable Body */}
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredClients.map((client, index) => (
-                              <tr
-                                key={client._id}
-                                className="hover:bg-gray-50 transition-colors"
-                              >
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                  {index + 1}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    <FaUser className="mr-2 text-blue-500" />
-                                    <div>
-                                      <div className="text-sm font-medium text-gray-900">
-                                        {client.name}
-                                      </div>
-                                      {client.groupCode && (
-                                        <div className="text-xs text-gray-500">
-                                          Code: {client.groupCode}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="flex items-center text-sm text-gray-900">
-                                    <FaPhone className="mr-2 text-green-500" />
-                                    {client.mobileNo}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                  {client.emailId || "-"}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  {getStatusBadge(client.status)}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                  {client.area}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                  {client.subArea || "-"}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="flex items-center text-sm text-gray-900">
-                                    <FaBuilding className="mr-2 text-yellow-500" />
-                                    {client.organisation || "-"}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                  <button
-                                    onClick={() =>
-                                      viewClientDetails(client._id)
-                                    }
-                                    className="inline-flex items-center px-3 py-1.5 border border-blue-300 rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-colors"
-                                    title="View Details"
-                                  >
-                                    <FaEye className="mr-1" />
-                                    View
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Summary Footer */}
-                    <div className="mt-3 d-flex justify-content-between align-items-center">
-                      <div className="text-muted">
-                        Showing <strong>{filteredClients.length}</strong> of{" "}
-                        <strong>{clients.length}</strong> records
-                        <span className="ms-3">
-                          (<strong>{stats.activeClients}</strong> clients,{" "}
-                          <strong>{stats.prospects}</strong> prospects)
-                        </span>
-                      </div>
-                      <div className="text-muted small">
-                        <FaMapMarkerAlt className="me-1" />
-                        Area: <strong>{rmAreaDetails?.name}</strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Tab>
-        </Tabs>
-
-        {/* Footer Note */}
-        <Alert variant="light" className="mt-3">
-          <div className="small text-muted">
-            <strong>Note:</strong> This page shows only <strong>Clients</strong>{" "}
-            and <strong>Prospects</strong>.
-            <span className="ms-2">
-              <span className="badge bg-success me-1">Client</span> = Active
-              customer
-            </span>
-            <span className="ms-2">
-              <span className="badge bg-info me-1">Prospect</span> = Potential
-              customer
-            </span>
-          </div>
-        </Alert>
-      </div>
-
-      {/* Custom Scrollbar CSS */}
-      <style jsx>{`
-        .overflow-x-auto {
-          scrollbar-width: thin;
-          scrollbar-color: #cbd5e0 #f7fafc;
-        }
-        .overflow-x-auto::-webkit-scrollbar {
-          height: 8px;
-        }
-        .overflow-x-auto::-webkit-scrollbar-track {
-          background: #f7fafc;
-          border-radius: 4px;
-        }
-        .overflow-x-auto::-webkit-scrollbar-thumb {
-          background-color: #cbd5e0;
-          border-radius: 4px;
-        }
-        .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-          background-color: #a0aec0;
-        }
-      `}</style>
-    </Container>
+        </motion.div>
+      </Content>
+    </ConfigProvider>
   );
 };
 
