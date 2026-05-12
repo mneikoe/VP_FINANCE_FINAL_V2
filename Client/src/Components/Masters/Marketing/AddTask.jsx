@@ -34,6 +34,7 @@ import {
   Spin,
   Alert,
   message,
+  App,
 } from "antd";
 import {
   clearError,
@@ -41,13 +42,14 @@ import {
 } from "../../../redux/feature/CompositeTask/CompositeSlice";
 import { fetchFinancialProduct } from "../../../redux/feature/FinancialProduct/FinancialThunx";
 import { fetchCompanyName } from "../../../redux/feature/ComapnyName/CompanyThunx";
-import axios from "axios";
+import axios from "../../../config/axios";
 import { buildUploadUrl } from "../../../utils/uploadUrl";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const AddTaskMarketing = ({ on, data, onSuccess }) => {
+  const { message: antdMessage } = App.useApp();
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const selectedTaskMode = Form.useWatch("taskMode", form) || "assigned";
@@ -124,6 +126,7 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
         name: flat?.name || "",
         estimatedDays: flat?.estimatedDays || 1,
         reward: flat?.reward || "",
+        rewardPoints: flat?.rewardPoints || 0,
         templatePriority: flat?.templatePriority || "medium",
         taskMode: flat?.taskMode || "assigned",
         monthlyWindowFrom: flat?.monthlyWindowFrom || undefined,
@@ -210,6 +213,7 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
         formDataToSend.append("estimatedDays", values.estimatedDays || 1);
       }
       formDataToSend.append("reward", values.reward || "");
+      formDataToSend.append("rewardPoints", values.rewardPoints || 0);
       formDataToSend.append("templatePriority", values.templatePriority || "medium");
       formDataToSend.append("taskMode", values.taskMode || "assigned");
       if ((values.taskMode || "assigned") === "default") {
@@ -444,8 +448,13 @@ const AddTaskMarketing = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
-                  <Form.Item name="reward" label="Reward" tooltip="Reward for completing before estimated days">
-                    <Input placeholder="E.g. 500 / Voucher" size="large" />
+                  <Form.Item name="reward" label="Reward Message" tooltip="Message shown for completing before estimated days">
+                    <Input placeholder="E.g. Voucher" size="large" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="rewardPoints" label="Reward Points" tooltip="Points added to employee performance on completion">
+                    <Input type="number" placeholder="E.g. 50" size="large" min={0} />
                   </Form.Item>
                 </Col>
               </Row>

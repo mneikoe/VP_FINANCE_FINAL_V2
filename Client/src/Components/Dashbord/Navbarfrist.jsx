@@ -347,7 +347,7 @@ const Navbarfristn = () => {
         }}
       >
         {/* Brand Section */}
-        <div style={{ display: 'flex', alignItems: 'center', marginRight: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginRight: '24px' }}>
           <Button
             type="text"
             icon={<MenuOutlined style={{ color: 'white' }} />}
@@ -379,15 +379,15 @@ const Navbarfristn = () => {
         </div>
 
         {/* Navigation Grid */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '12px' }} className="desktop-nav">
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '4px' }} className="desktop-nav">
           <Link to="/" style={{ textDecoration: 'none' }}>
             <div 
               style={{
                 height: '48px',
-                padding: '0 20px',
+                padding: '0 14px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 borderRadius: '12px',
                 background: location.pathname === '/' ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
                 color: 'white',
@@ -415,10 +415,10 @@ const Navbarfristn = () => {
               <div 
                 style={{
                   height: '48px',
-                  padding: '0 20px',
+                  padding: '0 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   borderRadius: '12px',
                   background: location.pathname.includes(key) ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
                   color: 'white',
@@ -544,7 +544,7 @@ const Navbarfristn = () => {
         .util-btn:hover {
           background: rgba(255, 255, 255, 0.1) !important;
         }
-        @media (max-width: 1200px) {
+        @media (max-width: 1400px) {
           .desktop-nav { display: none !important; }
           .mobile-menu-btn { display: inline-flex !important; }
         }

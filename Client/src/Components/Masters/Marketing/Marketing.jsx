@@ -34,7 +34,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import AddTaskMarketing from "./AddTask";
-import axios from "axios";
+import axios from "../../../config/axios";
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;

@@ -188,6 +188,10 @@ const EmployeeDetails = () => {
       jobProfile: empData.jobProfile,
       target: empData.target,
 
+      // HR Actions & Files
+      hrActions: empData.hrActions || [],
+      generalDocuments: empData.generalDocuments || [],
+
       // Source identifier
       source: "employee",
     };
@@ -444,6 +448,8 @@ const EmployeeDetails = () => {
   if (employee?.source === "hr") {
     tabs.push({ id: 4, label: "HR Details", icon: FaUsers });
   }
+
+  tabs.push({ id: 5, label: "HR Actions & Files", icon: FaIdCardAlt });
 
   if (loading) {
     return (
@@ -961,6 +967,117 @@ const EmployeeDetails = () => {
                         </ul>
                       ) : (
                         <p>No specific responsibilities assigned</p>
+                      )}
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            )}
+
+            {/* HR Actions & Files Tab */}
+            {tabIndex === 5 && (
+              <div className="tab-content">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <h3>HR Actions & Performance History</h3>
+                  <div className="total-points">
+                    <Badge bg="primary" className="p-2" style={{ fontSize: '1rem' }}>
+                      Total Performance Points: {employee.hrActions?.reduce((acc, curr) => acc + (curr.points || 0), 0) || 0}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <Row>
+                  <Col md={12}>
+                    <div className="detail-section">
+                      <h5>Action Timeline</h5>
+                      {employee.hrActions && employee.hrActions.length > 0 ? (
+                        <div className="timeline-container">
+                          {employee.hrActions.map((action, idx) => (
+                            <div key={idx} className="mb-4 p-4 border rounded shadow-sm bg-white" style={{ borderLeft: `5px solid ${action.actionType === 'Warning' ? '#dc3545' : action.actionType === 'Appreciation' ? '#28a745' : '#007bff'}` }}>
+                              <div className="d-flex justify-content-between align-items-center mb-2">
+                                <h5 className="mb-0 text-primary">{action.title}</h5>
+                                <Badge bg={action.actionType === 'Warning' ? 'danger' : action.actionType === 'Appreciation' ? 'success' : 'info'}>
+                                  {action.actionType}
+                                </Badge>
+                              </div>
+                              <div className="text-muted small mb-3 pb-2 border-bottom">
+                                <span className="me-3">📅 {formatDate(action.actionDate)}</span>
+                                <span>⭐ Points: <strong className={action.points >= 0 ? "text-success" : "text-danger"}>{action.points}</strong></span>
+                              </div>
+                              <div 
+                                className="action-description mb-4"
+                                style={{ fontSize: '0.95rem', lineHeight: '1.6' }}
+                                dangerouslySetInnerHTML={{ __html: action.description }}
+                              />
+                              {action.files && action.files.length > 0 && (
+                                <div className="action-files mt-3 pt-3 border-top">
+                                  <strong className="d-block mb-2 text-secondary small">ATTACHED DOCUMENTS</strong>
+                                  <div className="d-flex flex-wrap gap-2">
+                                    {action.files.map((file, fIdx) => (
+                                      <a 
+                                        key={fIdx}
+                                        href={`${axiosInstance.defaults.baseURL}${file.path}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+                                        style={{ borderRadius: '4px' }}
+                                      >
+                                        <FaFilePdf size={12} /> {file.name}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <Alert variant="info" className="text-center py-4">
+                          <FaIdCardAlt size={40} className="mb-3 d-block mx-auto opacity-50" />
+                          No HR actions or performance reviews recorded for this employee.
+                        </Alert>
+                      )}
+                    </div>
+
+                    <div className="detail-section mt-5">
+                      <h5 className="mb-4 d-flex align-items-center gap-2">
+                        <FaUpload className="text-primary" /> General Documents & Files
+                      </h5>
+                      {employee.generalDocuments && employee.generalDocuments.length > 0 ? (
+                        <Row>
+                          {employee.generalDocuments.map((doc, idx) => (
+                            <Col md={4} key={idx} className="mb-3">
+                              <Card className="h-100 shadow-sm border-0 bg-light hover-shadow transition-all">
+                                <Card.Body className="p-3">
+                                  <div className="d-flex align-items-start gap-3">
+                                    <div className="bg-white p-2 rounded shadow-sm">
+                                      <FaFilePdf size={32} className="text-danger" />
+                                    </div>
+                                    <div className="overflow-hidden flex-grow-1">
+                                      <div className="text-truncate font-weight-bold mb-1" style={{ fontSize: '0.9rem' }} title={doc.name}>{doc.name}</div>
+                                      <div className="text-muted" style={{ fontSize: '0.75rem' }}>{formatDate(doc.uploadedAt)}</div>
+                                      <div className="mt-2">
+                                        <a 
+                                          href={`${axiosInstance.defaults.baseURL}${doc.path}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="btn btn-sm btn-primary py-0 px-3"
+                                          style={{ fontSize: '0.7rem' }}
+                                        >
+                                          View File
+                                        </a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Card.Body>
+                              </Card>
+                            </Col>
+                          ))}
+                        </Row>
+                      ) : (
+                        <div className="text-center py-4 bg-light rounded border border-dashed">
+                          <p className="text-muted mb-0">No general documents uploaded to this profile.</p>
+                        </div>
                       )}
                     </div>
                   </Col>

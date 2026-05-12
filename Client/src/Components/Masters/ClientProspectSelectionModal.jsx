@@ -15,7 +15,7 @@ import {
   Tab,
   Tabs,
 } from "react-bootstrap";
-import axios from "axios";
+import axios from "../../config/axios";
 import {
   FaUserFriends,
   FaUsers,

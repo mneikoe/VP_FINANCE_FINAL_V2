@@ -273,6 +273,37 @@ const employeeSchema = new mongoose.Schema(
       path: { type: String, default: "" },
       uploadDate: { type: Date, default: null },
     },
+    // HR Actions & Performance Tracking
+    hrActions: [{
+      actionDate: { type: Date, default: Date.now },
+      title: String,
+      description: String, // Supports HTML/Rich Text (CKEditor)
+      points: { type: Number, default: 0 },
+      actionType: { 
+        type: String, 
+        enum: ["Appreciation", "Warning", "Training", "Promotion", "Review", "Other"],
+        default: "Review"
+      },
+      files: [{
+        name: String,
+        path: String,
+        uploadedAt: { type: Date, default: Date.now }
+      }]
+    }],
+    // Direct Document/Files Storage
+    generalDocuments: [{
+      name: String,
+      path: String,
+      category: String,
+      uploadedAt: { type: Date, default: Date.now }
+    }],
+    taskRewards: [{
+      rewardDate: { type: Date, default: Date.now },
+      taskId: { type: mongoose.Schema.Types.ObjectId, ref: "IndividualTask" },
+      taskName: String,
+      points: { type: Number, default: 0 },
+      remarks: String
+    }],
   },
   {
     timestamps: true,

@@ -14,6 +14,7 @@ import {
   LogoutOutlined,
   MenuUnfoldOutlined,
   MenuFoldOutlined,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -97,6 +98,11 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       key: "/dashboard/future-plans",
       icon: <CalendarOutlined />,
       label: <Link to="/dashboard/future-plans">Future Plans of Director</Link>,
+    },
+    {
+      key: "/dashboard/hr-actions",
+      icon: <SafetyCertificateOutlined />,
+      label: <Link to="/dashboard/hr-actions">HR Actions</Link>,
     },
     {
       key: "logout",

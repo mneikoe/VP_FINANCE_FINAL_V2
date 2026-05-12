@@ -1216,4 +1216,29 @@ router.delete("/:id/joining-letter", async (req, res) => {
     });
   }
 });
+
+// ✅ Delete Candidate COMPLETELY
+router.delete("/:id", async (req, res) => {
+  try {
+    const candidate = await Candidate.findByIdAndDelete(req.params.id);
+    if (!candidate) {
+      return res.status(404).json({
+        success: false,
+        message: "Candidate not found",
+      });
+    }
+    res.json({
+      success: true,
+      message: "Candidate deleted successfully",
+    });
+  } catch (error) {
+    console.error("❌ Error deleting candidate:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting candidate",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;

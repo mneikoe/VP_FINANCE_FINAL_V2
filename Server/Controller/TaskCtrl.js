@@ -149,6 +149,7 @@ export const createTask = async (req, res) => {
       checklists: checklists,
       formChecklists: formChecklists, // ✅ Yeh ab properly save hoga
       status: req.body.status || "template",
+      rewardPoints: parseInt(req.body.rewardPoints) || 0,
       createdBy: req.user?.id,
     };
 
@@ -361,6 +362,9 @@ export const updateTask = async (req, res) => {
         whatsapp_descp: req.body.whatsapp_descp,
       }),
       ...(req.body.status && { status: req.body.status }),
+      ...(req.body.rewardPoints !== undefined && {
+        rewardPoints: parseInt(req.body.rewardPoints) || 0,
+      }),
       descp: {
         text: req.body.descpText || existingTask.descp.text,
         image: existingTask.descp.image,
@@ -395,7 +399,13 @@ export const updateTask = async (req, res) => {
     // Handle formChecklists (composite update) with newDownloadIndices / newSampleIndices
     if (req.body.formChecklists) {
       try {
-        const parsed = JSON.parse(req.body.formChecklists);
+        let parsed = [];
+        if (typeof req.body.formChecklists === "string") {
+          parsed = JSON.parse(req.body.formChecklists);
+        } else if (Array.isArray(req.body.formChecklists)) {
+          parsed = req.body.formChecklists;
+        }
+
         let newDownloadIndices = [];
         let newSampleIndices = [];
         if (req.body.newDownloadIndices) {
@@ -434,7 +444,7 @@ export const updateTask = async (req, res) => {
               const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
               if (old) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
+                  fs.unlinkSync(path.join(__dirname, "../uploads", old));
                 } catch (err) {}
               }
               downloadFormUrl = downloadFiles[di].filename;
@@ -444,7 +454,7 @@ export const updateTask = async (req, res) => {
               const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
               if (old) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
+                  fs.unlinkSync(path.join(__dirname, "../uploads", old));
                 } catch (err) {}
               }
               sampleFormUrl = sampleFiles[si].filename;
@@ -457,6 +467,7 @@ export const updateTask = async (req, res) => {
           })
           .filter((item) => item.name !== "");
       } catch (err) {
+        console.error("❌ formChecklists update error:", err);
         return res.status(400).json({
           success: false,
           message: "Invalid formChecklists format",
@@ -642,6 +653,7 @@ export const assignCompositeTask = async (req, res) => {
           clientAssignmentRemarks: assignment.clientAssignmentRemarks,
           prospectAssignmentRemarks: assignment.prospectAssignmentRemarks,
         },
+        rewardPoints: task.rewardPoints || 0,
         createdBy: assignedBy,
       });
 
@@ -1424,6 +1436,7 @@ export const assignMarketingTask = async (req, res) => {
       },
       createdBy: assignedBy,
       type: "marketing",
+      rewardPoints: task.rewardPoints || 0,
     });
 
     await individualTask.save();
@@ -1816,6 +1829,9 @@ export const updateMarketingTask = async (req, res) => {
       ...(req.body.whatsapp_descp !== undefined && {
         whatsapp_descp: req.body.whatsapp_descp,
       }),
+      ...(req.body.rewardPoints !== undefined && {
+        rewardPoints: parseInt(req.body.rewardPoints) || 0,
+      }),
       descp: {
         text: req.body.descpText || existingTask.descp.text,
         image: existingTask.descp.image,
@@ -1849,7 +1865,13 @@ export const updateMarketingTask = async (req, res) => {
     // Handle formChecklists with newDownloadIndices / newSampleIndices (marketing)
     if (req.body.formChecklists) {
       try {
-        const parsed = JSON.parse(req.body.formChecklists);
+        let parsed = [];
+        if (typeof req.body.formChecklists === "string") {
+          parsed = JSON.parse(req.body.formChecklists);
+        } else if (Array.isArray(req.body.formChecklists)) {
+          parsed = req.body.formChecklists;
+        }
+
         let newDownloadIndices = [];
         let newSampleIndices = [];
         if (req.body.newDownloadIndices) {
@@ -1888,7 +1910,7 @@ export const updateMarketingTask = async (req, res) => {
               const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
               if (old) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
+                  fs.unlinkSync(path.join(__dirname, "../uploads", old));
                 } catch (err) {}
               }
               downloadFormUrl = downloadFiles[di].filename;
@@ -1898,7 +1920,7 @@ export const updateMarketingTask = async (req, res) => {
               const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
               if (old) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
+                  fs.unlinkSync(path.join(__dirname, "../uploads", old));
                 } catch (err) {}
               }
               sampleFormUrl = sampleFiles[si].filename;
@@ -1911,6 +1933,7 @@ export const updateMarketingTask = async (req, res) => {
           })
           .filter((item) => item.name !== "");
       } catch (err) {
+        console.error("❌ Marketing formChecklists update error:", err);
         return res.status(400).json({
           success: false,
           message: "Invalid formChecklists format",
@@ -2201,6 +2224,7 @@ export const assignServiceTask = async (req, res) => {
       },
       createdBy: assignedBy,
       type: "service",
+      rewardPoints: task.rewardPoints || 0,
     });
 
     await individualTask.save();
@@ -2580,6 +2604,9 @@ export const updateServiceTask = async (req, res) => {
       ...(req.body.whatsapp_descp !== undefined && {
         whatsapp_descp: req.body.whatsapp_descp,
       }),
+      ...(req.body.rewardPoints !== undefined && {
+        rewardPoints: parseInt(req.body.rewardPoints) || 0,
+      }),
       descp: {
         text: req.body.descpText || existingTask.descp.text,
         image: existingTask.descp.image,
@@ -2613,7 +2640,13 @@ export const updateServiceTask = async (req, res) => {
     // Handle formChecklists with newDownloadIndices / newSampleIndices (service)
     if (req.body.formChecklists) {
       try {
-        const parsed = JSON.parse(req.body.formChecklists);
+        let parsed = [];
+        if (typeof req.body.formChecklists === "string") {
+          parsed = JSON.parse(req.body.formChecklists);
+        } else if (Array.isArray(req.body.formChecklists)) {
+          parsed = req.body.formChecklists;
+        }
+
         let newDownloadIndices = [];
         let newSampleIndices = [];
         if (req.body.newDownloadIndices) {
@@ -2652,7 +2685,7 @@ export const updateServiceTask = async (req, res) => {
               const old = existingTask.formChecklists?.[index]?.downloadFormUrl;
               if (old) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
+                  fs.unlinkSync(path.join(__dirname, "../uploads", old));
                 } catch (err) {}
               }
               downloadFormUrl = downloadFiles[di].filename;
@@ -2662,7 +2695,7 @@ export const updateServiceTask = async (req, res) => {
               const old = existingTask.formChecklists?.[index]?.sampleFormUrl;
               if (old) {
                 try {
-                  fs.unlink(path.join(__dirname, "../uploads", old));
+                  fs.unlinkSync(path.join(__dirname, "../uploads", old));
                 } catch (err) {}
               }
               sampleFormUrl = sampleFiles[si].filename;
@@ -2675,6 +2708,7 @@ export const updateServiceTask = async (req, res) => {
           })
           .filter((item) => item.name !== "");
       } catch (err) {
+        console.error("❌ Service formChecklists update error:", err);
         return res.status(400).json({
           success: false,
           message: "Invalid formChecklists format",
@@ -3013,6 +3047,51 @@ export const updateEntityTaskStatus = async (req, res) => {
       task.status = "completed";
       task.completedAt = new Date();
       await task.save();
+
+      // ✅ Reward Points Credit System (Only if completed within due date)
+      console.log(`🎁 Checking rewards for task: ${task.name}, points: ${task.rewardPoints}`);
+      if ((task.rewardPoints || 0) > 0) {
+        try {
+          const dueDate = task.assignmentDetails?.dueDate;
+          const completedAt = task.completedAt || new Date();
+          const isOnTime =
+            !dueDate || new Date(completedAt) <= new Date(dueDate);
+
+          console.log(`📊 Reward Debug [updateEntityTaskStatus]:
+            - Task ID: ${task._id}
+            - Reward Points: ${task.rewardPoints}
+            - Due Date: ${dueDate}
+            - Completed At: ${completedAt}
+            - Is On Time: ${isOnTime}
+            - Employee ID: ${employeeId}`);
+
+          if (isOnTime) {
+            const result = await Employee.findByIdAndUpdate(employeeId, {
+              $push: {
+                taskRewards: {
+                  rewardDate: new Date(),
+                  taskId: task._id,
+                  taskName: task.name,
+                  points: task.rewardPoints,
+                  remarks: `Earned for completing task (all entities): ${task.name}`,
+                },
+              },
+            }, { new: true });
+            
+            if (result) {
+              console.log(`✅ SUCCESS: Credited ${task.rewardPoints} points to employee ${employeeId}`);
+            } else {
+              console.log(`❌ ERROR: Employee ${employeeId} not found during reward credit`);
+            }
+          } else {
+            console.log(`🕒 Task completed but overdue. No reward points for ${employeeId}`);
+          }
+        } catch (err) {
+          console.error("❌ Error crediting reward points:", err);
+        }
+      } else {
+        console.log(`ℹ️ No reward points defined for task ${task.name}`);
+      }
     }
 
     console.log(
@@ -3319,6 +3398,50 @@ export const updateTaskStatus = async (req, res) => {
 
     await task.save();
 
+    // ✅ Reward Points Credit System (Only if completed within due date)
+    console.log(`🎁 Checking rewards for task: ${task.name}, points: ${task.rewardPoints}, status: ${status}`);
+    if (status === "completed" && (task.rewardPoints || 0) > 0) {
+      try {
+        const dueDate = task.assignmentDetails?.dueDate;
+        const completedAt = task.completedAt || new Date();
+        const isOnTime = !dueDate || new Date(completedAt) <= new Date(dueDate);
+
+        console.log(`📊 Reward Debug [updateTaskStatus]:
+          - Task ID: ${task._id}
+          - Reward Points: ${task.rewardPoints}
+          - Due Date: ${dueDate}
+          - Completed At: ${completedAt}
+          - Is On Time: ${isOnTime}
+          - Employee ID: ${task.assignedTo}`);
+
+        if (isOnTime) {
+          const result = await Employee.findByIdAndUpdate(task.assignedTo, {
+            $push: {
+              taskRewards: {
+                rewardDate: new Date(),
+                taskId: task._id,
+                taskName: task.name,
+                points: task.rewardPoints,
+                remarks: `Earned for completing task: ${task.name}`
+              }
+            }
+          }, { new: true });
+          
+          if (result) {
+            console.log(`✅ SUCCESS: Credited ${task.rewardPoints} points to employee ${task.assignedTo}`);
+          } else {
+            console.log(`❌ ERROR: Employee ${task.assignedTo} not found during reward credit`);
+          }
+        } else {
+          console.log(`🕒 Task completed but overdue. No reward points for ${task.assignedTo}`);
+        }
+      } catch (err) {
+        console.error("❌ Error crediting reward points:", err);
+      }
+    } else {
+       console.log(`ℹ️ Reward skip: status=${status}, points=${task.rewardPoints}`);
+    }
+
     // 📱 Fire-and-forget: Notify on task completion
     if (status === "completed" && task.assignmentDetails?.assignedBy) {
       const assignedByEmp = await Employee.findById(task.assignmentDetails.assignedBy).select("name mobileNo officeMobile").lean();
@@ -3415,6 +3538,50 @@ export const forwardTaskToOE = async (req, res) => {
     if (rmTask.assignmentDetails) rmTask.assignmentDetails.completionRemarks = req.body.completionRemarks || remark || "";
     await rmTask.save();
 
+    // ✅ Reward Points Credit for RM (Only if forwarded/completed within due date)
+    console.log(`🎁 Checking RM rewards for task: ${rmTask.name}, points: ${rmTask.rewardPoints}`);
+    if ((rmTask.rewardPoints || 0) > 0) {
+      try {
+        const dueDate = rmTask.assignmentDetails?.dueDate;
+        const completedAt = rmTask.completedAt || new Date();
+        const isOnTime = !dueDate || new Date(completedAt) <= new Date(dueDate);
+
+        console.log(`📊 Reward Debug [forwardTaskToOE]:
+          - Task ID: ${rmTask._id}
+          - Reward Points: ${rmTask.rewardPoints}
+          - Due Date: ${dueDate}
+          - Completed At: ${completedAt}
+          - Is On Time: ${isOnTime}
+          - RM ID: ${rmId}`);
+
+        if (isOnTime) {
+          const result = await Employee.findByIdAndUpdate(rmId, {
+            $push: {
+              taskRewards: {
+                rewardDate: new Date(),
+                taskId: rmTask._id,
+                taskName: rmTask.name,
+                points: rmTask.rewardPoints,
+                remarks: `Earned for forwarding task: ${rmTask.name} to OE`
+              }
+            }
+          }, { new: true });
+          
+          if (result) {
+            console.log(`✅ SUCCESS: Credited ${rmTask.rewardPoints} points to RM ${rmId}`);
+          } else {
+            console.log(`❌ ERROR: RM ${rmId} not found during reward credit`);
+          }
+        } else {
+          console.log(`🕒 Task forwarded but overdue. No reward points for RM ${rmId}`);
+        }
+      } catch (err) {
+        console.error("❌ Error crediting RM reward points:", err);
+      }
+    } else {
+      console.log(`ℹ️ No reward points for RM task ${rmTask.name}`);
+    }
+
     const oeTask = new IndividualTask({
       cat: rmTask.cat,
       sub: rmTask.sub,
@@ -3446,6 +3613,7 @@ export const forwardTaskToOE = async (req, res) => {
         remark: remark || "",
       },
       createdBy: rmId,
+      rewardPoints: rmTask.rewardPoints || 0,
     });
     await oeTask.save();
 
@@ -3654,6 +3822,7 @@ export const rmForwardToOE = async (req, res) => {
         remark: remark || "",
       },
       createdBy: rmId,
+      rewardPoints: rmTask.rewardPoints || 0,
     });
     await oeTask.save();
 
@@ -3767,6 +3936,7 @@ export const oeForwardToRM = async (req, res) => {
           files: uploadedFiles,
         },
         createdBy: oeId,
+        rewardPoints: task.rewardPoints || 0,
       });
       await rmTask.save();
 

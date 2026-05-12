@@ -19,6 +19,7 @@ import AddEmployeeFromCandidates from "./modules/AddEmployeeFromCandidates.jsx";
 import InternshipStudents from "./modules/InternshipStudents.jsx";
 import RulesRegulations from "./modules/RulesRegulations.jsx";
 import FuturePlans from "./modules/FuturePlans.jsx";
+import HRActions from "./modules/HRActions.jsx";
 
 // Import Employee Management Components
 import EmployeeList from "../Employee/OfficeAdmin/EmployeeList";
@@ -76,6 +77,7 @@ const HRDashboard = () => {
                 <Route path="/internship-students" element={<InternshipStudents />} />
                 <Route path="/rules-regulations" element={<RulesRegulations />} />
                 <Route path="/future-plans" element={<FuturePlans />} />
+                <Route path="/hr-actions" element={<HRActions />} />
 
                 {/* Employee Management Routes */}
                 <Route path="/all-employee" element={<EmployeeList />} />

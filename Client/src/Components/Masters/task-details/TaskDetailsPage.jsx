@@ -17,7 +17,7 @@ import {
   Table,
   Tooltip,
 } from "react-bootstrap";
-import axios from "axios";
+import axios from "../../../config/axios";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   FaArrowLeft,

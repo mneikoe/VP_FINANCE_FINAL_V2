@@ -43,6 +43,7 @@ import {
   Tag,
   Progress,
   message,
+  App,
 } from "antd";
 import {
   createCompositeTask,
@@ -54,7 +55,7 @@ import {
 } from "../../../redux/feature/CompositeTask/CompositeSlice";
 import { fetchFinancialProduct } from "../../../redux/feature/FinancialProduct/FinancialThunx";
 import { fetchCompanyName } from "../../../redux/feature/ComapnyName/CompanyThunx";
-import axios from "axios";
+import axios from "../../../config/axios";
 import { buildUploadUrl } from "../../../utils/uploadUrl";
 
 const { Title, Text, Paragraph } = Typography;
@@ -63,6 +64,7 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 
 const Addtask = ({ on, data, onSuccess }) => {
+  const { message: antdMessage } = App.useApp();
   const dispatch = useDispatch();
   const [form] = Form.useForm();
   const selectedTaskMode = Form.useWatch("taskMode", form) || "assigned";
@@ -142,6 +144,7 @@ const Addtask = ({ on, data, onSuccess }) => {
         name: flat?.name || "",
         estimatedDays: flat?.estimatedDays || 1,
         reward: flat?.reward || "",
+        rewardPoints: flat?.rewardPoints || 0,
         templatePriority: flat?.templatePriority || "medium",
         taskMode: flat?.taskMode || "assigned",
         monthlyWindowFrom: flat?.monthlyWindowFrom || undefined,
@@ -185,14 +188,14 @@ const Addtask = ({ on, data, onSuccess }) => {
 
   useEffect(() => {
     if (successMessage) {
-      message.success(successMessage);
+      antdMessage.success(successMessage);
       dispatch(clearSuccessMessage());
     }
   }, [successMessage, dispatch]);
 
   useEffect(() => {
     if (error) {
-      message.error(error);
+      antdMessage.error(error);
       dispatch(clearError());
     }
   }, [error, dispatch]);
@@ -304,10 +307,10 @@ const Addtask = ({ on, data, onSuccess }) => {
             formData: formDataToSend,
           })
         ).unwrap();
-        message.success("Task updated successfully");
+        antdMessage.success("Task updated successfully");
       } else {
         await dispatch(createCompositeTask(formDataToSend)).unwrap();
-        message.success("Task created successfully");
+        antdMessage.success("Task created successfully");
         form.resetFields();
         setEditorData({ descp: "", email: "", sms: "", whatsapp: "" });
         setChecklists([""]);
@@ -318,7 +321,7 @@ const Addtask = ({ on, data, onSuccess }) => {
 
       onSuccess?.();
     } catch (error) {
-      message.error("Failed to save task: " + error.message);
+      antdMessage.error("Failed to save task: " + error.message);
     }
   };
 
@@ -435,6 +438,7 @@ const Addtask = ({ on, data, onSuccess }) => {
               type: "composite",
               estimatedDays: 1,
               reward: "",
+              rewardPoints: 0,
               templatePriority: "medium",
               taskMode: "assigned",
             }}
@@ -511,8 +515,13 @@ const Addtask = ({ on, data, onSuccess }) => {
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
-                  <Form.Item name="reward" label="Reward" tooltip="Reward for completing before estimated days">
-                    <Input placeholder="E.g. 500 / Voucher" size="large" />
+                  <Form.Item name="reward" label="Reward Message" tooltip="Message shown for completing before estimated days">
+                    <Input placeholder="E.g. Voucher" size="large" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="rewardPoints" label="Reward Points" tooltip="Points added to employee performance on completion">
+                    <Input type="number" placeholder="E.g. 50" size="large" min={0} />
                   </Form.Item>
                 </Col>
               </Row>

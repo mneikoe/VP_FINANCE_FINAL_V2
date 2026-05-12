@@ -23,6 +23,7 @@ import {
   Descriptions,
   Divider,
   Progress,
+  App,
 } from "antd";
 import {
   UserAddOutlined,
@@ -38,8 +39,10 @@ import {
   MailOutlined,
   TrophyOutlined,
   SyncOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import axiosInstance from "../../../config/axios";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -55,6 +58,7 @@ const AddCandidate = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [resume, setResume] = useState(null);
+  const { message, modal } = App.useApp();
 
   useEffect(() => {
     fetchData();
@@ -64,8 +68,8 @@ const AddCandidate = () => {
     try {
       setLoading(true);
       const [vRes, cRes] = await Promise.all([
-        axios.get("/api/vacancynotice"),
-        axios.get("/api/addcandidate"),
+        axiosInstance.get("/api/vacancynotice"),
+        axiosInstance.get("/api/addcandidate"),
       ]);
       setVacancies(vRes.data.vacancies || []);
       setCandidates(cRes.data.candidates || []);
@@ -206,10 +210,10 @@ const AddCandidate = () => {
     }
 
     try {
-      const response = await axios.post("/api/addcandidate/add", formData, {
+      const res = await axiosInstance.post("/api/addcandidate", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      if (response.data.success) {
+      if (res.data.success) {
         message.success("Candidate added successfully!");
         form.resetFields();
         setResume(null);
@@ -221,6 +225,28 @@ const AddCandidate = () => {
     } finally {
       setSubmitLoading(false);
     }
+  };
+
+  const handleDelete = (id) => {
+    modal.confirm({
+      title: 'Are you sure you want to delete this candidate?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'This action cannot be undone.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        try {
+          const res = await axiosInstance.delete(`/api/addcandidate/${id}`);
+          if (res.data.success) {
+            message.success('Candidate deleted successfully');
+            fetchData();
+          }
+        } catch (error) {
+          message.error('Failed to delete candidate');
+        }
+      },
+    });
   };
 
   const columns = [
@@ -285,13 +311,23 @@ const AddCandidate = () => {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Tooltip title="View Profile & Evaluation">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined style={{ color: '#1890ff' }} />} 
-              onClick={() => { setSelectedCandidate(record); setIsModalOpen(true); }}
-            />
-        </Tooltip>
+        <Space size="middle">
+          <Tooltip title="View Profile & Evaluation">
+              <Button 
+                type="text" 
+                icon={<EyeOutlined style={{ color: '#1890ff' }} />} 
+                onClick={() => { setSelectedCandidate(record); setIsModalOpen(true); }}
+              />
+          </Tooltip>
+          <Tooltip title="Delete Candidate">
+              <Button 
+                type="text" 
+                danger
+                icon={<DeleteOutlined />} 
+                onClick={() => handleDelete(record._id)}
+              />
+          </Tooltip>
+        </Space>
       ),
     },
   ];

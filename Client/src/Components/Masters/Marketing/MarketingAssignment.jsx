@@ -49,7 +49,7 @@ import {
   SortAscendingOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import axios from "axios";
+import axios from "../../../config/axios";
 
 // Import ClientProspectSelectionModal
 import ClientProspectSelectionModal from "../ClientProspectSelectionModal";
