@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FiSearch, FiPlus, FiEdit2, FiEye, FiX, FiTrash2 } from "react-icons/fi";
 import axios from "../../../config/axios";
 import { toast } from "react-toastify";
+import { Table, ConfigProvider } from "antd";
 
 const CommissionIncentiveTable = () => {
   const [incentives, setIncentives] = useState([
@@ -178,70 +179,61 @@ const CommissionIncentiveTable = () => {
               setSelectedIncentive(null); 
               setIsModalOpen(true); 
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
           >
             <FiPlus /> Add Calculation
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse min-w-[2000px]">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 font-semibold border-b">
-              <th className="px-4 py-3 border-r sticky left-0 bg-gray-100 z-10">Lead Source</th>
-              <th className="px-4 py-3 border-r">Lead Name</th>
-              <th className="px-4 py-3 border-r">Name of Client</th>
-              <th className="px-4 py-3 border-r">Financial Product</th>
-              <th className="px-4 py-3 border-r">Company Name</th>
-              <th className="px-4 py-3 border-r">Plan</th>
-              <th className="px-4 py-3 border-r">Doc</th>
-              <th className="px-4 py-3 border-r">Mode</th>
-              <th className="px-4 py-3 border-r text-center">Premium Amount</th>
-              <th className="px-4 py-3 border-r text-center">Rate (%)</th>
-              <th className="px-4 py-3 border-r text-center">Incentive Amt</th>
-              <th className="px-4 py-3 border-r text-center">Deductions</th>
-              <th className="px-4 py-3 border-r text-center">Net Payable</th>
-              <th className="px-4 py-3 border-r text-center">Next Due Date</th>
-              <th className="px-4 py-3 border-r">Bank A/C</th>
-              <th className="px-4 py-3 border-r text-center">Transfer Date</th>
-              <th className="px-4 py-3 text-center sticky right-0 bg-gray-100 z-10">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {incentives.map((row) => (
-              <tr key={row._id} className="hover:bg-blue-50/30">
-                <td className="px-4 py-3 border-r sticky left-0 bg-white z-0">{row.leadSource}</td>
-                <td className="px-4 py-3 border-r">{row.leadName}</td>
-                <td className="px-4 py-3 border-r font-medium text-blue-600">{row.clientRef?.name || row.clientName}</td>
-                <td className="px-4 py-3 border-r">{row.financialProduct}</td>
-                <td className="px-4 py-3 border-r">{row.companyName}</td>
-                <td className="px-4 py-3 border-r">{row.plan}</td>
-                <td className="px-4 py-3 border-r">{row.doc}</td>
-                <td className="px-4 py-3 border-r">{row.mode}</td>
-                <td className="px-4 py-3 border-r text-center">₹{row.premiumAmount}</td>
-                <td className="px-4 py-3 border-r text-center">{row.rateOfIncentive}%</td>
-                <td className="px-4 py-3 border-r text-center font-bold text-green-600">₹{row.incentiveAmount}</td>
-                <td className="px-4 py-3 border-r text-center text-red-500">-₹{row.deductions}</td>
-                <td className="px-4 py-3 border-r text-center font-black text-indigo-700">₹{row.netIncentivePayable}</td>
-                <td className="px-4 py-3 border-r text-center">{row.nextDueDate ? new Date(row.nextDueDate).toLocaleDateString() : "-"}</td>
-                <td className="px-4 py-3 border-r">{row.bankAccount}</td>
-                <td className="px-4 py-3 border-r text-center">{row.transferDate ? new Date(row.transferDate).toLocaleDateString() : "-"}</td>
-                <td className="px-4 py-3 text-center sticky right-0 bg-white z-0 flex gap-2 justify-center">
-                  <button onClick={() => { setSelectedIncentive(row); setIsViewModalOpen(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><FiEye /></button>
-                  <button onClick={() => { setSelectedIncentive(row); setFormData({ ...row, clientRef: row.clientRef?._id || "" }); setIsModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1 rounded"><FiEdit2 /></button>
-                  <button onClick={async () => { if(window.confirm("Delete?")) { await axios.delete(`/api/incentives/commission/${row._id}`); fetchIncentives(); } }} className="text-red-600 hover:bg-red-50 p-1 rounded"><FiTrash2 /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="overflow-x-auto p-4 custom-scrollbar">
+        <ConfigProvider theme={{ token: { colorPrimary: '#f27405' } }}>
+          <Table
+            dataSource={incentives}
+            rowKey="_id"
+            scroll={{ x: 'max-content' }}
+            pagination={{ pageSize: 10 }}
+            size="small"
+            bordered
+            columns={[
+              { title: 'Lead Source', dataIndex: 'leadSource', fixed: 'left' },
+              { title: 'Lead Name', dataIndex: 'leadName' },
+              { title: 'Name of Client', dataIndex: 'clientRef', render: (val, row) => <span className="font-medium text-orange-600">{val?.name || row.clientName}</span> },
+              { title: 'Financial Product', dataIndex: 'financialProduct' },
+              { title: 'Company Name', dataIndex: 'companyName' },
+              { title: 'Plan', dataIndex: 'plan' },
+              { title: 'Doc', dataIndex: 'doc' },
+              { title: 'Mode', dataIndex: 'mode' },
+              { title: 'Premium Amount', dataIndex: 'premiumAmount', align: 'center', render: v => `₹${v}` },
+              { title: 'Rate (%)', dataIndex: 'rateOfIncentive', align: 'center', render: v => `${v}%` },
+              { title: 'Incentive Amt', dataIndex: 'incentiveAmount', align: 'center', render: v => <span className="font-bold text-green-600">₹{v}</span> },
+              { title: 'Deductions', dataIndex: 'deductions', align: 'center', render: v => <span className="text-red-500">-₹{v}</span> },
+              { title: 'Net Payable', dataIndex: 'netIncentivePayable', align: 'center', render: v => <span className="font-black text-indigo-700">₹{v}</span> },
+              { title: 'Next Due Date', dataIndex: 'nextDueDate', align: 'center', render: v => v ? new Date(v).toLocaleDateString() : "-" },
+              { title: 'Bank A/C', dataIndex: 'bankAccount' },
+              { title: 'Transfer Date', dataIndex: 'transferDate', align: 'center', render: v => v ? new Date(v).toLocaleDateString() : "-" },
+              {
+                title: 'Actions',
+                key: 'actions',
+                fixed: 'right',
+                align: 'center',
+                render: (_, row) => (
+                  <div className="flex gap-2 justify-center">
+                    <button onClick={() => { setSelectedIncentive(row); setIsViewModalOpen(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><FiEye /></button>
+                    <button onClick={() => { setSelectedIncentive(row); setFormData({ ...row, clientRef: row.clientRef?._id || "" }); setIsModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1 rounded"><FiEdit2 /></button>
+                    <button onClick={async () => { if(window.confirm("Delete?")) { await axios.delete(`/api/incentives/commission/${row._id}`); fetchIncentives(); } }} className="text-red-600 hover:bg-red-50 p-1 rounded"><FiTrash2 /></button>
+                  </div>
+                )
+              }
+            ]}
+          />
+        </ConfigProvider>
       </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-6 border-b bg-blue-600 text-white flex justify-between items-center">
+            <div className="p-6 border-b bg-orange-500 text-white flex justify-between items-center">
               <h3 className="text-xl font-bold">Commission Incentive Entry</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/20 rounded-full"><FiX size={24} /></button>
             </div>
@@ -311,7 +303,7 @@ const CommissionIncentiveTable = () => {
 
               <div className="md:col-span-3 flex justify-end gap-3 mt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2 border rounded-lg font-bold">Cancel</button>
-                <button type="submit" className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-lg shadow-blue-200">Save</button>
+                <button type="submit" className="px-8 py-2 bg-orange-500 text-white rounded-lg font-bold shadow-lg shadow-orange-200">Save</button>
               </div>
             </form>
           </div>

@@ -291,7 +291,7 @@ const UnifiedNavbar = ({ role, menuConfig }) => {
 
                 {showProfileCard && (
                   <div className="absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                    <div className="navy-gradient p-6 text-white">
+                    <div className="bg-gradient-to-br from-orange-600 to-orange-400 p-6 text-white">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-bold">
                            {loggedInUser.username?.charAt(0) || "U"}
@@ -335,7 +335,7 @@ const UnifiedNavbar = ({ role, menuConfig }) => {
         `}
       >
         <div className="h-full w-4/5 bg-white shadow-2xl overflow-y-auto">
-          <div className="navy-gradient p-8 text-white">
+          <div className="bg-gradient-to-br from-orange-600 to-orange-400 p-8 text-white">
              <div className="flex items-center justify-between">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
                   <span className="text-xl font-bold">VP</span>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FiSearch, FiPlus, FiEdit2, FiEye, FiX, FiTrash2 } from "react-icons/fi";
 import axios from "../../../config/axios";
 import { toast } from "react-toastify";
+import { Table, ConfigProvider } from "antd";
 
 const RewardIncentiveTable = () => {
   const [incentives, setIncentives] = useState([
@@ -119,54 +120,50 @@ const RewardIncentiveTable = () => {
           </div>
           <button 
             onClick={() => { setSelectedIncentive(null); setFormData({ ...formData, employeeRef: "" }); setIsModalOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
           >
             <FiPlus /> Add Reward Incentive
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse min-w-[1500px]">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 font-semibold border-b">
-              <th className="px-4 py-3 border-r sticky left-0 bg-gray-100 z-10">Employee Name</th>
-              <th className="px-4 py-3 border-r">Task Category</th>
-              <th className="px-4 py-3 border-r">Task Name</th>
-              <th className="px-4 py-3 border-r">Financial Product</th>
-              <th className="px-4 py-3 border-r">Company Name</th>
-              <th className="px-4 py-3 border-r text-center">Reward Points</th>
-              <th className="px-4 py-3 border-r text-center">Incentive Amount</th>
-              <th className="px-4 py-3 border-r text-center">Deductions</th>
-              <th className="px-4 py-3 border-r text-center font-bold">Net Payable</th>
-              <th className="px-4 py-3 border-r">Bank A/C</th>
-              <th className="px-4 py-3 border-r text-center">Transfer Date</th>
-              <th className="px-4 py-3 text-center sticky right-0 bg-gray-100 z-10">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {incentives.map((row) => (
-              <tr key={row._id} className="hover:bg-blue-50/30">
-                <td className="px-4 py-3 border-r sticky left-0 bg-white z-0 font-medium">{row.employeeRef?.name || row.employeeName}</td>
-                <td className="px-4 py-3 border-r">{row.taskCategory}</td>
-                <td className="px-4 py-3 border-r">{row.taskName}</td>
-                <td className="px-4 py-3 border-r">{row.financialProduct}</td>
-                <td className="px-4 py-3 border-r">{row.companyName}</td>
-                <td className="px-4 py-3 border-r text-center font-bold text-amber-600">{row.rewardPoints} pts</td>
-                <td className="px-4 py-3 border-r text-center">₹{row.incentiveAmount}</td>
-                <td className="px-4 py-3 border-r text-center text-red-500">-₹{row.deductions}</td>
-                <td className="px-4 py-3 border-r text-center font-black text-indigo-700">₹{row.netIncentivePayable}</td>
-                <td className="px-4 py-3 border-r">{row.bankAccount}</td>
-                <td className="px-4 py-3 border-r text-center">{row.transferDate ? new Date(row.transferDate).toLocaleDateString() : "-"}</td>
-                <td className="px-4 py-3 text-center sticky right-0 bg-white z-0 flex gap-2 justify-center">
-                  <button onClick={() => { setSelectedIncentive(row); setIsViewModalOpen(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><FiEye /></button>
-                  <button onClick={() => { setSelectedIncentive(row); setFormData({ ...row, employeeRef: row.employeeRef?._id || "" }); setIsModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1 rounded"><FiEdit2 /></button>
-                  <button onClick={async () => { if(window.confirm("Delete?")) { await axios.delete(`/api/incentives/reward/${row._id}`); fetchIncentives(); } }} className="text-red-600 hover:bg-red-50 p-1 rounded"><FiTrash2 /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="overflow-x-auto p-4 custom-scrollbar">
+        <ConfigProvider theme={{ token: { colorPrimary: '#f27405' } }}>
+          <Table
+            dataSource={incentives}
+            rowKey="_id"
+            scroll={{ x: 'max-content' }}
+            pagination={{ pageSize: 10 }}
+            size="small"
+            bordered
+            columns={[
+              { title: 'Employee Name', dataIndex: 'employeeRef', fixed: 'left', render: (val, row) => <span className="font-medium">{val?.name || row.employeeName}</span> },
+              { title: 'Task Category', dataIndex: 'taskCategory' },
+              { title: 'Task Name', dataIndex: 'taskName' },
+              { title: 'Financial Product', dataIndex: 'financialProduct' },
+              { title: 'Company Name', dataIndex: 'companyName' },
+              { title: 'Reward Points', dataIndex: 'rewardPoints', align: 'center', render: v => <span className="font-bold text-amber-600">{v} pts</span> },
+              { title: 'Incentive Amount', dataIndex: 'incentiveAmount', align: 'center', render: v => `₹${v}` },
+              { title: 'Deductions', dataIndex: 'deductions', align: 'center', render: v => <span className="text-red-500">-₹{v}</span> },
+              { title: 'Net Payable', dataIndex: 'netIncentivePayable', align: 'center', render: v => <span className="font-black text-indigo-700">₹{v}</span> },
+              { title: 'Bank A/C', dataIndex: 'bankAccount' },
+              { title: 'Transfer Date', dataIndex: 'transferDate', align: 'center', render: v => v ? new Date(v).toLocaleDateString() : "-" },
+              {
+                title: 'Actions',
+                key: 'actions',
+                fixed: 'right',
+                align: 'center',
+                render: (_, row) => (
+                  <div className="flex gap-2 justify-center">
+                    <button onClick={() => { setSelectedIncentive(row); setIsViewModalOpen(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><FiEye /></button>
+                    <button onClick={() => { setSelectedIncentive(row); setFormData({ ...row, employeeRef: row.employeeRef?._id || "" }); setIsModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1 rounded"><FiEdit2 /></button>
+                    <button onClick={async () => { if(window.confirm("Delete?")) { await axios.delete(`/api/incentives/reward/${row._id}`); fetchIncentives(); } }} className="text-red-600 hover:bg-red-50 p-1 rounded"><FiTrash2 /></button>
+                  </div>
+                )
+              }
+            ]}
+          />
+        </ConfigProvider>
       </div>
 
       {isModalOpen && (

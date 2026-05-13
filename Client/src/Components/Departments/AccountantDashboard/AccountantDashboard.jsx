@@ -24,6 +24,7 @@ import {
   Pie,
   Cell
 } from "recharts";
+import { Table, ConfigProvider } from "antd";
 
 const AccountantDashboard = () => {
   const dispatch = useDispatch();
@@ -50,7 +51,7 @@ const AccountantDashboard = () => {
   };
 
   const comparisonData = [
-    { name: "Income", amount: summary.totalIncome, color: "#4f46e5" },
+    { name: "Income", amount: summary.totalIncome, color: "#f27405" },
     { name: "Expense", amount: summary.totalExpense, color: "#f43f5e" },
     { name: "Net", amount: summary.net, color: "#10b981" },
   ];
@@ -60,7 +61,7 @@ const AccountantDashboard = () => {
     value: bank.balance || 0
   })).slice(0, 4);
 
-  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+  const COLORS = ['#f27405', '#f97316', '#fdba74', '#ffedd5'];
 
   // Handle completely empty pie chart case
   const totalBalance = bankData.reduce((acc, curr) => acc + curr.value, 0);
@@ -73,10 +74,10 @@ const AccountantDashboard = () => {
       
       {/* 📊 High-Level Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard title="Total Income" value={summary.totalIncome} icon={<TrendingUp size={20} />} color="blue" />
+        <MetricCard title="Total Income" value={summary.totalIncome} icon={<TrendingUp size={20} />} color="orange" />
         <MetricCard title="Total Expense" value={summary.totalExpense} icon={<TrendingDown size={20} />} color="rose" />
         <MetricCard title="Net Balance" value={summary.net} icon={<IndianRupee size={20} />} color="emerald" />
-        <MetricCard title="Active Banks" value={activeBanks.length} icon={<Landmark size={20} />} color="indigo" isCount />
+        <MetricCard title="Active Banks" value={activeBanks.length} icon={<Landmark size={20} />} color="amber" isCount />
       </div>
 
       {/* 📉 Unified Analytics Section */}
@@ -190,60 +191,71 @@ const AccountantDashboard = () => {
             <h3 className="text-base font-bold text-slate-800">Primary Bank Accounts</h3>
             <p className="text-xs text-slate-500 mt-0.5">Overview of active bank balances</p>
           </div>
-          <button className="text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
+          <button className="text-sm font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 px-4 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
             Manage Banks <ChevronRight size={14} />
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Bank Detail</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Account Type</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Current Balance</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
-                <th className="px-6 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {activeBanks.length > 0 ? activeBanks.slice(0, 5).map((bank, i) => (
-                <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
+        <div className="overflow-x-auto p-4">
+          <ConfigProvider theme={{ token: { colorPrimary: '#f27405' } }}>
+            <Table
+              dataSource={activeBanks.length > 0 ? activeBanks.slice(0, 5) : []}
+              pagination={false}
+              rowKey="bankName"
+              columns={[
+                {
+                  title: <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bank Detail</span>,
+                  dataIndex: 'bankName',
+                  key: 'bankName',
+                  render: (text, record) => (
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 flex items-center justify-center text-orange-600 shadow-sm">
                         <Landmark size={18} />
                       </div>
                       <div>
-                        <span className="font-bold text-slate-800 text-sm block">{bank.bankName}</span>
-                        <span className="text-xs text-slate-400 font-medium">{bank.accountNumber || "No AC Provided"}</span>
+                        <span className="font-bold text-slate-800 text-sm block">{text}</span>
+                        <span className="text-xs text-slate-400 font-medium">{record.accountNumber || "No AC Provided"}</span>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-slate-600 text-sm font-medium">{bank.accountType || "Savings"}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="font-black text-slate-900 text-base">₹ {bank.balance?.toLocaleString() || 0}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
+                  )
+                },
+                {
+                  title: <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Account Type</span>,
+                  dataIndex: 'accountType',
+                  key: 'accountType',
+                  render: (text) => <span className="text-slate-600 text-sm font-medium">{text || "Savings"}</span>
+                },
+                {
+                  title: <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Balance</span>,
+                  dataIndex: 'balance',
+                  key: 'balance',
+                  align: 'right',
+                  render: (text) => <span className="font-black text-slate-900 text-base">₹ {text?.toLocaleString() || 0}</span>
+                },
+                {
+                  title: <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</span>,
+                  key: 'status',
+                  align: 'center',
+                  render: () => (
                     <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
                       Active
                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-slate-400 hover:text-indigo-600 p-2 rounded-lg hover:bg-indigo-50 transition-colors">
+                  )
+                },
+                {
+                  title: '',
+                  key: 'action',
+                  align: 'right',
+                  render: () => (
+                    <button className="text-slate-400 hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50 transition-colors">
                       <MoreHorizontal size={18} />
                     </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400 text-sm">No active accounts found. Please add a bank account to see it here.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  )
+                }
+              ]}
+              locale={{ emptyText: "No active accounts found. Please add a bank account to see it here." }}
+            />
+          </ConfigProvider>
         </div>
       </div>
     </div>
@@ -252,7 +264,8 @@ const AccountantDashboard = () => {
 
 const MetricCard = ({ title, value, icon, color, isCount = false }) => {
   const themes = {
-    blue: "text-indigo-600 border-indigo-100 bg-indigo-50/50",
+    orange: "text-orange-600 border-orange-100 bg-orange-50/50",
+    amber: "text-amber-600 border-amber-100 bg-amber-50/50",
     rose: "text-rose-600 border-rose-100 bg-rose-50/50",
     emerald: "text-emerald-600 border-emerald-100 bg-emerald-50/50",
     indigo: "text-slate-600 border-slate-200 bg-slate-50/50"

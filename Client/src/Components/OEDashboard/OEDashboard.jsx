@@ -165,7 +165,7 @@ const OEDashboard = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#0891b2', // Teal/Cyan for OE
+          colorPrimary: '#f27405', // Orange for OE
           borderRadius: 12,
         },
       }}
@@ -186,8 +186,8 @@ const OEDashboard = () => {
               display: 'flex',
               alignItems: 'center',
               background: scrolled 
-                ? 'rgba(15, 23, 42, 0.95)' 
-                : 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+                ? 'rgba(204, 98, 4, 0.95)' 
+                : 'linear-gradient(135deg, #cc6204 0%, #f27405 100%)',
               backdropFilter: 'blur(12px)',
               padding: '0 24px',
               height: '72px',
@@ -218,7 +218,7 @@ const OEDashboard = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#0891b2',
+                  color: '#f27405',
                   fontWeight: 900,
                   fontSize: '18px'
                 }}>
@@ -226,7 +226,7 @@ const OEDashboard = () => {
                 </div>
                 <div className="portal-title" style={{ lineHeight: 1.1 }}>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: 'white' }}>VPFinancial</div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#cffafe', textTransform: 'uppercase' }}>Operational Executive</div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#ffedd5', textTransform: 'uppercase' }}>Operational Executive</div>
                 </div>
               </Link>
             </div>
@@ -264,7 +264,7 @@ const OEDashboard = () => {
             <Space size={16}>
               <div style={{ textAlign: 'right', display: 'none' }} className="user-details">
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'white' }}>{user?.username || user?.name || "OE Exec"}</div>
-                <div style={{ fontSize: '10px', color: '#cffafe' }}>ID: {user?.employeeCode || "N/A"}</div>
+                <div style={{ fontSize: '10px', color: '#ffedd5' }}>ID: {user?.employeeCode || "N/A"}</div>
               </div>
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
@@ -287,7 +287,7 @@ const OEDashboard = () => {
 
         {/* Mobile Sidebar */}
         <Drawer
-          title={<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><ThunderboltOutlined style={{ color: '#0891b2' }} /><span>Operational Menu</span></div>}
+          title={<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><ThunderboltOutlined style={{ color: '#f27405' }} /><span>Operational Menu</span></div>}
           placement="left"
           onClose={() => setMobileMenuOpen(false)}
           open={mobileMenuOpen}
@@ -346,7 +346,7 @@ const OEDashboard = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '24px', alignItems: 'center' }}>
             <Text type="secondary" style={{ fontSize: '12px' }}>© {new Date().getFullYear()} VPFinancial Operations • Operational Executive Portal v2.0</Text>
             <Space split={<Divider type="vertical" />}>
-                <Space><ClockCircleOutlined style={{ color: '#0891b2' }} /><Text strong>{stats.todayTasks} Task(s) Today</Text></Space>
+                <Space><ClockCircleOutlined style={{ color: '#f27405' }} /><Text strong>{stats.todayTasks} Task(s) Today</Text></Space>
                 <Space><CheckSquareOutlined style={{ color: '#10b981' }} /><Text strong>{stats.completed}/{stats.totalAssigned} Completed</Text></Space>
             </Space>
           </div>

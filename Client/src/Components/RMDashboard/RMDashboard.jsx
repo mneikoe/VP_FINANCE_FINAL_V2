@@ -185,7 +185,7 @@ const RMDashboard = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#4f46e5",
+          colorPrimary: "#f27405",
           borderRadius: 12,
         },
       }}
@@ -206,8 +206,8 @@ const RMDashboard = () => {
               display: 'flex',
               alignItems: 'center',
               background: scrolled 
-                ? 'rgba(15, 23, 42, 0.95)' 
-                : 'linear-gradient(135deg, #4338ca 0%, #4f46e5 50%, #6366f1 100%)',
+                ? 'rgba(204, 98, 4, 0.95)' 
+                : 'linear-gradient(135deg, #cc6204 0%, #f27405 50%, #f59e0b 100%)',
               backdropFilter: 'blur(12px)',
               padding: '0 24px',
               height: '72px',
@@ -238,7 +238,7 @@ const RMDashboard = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#4338ca',
+                  color: '#f27405',
                   fontWeight: 900,
                   fontSize: '18px'
                 }}>
@@ -246,7 +246,7 @@ const RMDashboard = () => {
                 </div>
                 <div style={{ lineHeight: 1.1 }}>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: 'white' }}>VPFinancial</div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#c7d2fe', textTransform: 'uppercase' }}>Relationship Manager</div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#ffedd5', textTransform: 'uppercase' }}>Relationship Manager</div>
                 </div>
               </Link>
             </div>
@@ -286,7 +286,7 @@ const RMDashboard = () => {
             <Space size={16}>
               <div style={{ textAlign: 'right', display: 'none' }} className="user-details">
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'white' }}>{user?.username || user?.name || "RM User"}</div>
-                <div style={{ fontSize: '10px', color: '#c7d2fe' }}>Code: {user?.employeeCode || "N/A"}</div>
+                <div style={{ fontSize: '10px', color: '#ffedd5' }}>Code: {user?.employeeCode || "N/A"}</div>
               </div>
 
               <Dropdown

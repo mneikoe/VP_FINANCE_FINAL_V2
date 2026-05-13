@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FiSearch, FiDownload, FiPlus } from "react-icons/fi";
+import { Table, ConfigProvider } from "antd";
 
 const IncentiveTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,39 +31,35 @@ const IncentiveTable = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+          <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition">
             <FiPlus /> Add Incentive
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 font-semibold border-b">
-              <th className="px-4 py-3 border-r">Employee Name</th>
-              <th className="px-4 py-3 border-r text-center">Target Achieved</th>
-              <th className="px-4 py-3 border-r text-center">Incentive Amount</th>
-              <th className="px-4 py-3 border-r text-center">Date</th>
-              <th className="px-4 py-3 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {incentiveData.map((row) => (
-              <tr key={row.id} className="hover:bg-blue-50/30 transition-colors">
-                <td className="px-4 py-3 border-r font-medium text-gray-900">{row.employeeName}</td>
-                <td className="px-4 py-3 border-r text-center text-blue-600 font-semibold">{row.targetAchieved}</td>
-                <td className="px-4 py-3 border-r text-center font-bold text-green-700">₹{row.incentiveAmount.toLocaleString()}</td>
-                <td className="px-4 py-3 border-r text-center text-gray-500">{row.date}</td>
-                <td className="px-4 py-3 text-center">
+      <div className="overflow-x-auto p-4 custom-scrollbar">
+        <ConfigProvider theme={{ token: { colorPrimary: '#f27405' } }}>
+          <Table
+            dataSource={incentiveData}
+            rowKey="id"
+            scroll={{ x: 'max-content' }}
+            pagination={{ pageSize: 10 }}
+            size="small"
+            bordered
+            columns={[
+              { title: 'Employee Name', dataIndex: 'employeeName', render: v => <span className="font-medium text-gray-900">{v}</span> },
+              { title: 'Target Achieved', dataIndex: 'targetAchieved', align: 'center', render: v => <span className="text-orange-600 font-semibold">{v}</span> },
+              { title: 'Incentive Amount', dataIndex: 'incentiveAmount', align: 'center', render: v => <span className="font-bold text-green-700">₹{v.toLocaleString()}</span> },
+              { title: 'Date', dataIndex: 'date', align: 'center', render: v => <span className="text-gray-500">{v}</span> },
+              { title: 'Status', dataIndex: 'status', align: 'center', render: v => (
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
-                    {row.status}
+                    {v}
                   </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                ) 
+              }
+            ]}
+          />
+        </ConfigProvider>
       </div>
     </div>
   );

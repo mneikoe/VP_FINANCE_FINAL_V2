@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FiSearch, FiDownload, FiPlus, FiEdit2, FiEye, FiX, FiTrash2 } from "react-icons/fi";
 import axios from "../../../config/axios";
 import { toast } from "react-toastify";
+import { Table, ConfigProvider } from "antd";
 
 const SalaryTable = () => {
   const [salaries, setSalaries] = useState([
@@ -238,7 +239,7 @@ const SalaryTable = () => {
           </div>
           <button 
             onClick={() => { resetForm(); setSelectedSalary(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition"
           >
             <FiPlus /> Add Salary
           </button>
@@ -246,79 +247,80 @@ const SalaryTable = () => {
       </div>
 
       {/* Table Container with Horizontal Scroll */}
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse min-w-[2000px]">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 font-semibold border-b">
-              <th className="px-4 py-3 border-r sticky left-0 bg-gray-100 z-10" rowSpan="2">Employee Name</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Basic Salary</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Month Days</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Working Days</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Per Day Wages</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Net Salary</th>
-              <th className="px-4 py-3 border-r text-center" colSpan="2">Allowance</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Total</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Exp</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Total Salary Earned</th>
-              <th className="px-4 py-3 border-r text-center" colSpan="4">Deduction</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Salary Payable</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Bank A/C</th>
-              <th className="px-4 py-3 border-r text-center" rowSpan="2">Transfer Date</th>
-              <th className="px-4 py-3 text-center sticky right-0 bg-gray-100 z-10" rowSpan="2">Actions</th>
-            </tr>
-            <tr className="bg-gray-50 text-gray-600 font-medium border-b">
-              <th className="px-4 py-2 border-r text-center text-xs">Km Run</th>
-              <th className="px-4 py-2 border-r text-center text-xs">Rate Per KM</th>
-              <th className="px-4 py-2 border-r text-center text-xs">Sec. Deposit</th>
-              <th className="px-4 py-2 border-r text-center text-xs">Fine</th>
-              <th className="px-4 py-2 border-r text-center text-xs">PF</th>
-              <th className="px-4 py-2 border-r text-center text-xs">Advance</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {salaries.map((row) => (
-              <tr key={row._id} className="hover:bg-blue-50/30 transition-colors">
-                <td className="px-4 py-3 border-r font-medium text-gray-900 sticky left-0 bg-white z-0 group-hover:bg-blue-50">
-                  {row.employeeRef?.name}
-                  <span className="block text-[10px] text-gray-400">{row.employeeRef?.employeeCode}</span>
-                </td>
-                <td className="px-4 py-3 border-r text-center">₹{row.basicSalary}</td>
-                <td className="px-4 py-3 border-r text-center">{row.monthDays}</td>
-                <td className="px-4 py-3 border-r text-center font-semibold text-blue-600">{row.workingDays}</td>
-                <td className="px-4 py-3 border-r text-center text-gray-500">₹{row.perDayWages}</td>
-                <td className="px-4 py-3 border-r text-center font-semibold">₹{row.netSalary}</td>
-                <td className="px-4 py-3 border-r text-center text-blue-500">{row.kmRun}</td>
-                <td className="px-4 py-3 border-r text-center text-orange-600">₹{row.ratePerKm}</td>
-                <td className="px-4 py-3 border-r text-center text-gray-600">₹{row.total}</td>
-                <td className="px-4 py-3 border-r text-center text-gray-600">₹{row.exp}</td>
-                <td className="px-4 py-3 border-r text-center font-bold text-green-700 bg-green-50/50">₹{row.totalSalaryEarned}</td>
-                <td className="px-4 py-3 border-r text-center text-red-600 font-medium bg-red-50/30">-{row.securityDeposit}</td>
-                <td className="px-4 py-3 border-r text-center text-red-600 font-medium bg-red-50/30">-{row.fine}</td>
-                <td className="px-4 py-3 border-r text-center text-red-600 font-medium bg-red-50/30">-{row.pf}</td>
-                <td className="px-4 py-3 border-r text-center text-red-600 font-medium bg-red-50/30">-{row.advance}</td>
-                <td className="px-4 py-3 border-r text-center font-black text-indigo-700 bg-indigo-50/50">₹{row.salaryPayable}</td>
-                <td className="px-4 py-3 border-r text-center text-gray-500">{row.bankAccount}</td>
-                <td className="px-4 py-3 border-r text-center text-gray-500">
-                  {row.transferDate ? new Date(row.transferDate).toLocaleDateString() : "-"}
-                </td>
-                <td className="px-4 py-3 text-center sticky right-0 bg-white z-0 group-hover:bg-blue-50">
+      <div className="overflow-x-auto p-4 custom-scrollbar">
+        <ConfigProvider theme={{ token: { colorPrimary: '#f27405' } }}>
+          <Table
+            dataSource={salaries}
+            rowKey="_id"
+            scroll={{ x: 'max-content' }}
+            pagination={{ pageSize: 10 }}
+            size="small"
+            bordered
+            columns={[
+              { 
+                title: 'Employee Name', 
+                dataIndex: 'employeeRef', 
+                key: 'employeeName', 
+                fixed: 'left', 
+                width: 180,
+                render: (val) => (
+                  <div>
+                    <span className="font-medium text-gray-900">{val?.name}</span>
+                    <span className="block text-[10px] text-gray-400">{val?.employeeCode}</span>
+                  </div>
+                ) 
+              },
+              { title: 'Basic Salary', dataIndex: 'basicSalary', align: 'center', render: v => `₹${v}` },
+              { title: 'Month Days', dataIndex: 'monthDays', align: 'center' },
+              { title: 'Working Days', dataIndex: 'workingDays', align: 'center', render: v => <span className="font-semibold text-orange-600">{v}</span> },
+              { title: 'Per Day Wages', dataIndex: 'perDayWages', align: 'center', render: v => <span className="text-gray-500">₹{v}</span> },
+              { title: 'Net Salary', dataIndex: 'netSalary', align: 'center', render: v => <span className="font-semibold">₹{v}</span> },
+              { 
+                title: 'Allowance', 
+                children: [
+                  { title: 'Km Run', dataIndex: 'kmRun', align: 'center', render: v => <span className="text-blue-500">{v}</span> },
+                  { title: 'Rate Per KM', dataIndex: 'ratePerKm', align: 'center', render: v => <span className="text-orange-600">₹{v}</span> },
+                ]
+              },
+              { title: 'Total', dataIndex: 'total', align: 'center', render: v => <span className="text-gray-600">₹{v}</span> },
+              { title: 'Exp', dataIndex: 'exp', align: 'center', render: v => <span className="text-gray-600">₹{v}</span> },
+              { title: 'Total Salary Earned', dataIndex: 'totalSalaryEarned', align: 'center', render: v => <span className="font-bold text-green-700 bg-green-50/50 px-2 py-1 rounded">₹{v}</span> },
+              {
+                title: 'Deduction',
+                children: [
+                  { title: 'Sec. Deposit', dataIndex: 'securityDeposit', align: 'center', render: v => <span className="text-red-600 font-medium bg-red-50/30 px-2 py-1 rounded">-₹{v}</span> },
+                  { title: 'Fine', dataIndex: 'fine', align: 'center', render: v => <span className="text-red-600 font-medium bg-red-50/30 px-2 py-1 rounded">-₹{v}</span> },
+                  { title: 'PF', dataIndex: 'pf', align: 'center', render: v => <span className="text-red-600 font-medium bg-red-50/30 px-2 py-1 rounded">-₹{v}</span> },
+                  { title: 'Advance', dataIndex: 'advance', align: 'center', render: v => <span className="text-red-600 font-medium bg-red-50/30 px-2 py-1 rounded">-₹{v}</span> },
+                ]
+              },
+              { title: 'Salary Payable', dataIndex: 'salaryPayable', align: 'center', render: v => <span className="font-black text-indigo-700 bg-indigo-50/50 px-2 py-1 rounded">₹{v}</span> },
+              { title: 'Bank A/C', dataIndex: 'bankAccount', align: 'center', render: v => <span className="text-gray-500">{v}</span> },
+              { title: 'Transfer Date', dataIndex: 'transferDate', align: 'center', render: v => <span className="text-gray-500">{v ? new Date(v).toLocaleDateString() : "-"}</span> },
+              { 
+                title: 'Actions', 
+                key: 'actions', 
+                fixed: 'right', 
+                align: 'center',
+                width: 120,
+                render: (_, row) => (
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={() => handleView(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"><FiEye /></button>
                     <button onClick={() => handleEdit(row)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"><FiEdit2 /></button>
                     <button onClick={() => handleDelete(row._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"><FiTrash2 /></button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )
+              }
+            ]}
+          />
+        </ConfigProvider>
       </div>
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-600 text-white">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-500 text-white">
               <h3 className="text-xl font-bold">{selectedSalary ? "Edit Salary Record" : "Add New Salary Record"}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><FiX size={24} /></button>
             </div>
@@ -428,7 +430,7 @@ const SalaryTable = () => {
 
               <div className="md:col-span-3 flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2 border rounded-lg font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-200">Save Salary</button>
+                <button type="submit" className="px-8 py-2 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 shadow-lg shadow-orange-200">Save Salary</button>
               </div>
             </form>
           </div>
