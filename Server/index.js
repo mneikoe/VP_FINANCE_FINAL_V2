@@ -92,6 +92,7 @@ const NotificationRoute = require("./Routes/NotificationRoute");
 const SalaryRoute = require("./Routes/SalaryRoute");
 const IncentiveRoute = require("./Routes/IncentiveRoute");
 const hrActionRoutes = require("./Routes/hrActionRoutes");
+const emailRoutes = require("./Routes/emailRoutes");
 // STATIC FILES
 app.use(
   "/vacancy-images",
@@ -183,6 +184,7 @@ app.use("/api/notifications", NotificationRoute);
 app.use("/api/salary", SalaryRoute);
 app.use("/api/incentives", IncentiveRoute);
 app.use("/api/hr-actions", hrActionRoutes);
+app.use("/api/email", emailRoutes);
 
 // 🎯 SERVE REACT BUILD
 app.use(express.static(path.join(__dirname, "dist")));

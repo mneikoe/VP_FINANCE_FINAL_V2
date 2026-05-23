@@ -81,6 +81,7 @@ const AddCandidate = () => {
   };
 
   const calculateMarks = (values) => {
+    if (!values) return 0;
     let marks = 0;
     
     // 1. Referred By: Max 3
@@ -96,17 +97,28 @@ const AddCandidate = () => {
     marks += eduMarks[values.education] || 0;
 
     // 4. Operations Experience: Max 10
-    if (values.insuranceField) marks += 4; // Insurance
-    if (values.dataManagement) marks += 3; // Data Mgmt + CPCT
-    if (values.backOffice) marks += 2;      // Back Office
-    if (values.expOther) marks += 1;        // Any other
+    const insuranceField = values.insuranceField || values.operationalActivities?.insuranceField;
+    const dataManagement = values.dataManagement || values.operationalActivities?.dataManagement;
+    const backOffice = values.backOffice || values.operationalActivities?.backOffice;
+    const expOther = values.expOther || values.operationalActivities?.anyOther || values.operationalActivities?.expOther;
+
+    if (insuranceField) marks += 4;
+    if (dataManagement) marks += 3;
+    if (backOffice) marks += 2;
+    if (expOther) marks += 1;
 
     // 5. Sales & Work Experience: Max 15
-    if (values.adminTeamMgmt) marks += 5;
-    if (values.salesInsFin) marks += 4;
-    if (values.salesAnyField) marks += 3;
-    if (values.fieldWork) marks += 2;
-    if (values.salesOther) marks += 1;
+    const adminTeamMgmt = values.adminTeamMgmt || values.salesExperience?.adminTeamMgmt;
+    const salesInsFin = values.salesInsFin || values.salesExperience?.salesInsFin;
+    const salesAnyField = values.salesAnyField || values.salesExperience?.salesAnyField;
+    const fieldWork = values.fieldWork || values.salesExperience?.fieldWork;
+    const salesOther = values.salesOther || values.salesExperience?.salesOther;
+
+    if (adminTeamMgmt) marks += 5;
+    if (salesInsFin) marks += 4;
+    if (salesAnyField) marks += 3;
+    if (fieldWork) marks += 2;
+    if (salesOther) marks += 1;
 
     // 6. Computer Knowledge: Max 3
     const compMarks = { "Advance (M.S office)": 3, "MIS + EXCEL": 2, "Basic": 1 };
@@ -125,13 +137,30 @@ const AddCandidate = () => {
     marks += salaryMarks[values.salaryExpectation] || 0;
 
     // 10. Vehicle: Max 2
-    if (values.vehicle === "YES") marks += 2;
-    else if (values.vehicle === "NO") marks += 1;
+    const vehicleVal = values.vehicle;
+    if (vehicleVal === "YES" || vehicleVal === true) marks += 2;
+    else if (vehicleVal === "NO" || vehicleVal === false) marks += 1;
 
     return marks;
   };
 
   const getMarksBreakdown = (values) => {
+    if (!values) return [];
+
+    const insuranceField = values.insuranceField || values.operationalActivities?.insuranceField;
+    const dataManagement = values.dataManagement || values.operationalActivities?.dataManagement;
+    const backOffice = values.backOffice || values.operationalActivities?.backOffice;
+    const expOther = values.expOther || values.operationalActivities?.anyOther || values.operationalActivities?.expOther;
+
+    const adminTeamMgmt = values.adminTeamMgmt || values.salesExperience?.adminTeamMgmt;
+    const salesInsFin = values.salesInsFin || values.salesExperience?.salesInsFin;
+    const salesAnyField = values.salesAnyField || values.salesExperience?.salesAnyField;
+    const fieldWork = values.fieldWork || values.salesExperience?.fieldWork;
+    const salesOther = values.salesOther || values.salesExperience?.salesOther;
+
+    const vehicleVal = values.vehicle;
+    const vehicleScore = (vehicleVal === "YES" || vehicleVal === true) ? 2 : (vehicleVal === "NO" || vehicleVal === false) ? 1 : 0;
+
     return [
       { 
         label: "Referred By", 
@@ -150,12 +179,12 @@ const AddCandidate = () => {
       },
       { 
         label: "Operations Experience", 
-        score: (values.insuranceField ? 4 : 0) + (values.dataManagement ? 3 : 0) + (values.backOffice ? 2 : 0) + (values.expOther ? 1 : 0), 
+        score: (insuranceField ? 4 : 0) + (dataManagement ? 3 : 0) + (backOffice ? 2 : 0) + (expOther ? 1 : 0), 
         max: 10 
       },
       { 
         label: "Sales Experience", 
-        score: (values.adminTeamMgmt ? 5 : 0) + (values.salesInsFin ? 4 : 0) + (values.salesAnyField ? 3 : 0) + (values.fieldWork ? 2 : 0) + (values.salesOther ? 1 : 0), 
+        score: (adminTeamMgmt ? 5 : 0) + (salesInsFin ? 4 : 0) + (salesAnyField ? 3 : 0) + (fieldWork ? 2 : 0) + (salesOther ? 1 : 0), 
         max: 15 
       },
       { 
@@ -180,7 +209,7 @@ const AddCandidate = () => {
       },
       { 
         label: "Vehicle", 
-        score: values.vehicle === "YES" ? 2 : values.vehicle === "NO" ? 1 : 0, 
+        score: vehicleScore, 
         max: 2 
       }
     ];
@@ -210,7 +239,7 @@ const AddCandidate = () => {
     }
 
     try {
-      const res = await axiosInstance.post("/api/addcandidate", formData, {
+      const res = await axiosInstance.post("/api/addcandidate/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.success) {
@@ -282,12 +311,12 @@ const AddCandidate = () => {
           <Space>
             <Progress 
                 type="circle" 
-                percent={(marks / 61) * 100} 
+                percent={Math.round((marks / 46) * 100)} 
                 size={30} 
                 strokeColor={color} 
                 format={() => marks} 
             />
-            <Text type="secondary" style={{ fontSize: '10px' }}>/61</Text>
+            <Text type="secondary" style={{ fontSize: '10px' }}>/46</Text>
           </Space>
         );
       }
@@ -572,14 +601,27 @@ const AddCandidate = () => {
                                             <Form.Item label="Interview Date" name="interviewDate">
                                                 <DatePicker style={{ width: '100%' }} />
                                             </Form.Item>
-                                            <Form.Item label="Resume (PDF)">
-                                                <Upload 
-                                                    beforeUpload={(file) => { setResume(file); return false; }} 
+                                            <Form.Item label="Resume (PDF/DOC)">
+                                                <Upload
+                                                    beforeUpload={(file) => {
+                                                      setResume(file);
+                                                      return false; // prevent auto-upload
+                                                    }}
                                                     maxCount={1}
-                                                    fileList={resume ? [resume] : []}
+                                                    fileList={
+                                                      resume
+                                                        ? [{
+                                                            uid: resume.uid || '-1',
+                                                            name: resume.name,
+                                                            status: 'done',
+                                                            originFileObj: resume,
+                                                          }]
+                                                        : []
+                                                    }
                                                     onRemove={() => setResume(null)}
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                                 >
-                                                    <Button icon={<UploadOutlined />} block>Select PDF</Button>
+                                                    <Button icon={<UploadOutlined />} block>Select File (PDF/DOC)</Button>
                                                 </Upload>
                                             </Form.Item>
 
@@ -663,7 +705,7 @@ const AddCandidate = () => {
                 <Col span={8} style={{ textAlign: 'center', borderLeft: '1px solid #f0f0f0' }}>
                     <Progress 
                         type="dashboard" 
-                        percent={((selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) / 46) * 100} 
+                        percent={Math.round(((selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) / 46) * 100)} 
                         strokeColor={{ '0%': '#108ee9', '100%': '#87d068' }}
                         format={() => (
                             <div>
@@ -736,7 +778,7 @@ const AddCandidate = () => {
                     { 
                         title: 'Achievement', 
                         key: 'percent', 
-                        render: (_, r) => <Progress percent={(r.score / r.max) * 100} size="small" strokeColor={r.score === r.max ? '#52c41a' : '#1890ff'} /> 
+                        render: (_, r) => <Progress percent={Math.round((r.score / r.max) * 100)} size="small" strokeColor={r.score === r.max ? '#52c41a' : '#1890ff'} /> 
                     }
                 ]}
                 summary={() => (
@@ -749,7 +791,7 @@ const AddCandidate = () => {
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={2}>
                             <Progress 
-                                percent={((selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) / 46) * 100} 
+                                percent={Math.round(((selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) / 46) * 100)} 
                                 strokeColor={(selectedCandidate.totalMarks || calculateMarks(selectedCandidate)) > 30 ? '#52c41a' : '#1890ff'}
                             />
                         </Table.Summary.Cell>
@@ -757,9 +799,16 @@ const AddCandidate = () => {
                 )}
             />
 
-            {selectedCandidate.resumeUrl && (
+            {selectedCandidate.resume && (
               <div style={{ textAlign: 'center', marginTop: 32 }}>
-                <Button type="primary" ghost size="large" icon={<FilePdfOutlined />} onClick={() => window.open(selectedCandidate.resumeUrl, '_blank')} style={{ borderRadius: 8 }}>
+                <Button
+                  type="primary"
+                  ghost
+                  size="large"
+                  icon={<FilePdfOutlined />}
+                  onClick={() => window.open(`${import.meta.env.VITE_API_URL}/candidate-resumes/${selectedCandidate.resume}`, '_blank')}
+                  style={{ borderRadius: 8 }}
+                >
                   View Candidate Resume / Documents
                 </Button>
               </div>

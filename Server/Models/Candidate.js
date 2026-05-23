@@ -293,14 +293,22 @@ function calculateMarks(candidate) {
   marks += locationMarks[candidate.location] || 0;
 
   // 8. Native place marks
-  marks += candidate.nativePlace === "Bhopal" ? 2 : 1;
+  if (candidate.nativePlace === "Bhopal") {
+    marks += 2;
+  } else if (candidate.nativePlace) {
+    marks += 1;
+  }
 
   // 9. Salary expectation marks
   const salaryMarks = { "12-15K": 3, "15-18K": 2, "18-20K": 1, "20-25k": 1 };
   marks += salaryMarks[candidate.salaryExpectation] || 0;
 
   // 10. Vehicle marks
-  marks += candidate.vehicle ? 2 : 1;
+  if (candidate.vehicle === "YES" || candidate.vehicle === true) {
+    marks += 2;
+  } else if (candidate.vehicle === "NO" || candidate.vehicle === false) {
+    marks += 1;
+  }
 
   return marks;
 }
