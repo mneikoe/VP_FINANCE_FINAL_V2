@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { ConfigProvider } from "antd";
-import UnifiedNavbar from "../Dashbord/UnifiedNavbar";
-import { hrMenuConfig } from "../../config/menuConfigs";
+import { ConfigProvider, Layout } from "antd";
+import HRSidebar from "./HRSidebar";
+import HRTopBar from "./HRTopBar";
 
 // Import HR Dashboard Components
 import HRDashboardHome from "./HRDashboardHome.jsx";
@@ -24,59 +24,93 @@ import HRActions from "./modules/HRActions.jsx";
 import EmployeeList from "../Employee/OfficeAdmin/EmployeeList";
 import EmployeeDetails from "../Employee/OfficeAdmin/EmployeeDetails";
 
+const { Content } = Layout;
+
 const HRDashboard = () => {
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+
+  const siderWidth = collapsed ? 72 : 260;
 
   return (
     <ConfigProvider
       theme={{
         token: {
           colorPrimary: "#f27405",
-          borderRadius: 12,
-          fontFamily: "'Outfit', sans-serif",
+          borderRadius: 10,
+          fontFamily: "'Inter', 'Outfit', sans-serif",
         },
       }}
     >
-      <div className="min-h-screen bg-slate-50 font-outfit">
-        <UnifiedNavbar role="HR" menuConfig={hrMenuConfig} />
-        
-        <main className="relative z-0 p-4 lg:p-8 animate-in fade-in duration-500">
-          <div className="mx-auto max-w-[1920px]">
+      <Layout style={{ minHeight: "100vh", background: "#f8fafc" }}>
+        {/* ── Collapsible Sidebar ────────────────────────────── */}
+        <HRSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+
+        {/* ── Main area pushed right by sidebar width ─────────── */}
+        <Layout
+          style={{
+            marginLeft: siderWidth,
+            transition: "margin-left 0.25s ease",
+            background: "#f8fafc",
+            minHeight: "100vh",
+          }}
+        >
+          {/* ── Sticky Top Bar ─────────────────────────────────── */}
+          <HRTopBar collapsed={collapsed} setCollapsed={setCollapsed} />
+
+          {/* ── Page Content ───────────────────────────────────── */}
+          <Content
+            style={{
+              padding: "24px",
+              minHeight: "calc(100vh - 56px)",
+            }}
+          >
             <Routes>
-              {/* Default Dashboard Route */}
+              {/* Default */}
               <Route path="/" element={<HRDashboardHome />} />
               <Route path="/home" element={<HRDashboardHome />} />
 
-              {/* HR Module Routes */}
+              {/* Recruitment */}
               <Route path="/vacancies" element={<VacancyManagement />} />
               <Route path="/add-candidate" element={<AddCandidate />} />
               <Route path="/career-enquiry" element={<CareerEnquiry />} />
               <Route path="/resume-shortlist" element={<ResumeShortlist />} />
+
+              {/* Process */}
               <Route path="/interview-process" element={<InterviewProcess />} />
               <Route path="/joining-data" element={<JoiningData />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/business-associates" element={<BusinessAssociates />} />
               <Route
                 path="/add-employee-from-candidates"
                 element={<AddEmployeeFromCandidates />}
               />
 
-              {/* New Routes for Business Associates */}
-              <Route path="/internship-students" element={<InternshipStudents />} />
-              <Route path="/rules-regulations" element={<RulesRegulations />} />
+              {/* Employees */}
+              <Route path="/all-employee" element={<EmployeeList />} />
+              <Route path="/employee/:id" element={<EmployeeDetails />} />
+              <Route
+                path="/internship-students"
+                element={<InternshipStudents />}
+              />
+
+              {/* Organisation */}
+              <Route path="/analytics" element={<Analytics />} />
+              <Route
+                path="/business-associates"
+                element={<BusinessAssociates />}
+              />
+              <Route
+                path="/rules-regulations"
+                element={<RulesRegulations />}
+              />
               <Route path="/future-plans" element={<FuturePlans />} />
               <Route path="/hr-actions" element={<HRActions />} />
 
-              {/* Employee Management Routes */}
-              <Route path="/all-employee" element={<EmployeeList />} />
-              <Route path="/employee/:id" element={<EmployeeDetails />} />
-
-              {/* Catch all route - redirect to dashboard */}
+              {/* Fallback */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-          </div>
-        </main>
-      </div>
+          </Content>
+        </Layout>
+      </Layout>
     </ConfigProvider>
   );
 };

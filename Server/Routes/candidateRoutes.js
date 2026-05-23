@@ -59,19 +59,6 @@ router.post("/add", upload.single("resume"), async (req, res) => {
     console.log("📥 Received request body:", req.body);
     console.log("📁 Received resume file:", req.file);
 
-    // ✅ DEBUG: Check all fields
-    console.log("🔍 Field Check:");
-    console.log("candidateName:", req.body.candidateName);
-    console.log("mobileNo:", req.body.mobileNo);
-    console.log("appliedFor:", req.body.appliedFor);
-    console.log("vehicle:", req.body.vehicle, "type:", typeof req.body.vehicle);
-    console.log(
-      "spokenEnglish:",
-      req.body.spokenEnglish,
-      "type:",
-      typeof req.body.spokenEnglish
-    );
-
     const {
       candidateName,
       mobileNo,
@@ -82,20 +69,30 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       vehicle,
       location,
       nativePlace,
-      spokenEnglish,
       salaryExpectation,
+      referredBy,
+      computerKnowledge,
+      // Sales Experience (flat from form)
+      adminTeamMgmt,
+      salesInsFin,
+      salesAnyField,
+      fieldWork,
+      salesOther,
+      // Operational Activities (flat from form)
+      insuranceField,
+      dataManagement,
+      backOffice,
+      expOther,
+      // old fields
       administrative,
       insuranceSales,
       anySales,
-      fieldWork,
-      dataManagement,
-      backOffice,
       mis,
       appliedFor,
       interviewDate,
     } = req.body;
 
-    // ✅ SIMPLE VALIDATION - Remove strict checks temporarily
+    // Simple validation
     if (!candidateName || !mobileNo) {
       return res.status(400).json({
         success: false,
@@ -103,7 +100,6 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       });
     }
 
-    // ✅ Check if appliedFor is valid ObjectId
     if (!appliedFor) {
       return res.status(400).json({
         success: false,
@@ -111,9 +107,8 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       });
     }
 
-    // ✅ Convert string booleans to actual booleans
-    const vehicleBool = vehicle === "true";
-    const spokenEnglishBool = spokenEnglish === "true";
+    // Helper: convert any truthy string/bool to boolean
+    const toBool = (v) => v === true || v === "true" || v === "YES" || v === "yes" || v === "1";
 
     const candidateData = {
       candidateName,
@@ -122,21 +117,34 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       designation: designation || "",
       education: education || "",
       ageGroup: ageGroup || "",
-      vehicle: vehicleBool,
+      vehicle: toBool(vehicle),
       location: location || "",
       nativePlace: nativePlace || "",
-      spokenEnglish: spokenEnglishBool,
       salaryExpectation: salaryExpectation || "",
+      referredBy: referredBy || "None",
+      computerKnowledge: computerKnowledge || "None",
+      // Sales Experience (nested in model)
+      salesExperience: {
+        adminTeamMgmt: toBool(adminTeamMgmt),
+        salesInsFin: toBool(salesInsFin),
+        salesAnyField: toBool(salesAnyField),
+        fieldWork: toBool(fieldWork),
+        salesOther: toBool(salesOther),
+      },
+      // Operational Activities (nested in model)
+      operationalActivities: {
+        insuranceField: toBool(insuranceField),
+        dataManagement: toBool(dataManagement),
+        backOffice: toBool(backOffice),
+        anyOther: toBool(expOther),
+        mis: toBool(mis),
+      },
+      // Legacy experienceFields fallback
       experienceFields: {
         administrative: parseInt(administrative) || 0,
         insuranceSales: parseInt(insuranceSales) || 0,
         anySales: parseInt(anySales) || 0,
         fieldWork: parseInt(fieldWork) || 0,
-      },
-      operationalActivities: {
-        dataManagement: parseInt(dataManagement) || 0,
-        backOffice: parseInt(backOffice) || 0,
-        mis: parseInt(mis) || 0,
       },
       appliedFor,
       interviewDate: interviewDate || null,
@@ -144,8 +152,6 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       currentStatus: "Career Enquiry",
       appliedDate: new Date(),
     };
-
-    console.log("💾 Candidate data to save:", candidateData);
 
     if (req.file) {
       candidateData.resume = req.file.filename;
@@ -169,7 +175,6 @@ router.post("/add", upload.single("resume"), async (req, res) => {
   } catch (error) {
     console.error("❌ Error adding candidate:", error);
 
-    // ✅ More detailed error information
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -191,10 +196,191 @@ router.post("/add", upload.single("resume"), async (req, res) => {
       success: false,
       message: "Error adding candidate",
       error: error.message,
-      stack: error.stack,
     });
   }
 });
+
+// Update candidate evaluation (Reevaluation)
+router.put("/:id", upload.single("resume"), async (req, res) => {
+  try {
+    const candidateId = req.params.id;
+    console.log(`📥 Received reevaluation request for candidate ID: ${candidateId}`);
+    console.log("📥 Body:", req.body);
+    console.log("📁 File:", req.file);
+
+    const candidate = await Candidate.findById(candidateId);
+    if (!candidate) {
+      return res.status(404).json({
+        success: false,
+        message: "Candidate not found",
+      });
+    }
+
+    const {
+      candidateName,
+      mobileNo,
+      email,
+      designation,
+      education,
+      ageGroup,
+      vehicle,
+      location,
+      nativePlace,
+      salaryExpectation,
+      referredBy,
+      computerKnowledge,
+      // Sales Experience (flat from form)
+      adminTeamMgmt,
+      salesInsFin,
+      salesAnyField,
+      fieldWork,
+      salesOther,
+      // Operational Activities (flat from form)
+      insuranceField,
+      dataManagement,
+      backOffice,
+      expOther,
+      // legacy fields
+      administrative,
+      insuranceSales,
+      anySales,
+      mis,
+      appliedFor,
+      interviewDate,
+    } = req.body;
+
+    if (candidateName) candidate.candidateName = candidateName;
+    if (mobileNo) candidate.mobileNo = mobileNo;
+    if (email !== undefined) candidate.email = email || "";
+    if (designation !== undefined) candidate.designation = designation || "";
+    if (education !== undefined) candidate.education = education || "";
+    if (ageGroup !== undefined) candidate.ageGroup = ageGroup || "";
+    if (location !== undefined) candidate.location = location || "";
+    if (nativePlace !== undefined) candidate.nativePlace = nativePlace || "";
+    if (salaryExpectation !== undefined) candidate.salaryExpectation = salaryExpectation || "";
+    if (referredBy !== undefined) candidate.referredBy = referredBy || "None";
+    if (computerKnowledge !== undefined) candidate.computerKnowledge = computerKnowledge || "None";
+    if (appliedFor) candidate.appliedFor = appliedFor;
+    if (interviewDate !== undefined) {
+      candidate.interviewDate = interviewDate && interviewDate !== "null" ? new Date(interviewDate) : null;
+    }
+
+    // Helper: convert any truthy string/bool to boolean
+    const toBool = (v) => v === true || v === "true" || v === "YES" || v === "yes" || v === "1";
+
+    if (vehicle !== undefined) {
+      candidate.vehicle = toBool(vehicle);
+    }
+
+    // Update nested Sales Experience
+    candidate.salesExperience = {
+      adminTeamMgmt: toBool(adminTeamMgmt),
+      salesInsFin: toBool(salesInsFin),
+      salesAnyField: toBool(salesAnyField),
+      fieldWork: toBool(fieldWork),
+      salesOther: toBool(salesOther),
+    };
+
+    // Update nested Operational Activities
+    candidate.operationalActivities = {
+      insuranceField: toBool(insuranceField),
+      dataManagement: toBool(dataManagement),
+      backOffice: toBool(backOffice),
+      anyOther: toBool(expOther),
+      mis: toBool(mis),
+    };
+
+    // Update legacy experience fields if provided
+    candidate.experienceFields = {
+      administrative: parseInt(administrative) || 0,
+      insuranceSales: parseInt(insuranceSales) || 0,
+      anySales: parseInt(anySales) || 0,
+      fieldWork: parseInt(fieldWork) || 0,
+    };
+
+    if (req.file) {
+      // Delete old resume file if it exists
+      if (candidate.resume) {
+        const oldResumePath = path.join(uploadDir, candidate.resume);
+        if (fs.existsSync(oldResumePath)) {
+          try {
+            fs.unlinkSync(oldResumePath);
+            console.log(`🗑️ Deleted old resume: ${candidate.resume}`);
+          } catch (err) {
+            console.error(`⚠️ Failed to delete old resume: ${err.message}`);
+          }
+        }
+      }
+      candidate.resume = req.file.filename;
+    }
+
+    // Manually calculate marks to update status before pre-save middleware updates totalMarks
+    let marks = 0;
+    const referredMarks = { "Internship": 3, "Referred By": 2, "Platofrm Indeep": 1, "Job Hai": 1 };
+    marks += referredMarks[candidate.referredBy] || 0;
+    const ageMarks = { "31-45yr": 3, "26yr-30yr": 2, "20-25yr": 1 };
+    marks += ageMarks[candidate.ageGroup] || 0;
+    const eduMarks = { "PG with any financial Subject": 3, "Maths/Economics/MBA": 2, "Graduate": 1 };
+    marks += eduMarks[candidate.education] || 0;
+    marks += candidate.operationalActivities?.insuranceField ? 4 : 0;
+    marks += candidate.operationalActivities?.dataManagement ? 3 : 0;
+    marks += candidate.operationalActivities?.backOffice ? 2 : 0;
+    marks += candidate.operationalActivities?.anyOther ? 1 : 0;
+    marks += candidate.salesExperience?.adminTeamMgmt ? 5 : 0;
+    marks += candidate.salesExperience?.salesInsFin ? 4 : 0;
+    marks += candidate.salesExperience?.salesAnyField ? 3 : 0;
+    marks += candidate.salesExperience?.fieldWork ? 2 : 0;
+    marks += candidate.salesExperience?.salesOther ? 1 : 0;
+    const compMarks = { "Advance (M.S office)": 3, "MIS + EXCEL": 2, "Basic": 1 };
+    marks += compMarks[candidate.computerKnowledge] || 0;
+    const locationMarks = { "H.B Road": 2, "Arera Colony": 2, "BHEL": 1, "Mandideep": 1, "Others": 1 };
+    marks += locationMarks[candidate.location] || 0;
+    if (candidate.nativePlace === "Bhopal") {
+      marks += 2;
+    } else if (candidate.nativePlace) {
+      marks += 1;
+    }
+    const salaryMarks = { "12-15K": 3, "15-18K": 2, "18-20K": 1, "20-25k": 1 };
+    marks += salaryMarks[candidate.salaryExpectation] || 0;
+    if (candidate.vehicle === true) {
+      marks += 2;
+    } else {
+      marks += 1;
+    }
+
+    console.log(`📊 Calculated marks during update: ${marks}`);
+
+    // If candidate's stage is Rejected and they get passing marks, or vice versa
+    if (marks < 20) {
+      candidate.currentStage = "Rejected";
+      candidate.currentStatus = "Rejected";
+    } else if (candidate.currentStage === "Rejected") {
+      candidate.currentStage = "Career Enquiry";
+      candidate.currentStatus = "Career Enquiry";
+    }
+
+    await candidate.save();
+    await candidate.populate("appliedFor", "designation");
+
+    res.json({
+      success: true,
+      message: "Candidate reevaluated and updated successfully",
+      candidate: {
+        ...candidate.toObject(),
+        totalMarks: candidate.totalMarks,
+        shortlisted: candidate.shortlisted,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error updating candidate:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating candidate",
+      error: error.message,
+    });
+  }
+});
+
 
 // Update candidate stage
 router.put("/:id/stage", async (req, res) => {

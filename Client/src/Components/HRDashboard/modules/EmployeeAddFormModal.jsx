@@ -18,6 +18,7 @@ import {
   Alert,
   Descriptions,
   Tag,
+  Upload,
 } from "antd";
 import {
   UserOutlined,
@@ -27,6 +28,9 @@ import {
   HistoryOutlined,
   PlusOutlined,
   CheckCircleOutlined,
+  PaperClipOutlined,
+  UploadOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -39,6 +43,68 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("1");
+  const [documents, setDocuments] = useState([]);
+
+  const addDocumentRow = () => {
+    setDocuments([
+      ...documents,
+      {
+        key: Date.now() + Math.random(),
+        title: "",
+        file: null,
+        filePath: "",
+        status: "idle",
+      },
+    ]);
+  };
+
+  const handleTitleChange = (key, titleValue) => {
+    setDocuments((prev) =>
+      prev.map((doc) => (doc.key === key ? { ...doc, title: titleValue } : doc))
+    );
+  };
+
+  const handleFileUpload = async (key, file) => {
+    setDocuments((prev) =>
+      prev.map((doc) =>
+        doc.key === key ? { ...doc, file: file, status: "uploading" } : doc
+      )
+    );
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await axios.post("/api/employee/upload-temp-doc", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (response.data.success) {
+        setDocuments((prev) =>
+          prev.map((doc) =>
+            doc.key === key
+              ? {
+                  ...doc,
+                  filePath: response.data.filePath,
+                  status: "done",
+                }
+              : doc
+          )
+        );
+        message.success(`Uploaded ${file.name} successfully!`);
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.key === key ? { ...doc, status: "error" } : doc))
+      );
+      message.error(`Failed to upload ${file.name}`);
+    }
+  };
+
+  const removeDocumentRow = (key) => {
+    setDocuments((prev) => prev.filter((doc) => doc.key !== key));
+  };
 
   // Initial State for Office Kit
   const defaultItems = {
@@ -153,6 +219,15 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
         monthly: monthlyKit.filter(k => k.enabled).map(({ enabled, ...rest }) => ({ ...rest, allotmentDate: rest.allotmentDate.toDate() }))
       };
 
+      // Prepare custom documents
+      const generalDocuments = documents
+        .filter(doc => doc.status === "done" && doc.filePath)
+        .map(doc => ({
+          name: doc.title || doc.file.name,
+          path: doc.filePath,
+          category: "Employee Custom Document"
+        }));
+
       // Prepare Recruitment Details
       const recruitmentDetails = {
         candidateId: candidate._id,
@@ -176,6 +251,7 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
         ...values,
         officeKitAllotment,
         recruitmentDetails,
+        generalDocuments,
         dateOfJoining: values.dateOfJoining.toDate(),
       };
 
@@ -442,6 +518,72 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
                 </Col>
               </Row>
            </Form>
+        </TabPane>
+
+        {/* TAB 5: DOCUMENTS */}
+        <TabPane tab={<span><PaperClipOutlined /> Documents</span>} key="5">
+           <div className="p-3">
+              <Alert 
+                message="Upload custom documents for this employee (e.g. Aadhar Card, PAN Card, Marksheets). You can enter a custom title for each document." 
+                type="info" 
+                showIcon 
+                style={{ marginBottom: 16 }}
+              />
+              
+              <div style={{ marginBottom: 16 }}>
+                <Button type="dashed" onClick={addDocumentRow} icon={<PlusOutlined />} block>
+                  Add Document
+                </Button>
+              </div>
+
+              {documents.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', background: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9' }}>
+                  <Text type="secondary">No documents added yet. Click "Add Document" to start.</Text>
+                </div>
+              ) : (
+                <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                  {documents.map((doc) => (
+                    <Row gutter={16} key={doc.key} align="middle" style={{ marginBottom: 12, padding: 8, background: '#fafafa', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+                      <Col span={10}>
+                        <Input 
+                          placeholder="Document Title (e.g. Aadhar Card)" 
+                          value={doc.title} 
+                          onChange={(e) => handleTitleChange(doc.key, e.target.value)}
+                        />
+                      </Col>
+                      <Col span={10}>
+                        <Upload
+                          beforeUpload={(file) => {
+                            handleFileUpload(doc.key, file);
+                            return false; // Prevent automatic upload
+                          }}
+                          fileList={doc.file ? [{
+                            uid: doc.key,
+                            name: doc.file.name,
+                            status: doc.status === 'done' ? 'done' : doc.status === 'uploading' ? 'uploading' : 'error'
+                          }] : []}
+                          maxCount={1}
+                          onRemove={() => {
+                            setDocuments(prev => prev.map(d => d.key === doc.key ? { ...d, file: null, filePath: "", status: "idle" } : d));
+                          }}
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.csv"
+                        >
+                          {!doc.file && <Button icon={<UploadOutlined />}>Select File</Button>}
+                        </Upload>
+                      </Col>
+                      <Col span={4} style={{ textAlign: 'right' }}>
+                        <Button 
+                          type="text" 
+                          danger 
+                          icon={<DeleteOutlined />} 
+                          onClick={() => removeDocumentRow(doc.key)}
+                        />
+                      </Col>
+                    </Row>
+                  ))}
+                </div>
+              )}
+           </div>
         </TabPane>
 
         {/* TAB 4: RECRUITMENT TRAIL */}

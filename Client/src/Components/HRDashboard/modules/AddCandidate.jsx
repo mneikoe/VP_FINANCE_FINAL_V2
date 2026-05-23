@@ -58,6 +58,8 @@ const AddCandidate = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [resume, setResume] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingCandidateId, setEditingCandidateId] = useState(null);
   const { message, modal } = App.useApp();
 
   useEffect(() => {
@@ -239,21 +241,78 @@ const AddCandidate = () => {
     }
 
     try {
-      const res = await axiosInstance.post("/api/addcandidate/add", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      let res;
+      if (isEditMode) {
+        res = await axiosInstance.put(`/api/addcandidate/${editingCandidateId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        res = await axiosInstance.post("/api/addcandidate/add", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
       if (res.data.success) {
-        message.success("Candidate added successfully!");
+        message.success(isEditMode ? "Candidate reevaluated and updated successfully!" : "Candidate added successfully!");
         form.resetFields();
         setResume(null);
+        setIsEditMode(false);
+        setEditingCandidateId(null);
         fetchData();
         setActiveTab("2");
       }
     } catch (error) {
-      message.error("Failed to add candidate");
+      message.error(isEditMode ? "Failed to update candidate" : "Failed to add candidate");
     } finally {
       setSubmitLoading(false);
     }
+  };
+
+  const handleRevaluate = (record) => {
+    setIsEditMode(true);
+    setEditingCandidateId(record._id);
+    
+    // Map record to form values
+    const vehicleStr = record.vehicle === true ? "YES" : record.vehicle === false ? "NO" : undefined;
+    const formValues = {
+      candidateName: record.candidateName,
+      mobileNo: record.mobileNo,
+      email: record.email,
+      referredBy: record.referredBy,
+      education: record.education,
+      ageGroup: record.ageGroup,
+      computerKnowledge: record.computerKnowledge,
+      location: record.location,
+      nativePlace: record.nativePlace,
+      salaryExpectation: record.salaryExpectation,
+      vehicle: vehicleStr,
+      appliedFor: record.appliedFor?._id || record.appliedFor,
+      interviewDate: record.interviewDate ? dayjs(record.interviewDate) : null,
+      
+      // Flat sales fields
+      adminTeamMgmt: record.salesExperience?.adminTeamMgmt || false,
+      salesInsFin: record.salesExperience?.salesInsFin || false,
+      salesAnyField: record.salesExperience?.salesAnyField || false,
+      fieldWork: record.salesExperience?.fieldWork || false,
+      salesOther: record.salesExperience?.salesOther || false,
+      
+      // Flat operations fields
+      insuranceField: record.operationalActivities?.insuranceField || false,
+      dataManagement: record.operationalActivities?.dataManagement || false,
+      backOffice: record.operationalActivities?.backOffice || false,
+      expOther: record.operationalActivities?.anyOther || false,
+    };
+    
+    form.setFieldsValue(formValues);
+    setResume(null); // Clear any unsaved file selection
+    setActiveTab("1");
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setEditingCandidateId(null);
+    form.resetFields();
+    setResume(null);
+    setActiveTab("2");
   };
 
   const handleDelete = (id) => {
@@ -331,7 +390,8 @@ const AddCandidate = () => {
             'Resume Shortlisted': 'cyan',
             'Interview Process': 'blue',
             'Selected': 'green',
-            'Joining Data': 'purple'
+            'Joining Data': 'purple',
+            'Rejected': 'red'
         };
         return <Tag color={colors[stage] || 'blue'}>{stage || "Applied"}</Tag>;
       }
@@ -348,6 +408,15 @@ const AddCandidate = () => {
                 onClick={() => { setSelectedCandidate(record); setIsModalOpen(true); }}
               />
           </Tooltip>
+          {record.currentStage === "Rejected" && (
+            <Tooltip title="Reevaluate Candidate">
+                <Button 
+                  type="text" 
+                  icon={<SyncOutlined style={{ color: '#faad14' }} />} 
+                  onClick={() => handleRevaluate(record)}
+                />
+            </Tooltip>
+          )}
           <Tooltip title="Delete Candidate">
               <Button 
                 type="text" 
@@ -382,7 +451,7 @@ const AddCandidate = () => {
         items={[
           {
             key: "1",
-            label: <Space><UserAddOutlined /> New Candidate Evaluation</Space>,
+            label: <Space><UserAddOutlined /> {isEditMode ? "Revaluate Candidate" : "New Candidate Evaluation"}</Space>,
             children: (
               <Card bordered={false} style={{ borderRadius: '0 0 12px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Form
@@ -396,7 +465,7 @@ const AddCandidate = () => {
                 >
                   <Row gutter={24}>
                     <Col xs={24} lg={16}>
-                        <Divider orientation="left" style={{ marginTop: 0 }}><UserAddOutlined /> Basic Profile & Qualifications</Divider>
+                        <Divider orientation="left" style={{ marginTop: 0 }}><UserAddOutlined /> {isEditMode ? "Reevaluate Profile" : "Basic Profile & Qualifications"}</Divider>
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item label="Full Name" name="candidateName" rules={[{ required: true }]}>
@@ -633,8 +702,18 @@ const AddCandidate = () => {
                                                 loading={submitLoading}
                                                 style={{ marginTop: 16, height: 45, borderRadius: 8 }}
                                             >
-                                                Save Candidate Evaluation
+                                                {isEditMode ? "Update & Reevaluate Candidate" : "Save Candidate Evaluation"}
                                             </Button>
+                                            {isEditMode && (
+                                                <Button 
+                                                    block 
+                                                    size="large" 
+                                                    onClick={handleCancelEdit}
+                                                    style={{ marginTop: 8, height: 45, borderRadius: 8 }}
+                                                >
+                                                    Cancel Reevaluation
+                                                </Button>
+                                            )}
                                         </div>
                                     );
                                 }}
@@ -648,7 +727,7 @@ const AddCandidate = () => {
           },
           {
             key: "2",
-            label: <Space><UnorderedListOutlined /> Evaluation Pipeline</Space>,
+            label: <Space><UnorderedListOutlined /> View Candidate</Space>,
             children: (
               <Card variant="borderless" style={{ borderRadius: '0 0 12px 12px' }} styles={{ body: { padding: 0 } }}>
                 <Table 

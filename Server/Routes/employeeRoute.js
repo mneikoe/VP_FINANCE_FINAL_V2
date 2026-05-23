@@ -35,4 +35,23 @@ router.get("/getClientsByAllocatedRM", getClientsByAllocatedRM);
 // ✅ Document upload route
 router.post("/upload-document", upload.single("file"), uploadEmployeeDocument);
 
+// ✅ Generic upload route for employee documents (before employee is created)
+router.post("/upload-temp-doc", upload.single("file"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+    const filePath = `/Images/${req.file.filename}`;
+    res.json({
+      success: true,
+      message: "File uploaded successfully",
+      filePath: filePath,
+      filename: req.file.originalname
+    });
+  } catch (error) {
+    console.error("❌ Temp file upload error:", error);
+    res.status(500).json({ success: false, message: "Error uploading file", error: error.message });
+  }
+});
+
 module.exports = router;
