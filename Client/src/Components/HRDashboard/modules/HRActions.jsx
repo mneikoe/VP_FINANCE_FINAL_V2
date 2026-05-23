@@ -54,7 +54,7 @@ const HRActions = () => {
     try {
       setLoading(true);
       const [empRes, actionRes] = await Promise.all([
-        axiosInstance.get("/api/employee/getallEmployee"),
+        axiosInstance.get("/api/employee/getAllEmployees?limit=1000"),
         axiosInstance.get("/api/hr-actions/get-all/actions"),
       ]);
       setEmployees(empRes.data.data || []);
@@ -164,7 +164,9 @@ const HRActions = () => {
                       <ul style={{ marginTop: 8 }}>
                         {record.files.map((file, i) => (
                           <li key={i}>
-                            <a href={`/uploads/${file}`} target="_blank" rel="noreferrer">{file}</a>
+                            <a href={file?.path ? `${import.meta.env.VITE_API_URL || ''}${file.path}` : `${import.meta.env.VITE_API_URL || ''}/uploads/${file}`} target="_blank" rel="noreferrer">
+                              {file?.name || file}
+                            </a>
                           </li>
                         ))}
                       </ul>
