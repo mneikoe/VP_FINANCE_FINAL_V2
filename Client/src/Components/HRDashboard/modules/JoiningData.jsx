@@ -296,7 +296,7 @@ const JoiningData = () => {
             <Button 
                 type="primary" 
                 icon={<UserAddOutlined />} 
-                onClick={() => updateStatus(record._id, "Added as Employee")}
+                onClick={() => updateStatus(record._id, "Joining Letter Sent")}
                 style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
             />
           </Tooltip>
@@ -507,7 +507,7 @@ const JoiningData = () => {
                 <Button 
                     type="primary" 
                     icon={<UserAddOutlined />} 
-                    onClick={() => updateStatus(selectedCandidate._id, "Added as Employee")}
+                    onClick={() => updateStatus(selectedCandidate._id, "Joining Letter Sent")}
                     style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
                 >
                     Complete Hiring
