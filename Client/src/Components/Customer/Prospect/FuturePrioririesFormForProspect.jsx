@@ -32,6 +32,7 @@ const initialFuturePriorityForm = {
   maturityDate: "",
   remark: "",
   documents: [],
+  customFields: [],
 };
 
 const initialNeeds = {
@@ -55,6 +56,15 @@ const FuturePrioritiesFormForProspect= ({ clientId }) => {
   const [needs, setNeeds] = useState(initialNeeds);
   const [priorityFiles, setPriorityFiles] = useState({});
   const [familyMembers, setFamilyMembers] = useState([]);
+  const [customerName, setCustomerName] = useState("");
+
+  const getMemberList = () => {
+    if (familyMembers && familyMembers.length > 0) {
+      return familyMembers;
+    }
+    const selfName = customerName || client?.personalDetails?.name || client?.name || "";
+    return [{ _id: "self", name: selfName || "Self" }];
+  };
 
   useEffect(() => {
     if (clientId) {
@@ -74,9 +84,10 @@ const FuturePrioritiesFormForProspect= ({ clientId }) => {
         const result = response.data;
         if (result.success) {
              setFamilyMembers(result.client.familyMembers || []);
+             setCustomerName(result.client.personalDetails?.name || "");
           setSavedFuturePriorityForms(result.client.futurePriorities || []);
           // Prepopulate forms with existing financial info
-       
+        
         } else {
           toast.error(result.message || "Failed to load client data.");
         }
@@ -94,6 +105,7 @@ const FuturePrioritiesFormForProspect= ({ clientId }) => {
     if (client) {
       console.log("Client data:", client); // Debug
       setFamilyMembers(client.familyMembers || []);
+      setCustomerName(client.personalDetails?.name || "");
       setSavedFuturePriorityForms(client.futurePriorities || []);
 console.log("savedFuturePriorityForms",savedFuturePriorityForms)
   
@@ -138,6 +150,70 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
             : value,
       },
     }));
+  };
+
+  const handleAddCustomField = (priority, key, value) => {
+    setFuturePriorityForms((prev) => {
+      const item = prev[priority] || {
+        ...initialFuturePriorityForm,
+        priorityName: priority,
+        submissionDate: getCurrentDate(),
+      };
+      const customFields = [...(item.customFields || []), { key, value }];
+      return { ...prev, [priority]: { ...item, customFields } };
+    });
+  };
+
+  const handleCustomFieldChange = (priority, idx, value) => {
+    setFuturePriorityForms((prev) => {
+      const item = prev[priority];
+      const customFields = [...(item.customFields || [])];
+      customFields[idx] = { ...customFields[idx], value };
+      return { ...prev, [priority]: { ...item, customFields } };
+    });
+  };
+
+  const handleCustomFieldKeyChange = (priority, idx, key) => {
+    setFuturePriorityForms((prev) => {
+      const item = prev[priority];
+      const customFields = [...(item.customFields || [])];
+      customFields[idx] = { ...customFields[idx], key };
+      return { ...prev, [priority]: { ...item, customFields } };
+    });
+  };
+
+  const handleCustomLabelChange = (priority, field, newLabel) => {
+    setFuturePriorityForms((prev) => {
+      const item = prev[priority] || {
+        ...initialFuturePriorityForm,
+        priorityName: priority,
+        submissionDate: getCurrentDate(),
+      };
+      const customLabels = { ...(item.customLabels || {}), [field]: newLabel };
+      return { ...prev, [priority]: { ...item, customLabels } };
+    });
+  };
+
+  const renderLabel = (priority, field, defaultLabel) => {
+    const currentLabel = futurePriorityForms[priority]?.customLabels?.[field] || defaultLabel;
+    return (
+      <Form.Control
+        type="text"
+        value={currentLabel}
+        onChange={(e) => handleCustomLabelChange(priority, field, e.target.value)}
+        className="mb-1 fw-bold cf-label-input"
+        style={{ fontSize: '0.78rem', minHeight: '24px', padding: '0.1rem 0.3rem', border: 'none', borderBottom: '1px dashed #ced4da', background: 'transparent' }}
+      />
+    );
+  };
+
+
+  const handleRemoveCustomField = (priority, idx) => {
+    setFuturePriorityForms((prev) => {
+      const item = prev[priority];
+      const customFields = (item.customFields || []).filter((_, i) => i !== idx);
+      return { ...prev, [priority]: { ...item, customFields } };
+    });
   };
 
   const handleFileChange = (priority, files) => {
@@ -307,7 +383,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
           <Row className="mb-3">
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Submission Date</Form.Label>
+                {renderLabel(priority, "submissionDate", "Submission Date")}
                 <Form.Control
                   type="date"
                   value={futurePriorityForms[priority]?.submissionDate || getCurrentDate()}
@@ -318,7 +394,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Members</Form.Label>
+                {renderLabel(priority, "members", "Members")}
                 <Form.Select
                   // multiple
                   value={futurePriorityForms[priority]?.members || []}
@@ -331,7 +407,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
                   }
                   required
                 >
-                  {familyMembers.map((member) => (
+                  {getMemberList().map((member) => (
                     <option key={member._id} value={member.name}>
                       {member.name}
                     </option>
@@ -341,11 +417,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>
-                  {priority === "Life Insurance"
-                    ? "Insurance Amount"
-                    : "Approx Amount"}
-                </Form.Label>
+                {renderLabel(priority, "approxAmount", priority === "Life Insurance" ? "Insurance Amount" : "Approx Amount")}
                 <Form.Control
                   type="number"
                   value={futurePriorityForms[priority]?.approxAmount || ""}
@@ -358,7 +430,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
               <>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Individual / Family</Form.Label>
+                    {renderLabel(priority, "individualOrFamily", "Individual / Family")}
                     <Form.Select
                       value={futurePriorityForms[priority]?.individualOrFamily || ""}
                       onChange={(e) =>
@@ -378,7 +450,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Policy Type</Form.Label>
+                    {renderLabel(priority, "policyType", "Policy Type")}
                     <Form.Control
                       type="text"
                       value={futurePriorityForms[priority]?.policyType || ""}
@@ -391,7 +463,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Company Name</Form.Label>
+                    {renderLabel(priority, "companyName", "Company Name")}
                     <Form.Control
                       type="text"
                       value={futurePriorityForms[priority]?.companyName || ""}
@@ -404,7 +476,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Terms / PPT</Form.Label>
+                    {renderLabel(priority, "termPpt", "Terms / PPT")}
                     <Form.Control
                       type="text"
                       value={futurePriorityForms[priority]?.termPpt || ""}
@@ -417,7 +489,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Maturity Date</Form.Label>
+                    {renderLabel(priority, "maturityDate", "Maturity Date")}
                     <Form.Control
                       type="date"
                       value={futurePriorityForms[priority]?.maturityDate || ""}
@@ -432,7 +504,7 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
             )}
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Remark</Form.Label>
+                {renderLabel(priority, "remark", "Remark")}
                 <Form.Control
                   type="text"
                   value={futurePriorityForms[priority]?.remark || ""}
@@ -441,6 +513,79 @@ console.log("savedFuturePriorityForms",savedFuturePriorityForms)
               </Form.Group>
             </Col>
 
+            {/* Custom fields list */}
+            {(futurePriorityForms[priority]?.customFields || []).map((cf, idx) => (
+              <Col md={4} key={idx}>
+                <Form.Group>
+                  <Form.Control
+                    type="text"
+                    value={cf.key || ""}
+                    onChange={(e) => handleCustomFieldKeyChange(priority, idx, e.target.value)}
+                    placeholder="Field Name"
+                    className="mb-1 fw-bold cf-key-input"
+                    style={{ fontSize: '0.78rem', minHeight: '24px', padding: '0.1rem 0.3rem', border: 'none', borderBottom: '1px dashed #ced4da', background: 'transparent' }}
+                  />
+                  <div className="d-flex align-items-center">
+                    <Form.Control
+                      type="text"
+                      value={cf.value || ""}
+                      onChange={(e) => handleCustomFieldChange(priority, idx, e.target.value)}
+                      required
+                    />
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      className="ms-1"
+                      onClick={() => handleRemoveCustomField(priority, idx)}
+                      type="button"
+                    >
+                      &times;
+                    </Button>
+                  </div>
+                </Form.Group>
+              </Col>
+            ))}
+
+            {/* Add Custom Field Form */}
+            <Col md={12} className="mt-2">
+              <div className="d-flex align-items-end gap-2 border p-2 rounded">
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. Goal Target Year"
+                    id={`new-cf-key-priority-${priority.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Value</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Value"
+                    id={`new-cf-val-priority-${priority.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => {
+                    const keyInput = document.getElementById(`new-cf-key-priority-${priority.replace(/\s+/g, '-')}`);
+                    const valInput = document.getElementById(`new-cf-val-priority-${priority.replace(/\s+/g, '-')}`);
+                    if (keyInput && keyInput.value.trim()) {
+                      handleAddCustomField(priority, keyInput.value.trim(), valInput ? valInput.value : "");
+                      keyInput.value = "";
+                      if (valInput) valInput.value = "";
+                    }
+                  }}
+                  type="button"
+                  style={{ minHeight: '28px', fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                >
+                  Add Field
+                </Button>
+              </div>
+            </Col>
           </Row>
           <Button variant="primary" className="me-2 ml-10 mt-2" onClick={() => handleSaveForm(priority)}>
             Save

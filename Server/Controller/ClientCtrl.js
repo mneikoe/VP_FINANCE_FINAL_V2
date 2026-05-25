@@ -993,6 +993,8 @@ exports.addFuturePrioritiesAndNeeds = async (req, res) => {
         termPpt,
         maturityDate,
         duration,
+        customFields,
+        customLabels,
       } = priority;
 
       client.futurePriorities.push({
@@ -1005,6 +1007,8 @@ exports.addFuturePrioritiesAndNeeds = async (req, res) => {
         termPpt: termPpt || "",
         maturityDate: maturityDate || null,
         duration: duration || "",
+        customFields: customFields || [],
+        customLabels: customLabels || {},
       });
     });
 
@@ -1047,8 +1051,8 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
 
     if (!Array.isArray(futurePriorities) || futurePriorities.length === 0) {
       return res.status(400).json({
-        success: false,
-        message: "futurePriorities must be a non-empty array",
+         success: false,
+         message: "futurePriorities must be a non-empty array",
       });
     }
 
@@ -1082,6 +1086,8 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
         termPpt,
         maturityDate,
         duration,
+        customFields,
+        customLabels,
       } = priority;
 
       if (_id) {
@@ -1098,6 +1104,8 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
           existing.termPpt = termPpt || "";
           existing.maturityDate = maturityDate || null;
           existing.duration = duration || "";
+          existing.customFields = customFields || [];
+          existing.customLabels = customLabels || {};
         } else {
           // If ID not found, push new
           client.futurePriorities.push({
@@ -1110,6 +1118,8 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
             termPpt: termPpt || "",
             maturityDate: maturityDate || null,
             duration: duration || "",
+            customFields: customFields || [],
+            customLabels: customLabels || {},
           });
         }
       } else {
@@ -1124,6 +1134,8 @@ exports.updateFuturePrioritiesAndNeeds = async (req, res) => {
           termPpt: termPpt || "",
           maturityDate: maturityDate || null,
           duration: duration || "",
+          customFields: customFields || [],
+          customLabels: customLabels || {},
         });
       }
     });

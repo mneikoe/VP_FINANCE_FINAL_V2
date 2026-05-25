@@ -50,6 +50,13 @@ const financialInfoSchema = new mongoose.Schema({
       term: { type: String, default: "" },
       ppt: { type: String, default: "" },
       document: { type: String, default: null },
+      customFields: [
+        {
+          key: { type: String, default: "" },
+          value: { type: String, default: "" },
+        },
+      ],
+      customLabels: { type: Map, of: String },
     },
   ],
   investments: [
@@ -64,6 +71,13 @@ const financialInfoSchema = new mongoose.Schema({
       startDate: { type: Date, required: true },
       maturityDate: { type: Date, required: true },
       document: { type: String, default: null },
+      customFields: [
+        {
+          key: { type: String, default: "" },
+          value: { type: String, default: "" },
+        },
+      ],
+      customLabels: { type: Map, of: String },
     },
   ],
   loans: [
@@ -78,6 +92,13 @@ const financialInfoSchema = new mongoose.Schema({
       term: { type: String, required: true },
       startDate: { type: Date, required: true },
       maturityDate: { type: Date, required: true },
+      customFields: [
+        {
+          key: { type: String, default: "" },
+          value: { type: String, default: "" },
+        },
+      ],
+      customLabels: { type: Map, of: String },
     },
   ],
 });
@@ -340,6 +361,13 @@ const TestShema = new mongoose.Schema({
       maturityDate: { type: Date, default: null },
       duration: { type: String, default: "" },
       remark: { type: String },
+      customFields: [
+        {
+          key: { type: String, default: "" },
+          value: { type: String, default: "" },
+        },
+      ],
+      customLabels: { type: Map, of: String },
     },
   ],
   proposedPlan: [proposedPlanSchema],

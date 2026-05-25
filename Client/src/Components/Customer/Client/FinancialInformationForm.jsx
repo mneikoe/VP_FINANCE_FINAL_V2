@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Form, Row, Col, Button } from "react-bootstrap";
 import { FaShieldAlt, FaPlus, FaSyncAlt } from "react-icons/fa";
 import { addFinancialInfo, updateFinancialInfo } from "../../../redux/feature/ClientRedux/ClientThunx";
+import { fetchCompanyName } from "../../../redux/feature/ComapnyName/CompanyThunx";
+import { fetchFinancialProduct } from "../../../redux/feature/FinancialProduct/FinancialThunx";
 import { toast } from "react-toastify";
 
 const INSURANCE_OPTIONS = [
@@ -71,6 +73,7 @@ const initialInsuranceForm = {
   term: "",
   ppt: "",
   document: null,
+  customFields: [],
 };
 
 const initialInvestmentForm = {
@@ -86,6 +89,7 @@ const initialInvestmentForm = {
   startDate: "",
   maturityDate: "",
   document: null,
+  customFields: [],
 };
 
 const initialLoanForm = {
@@ -102,11 +106,19 @@ const initialLoanForm = {
   startDate: "",
   maturityDate: "",
   document: null,
+  customFields: [],
 };
 
 const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => {
   const dispatch = useDispatch();
   const { financialInfo, loading, error } = useSelector((state) => state.client || {});
+  const companies = useSelector((state) => state.CompanyName?.CompanyNames || []);
+  const products = useSelector((state) => state.financialProduct?.FinancialProducts || []);
+
+  useEffect(() => {
+    dispatch(fetchCompanyName());
+    dispatch(fetchFinancialProduct());
+  }, [dispatch]);
 
   const [openInsurance, setOpenInsurance] = useState([]);
   const [openInvestments, setOpenInvestments] = useState([]);
@@ -125,6 +137,15 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
   const [loanFiles, setLoanFiles] = useState({});
 
   const [familyMembers, setFamilyMembers] = useState([]);
+  const [customerName, setCustomerName] = useState("");
+
+  const getMemberList = () => {
+    if (familyMembers && familyMembers.length > 0) {
+      return familyMembers;
+    }
+    const selfName = customerName || clientData?.personalDetails?.name || clientData?.name || "";
+    return [{ _id: "self", name: selfName || "Self" }];
+  };
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -134,6 +155,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
         const result = response.data;
         if (result.success) {
           setFamilyMembers(result.client.familyMembers || []);
+          setCustomerName(result.client.personalDetails?.name || "");
           // Prepopulate forms with existing financial info
           if (result.client.financialInfo) {
             setInsuranceForms(result.client.financialInfo.insurance || []);
@@ -200,6 +222,152 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
         ...prev,
         [option]: { ...prev[option], [field]: value },
       }));
+    }
+  };
+
+  const handleAddCustomField = (option, group, key, value) => {
+    if (group === "insurance") {
+      setInsuranceFormData((prev) => {
+        const item = prev[option] || { ...initialInsuranceForm, type: option };
+        const customFields = [...(item.customFields || []), { key, value }];
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "investment") {
+      setInvestmentFormData((prev) => {
+        const item = prev[option] || { ...initialInvestmentForm, type: option };
+        const customFields = [...(item.customFields || []), { key, value }];
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "loan") {
+      setLoanFormData((prev) => {
+        const item = prev[option] || { ...initialLoanForm, type: option };
+        const customFields = [...(item.customFields || []), { key, value }];
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+  };
+
+  const handleCustomFieldChange = (option, group, idx, value) => {
+    if (group === "insurance") {
+      setInsuranceFormData((prev) => {
+        const item = prev[option];
+        const customFields = [...(item.customFields || [])];
+        customFields[idx] = { ...customFields[idx], value };
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "investment") {
+      setInvestmentFormData((prev) => {
+        const item = prev[option];
+        const customFields = [...(item.customFields || [])];
+        customFields[idx] = { ...customFields[idx], value };
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "loan") {
+      setLoanFormData((prev) => {
+        const item = prev[option];
+        const customFields = [...(item.customFields || [])];
+        customFields[idx] = { ...customFields[idx], value };
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+  };
+
+  const handleCustomFieldKeyChange = (option, group, idx, key) => {
+    if (group === "insurance") {
+      setInsuranceFormData((prev) => {
+        const item = prev[option];
+        const customFields = [...(item.customFields || [])];
+        customFields[idx] = { ...customFields[idx], key };
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "investment") {
+      setInvestmentFormData((prev) => {
+        const item = prev[option];
+        const customFields = [...(item.customFields || [])];
+        customFields[idx] = { ...customFields[idx], key };
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "loan") {
+      setLoanFormData((prev) => {
+        const item = prev[option];
+        const customFields = [...(item.customFields || [])];
+        customFields[idx] = { ...customFields[idx], key };
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+  };
+
+  const handleCustomLabelChange = (option, group, field, newLabel) => {
+    if (group === "insurance") {
+      setInsuranceFormData((prev) => {
+        const item = prev[option] || { ...initialInsuranceForm, type: option };
+        const customLabels = { ...(item.customLabels || {}), [field]: newLabel };
+        return { ...prev, [option]: { ...item, customLabels } };
+      });
+    }
+    if (group === "investment") {
+      setInvestmentFormData((prev) => {
+        const item = prev[option] || { ...initialInvestmentForm, type: option };
+        const customLabels = { ...(item.customLabels || {}), [field]: newLabel };
+        return { ...prev, [option]: { ...item, customLabels } };
+      });
+    }
+    if (group === "loan") {
+      setLoanFormData((prev) => {
+        const item = prev[option] || { ...initialLoanForm, type: option };
+        const customLabels = { ...(item.customLabels || {}), [field]: newLabel };
+        return { ...prev, [option]: { ...item, customLabels } };
+      });
+    }
+  };
+
+  const renderLabel = (option, group, field, defaultLabel) => {
+    let currentLabel = defaultLabel;
+    if (group === "insurance") {
+      currentLabel = insuranceFormData[option]?.customLabels?.[field] || defaultLabel;
+    } else if (group === "investment") {
+      currentLabel = investmentFormData[option]?.customLabels?.[field] || defaultLabel;
+    } else if (group === "loan") {
+      currentLabel = loanFormData[option]?.customLabels?.[field] || defaultLabel;
+    }
+    return (
+      <Form.Control
+        type="text"
+        value={currentLabel}
+        onChange={(e) => handleCustomLabelChange(option, group, field, e.target.value)}
+        className="mb-1 fw-bold cf-label-input"
+        style={{ fontSize: '0.78rem', minHeight: '24px', padding: '0.1rem 0.3rem', border: 'none', borderBottom: '1px dashed #ced4da', background: 'transparent' }}
+      />
+    );
+  };
+
+  const handleRemoveCustomField = (option, group, idx) => {
+    if (group === "insurance") {
+      setInsuranceFormData((prev) => {
+        const item = prev[option];
+        const customFields = (item.customFields || []).filter((_, i) => i !== idx);
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "investment") {
+      setInvestmentFormData((prev) => {
+        const item = prev[option];
+        const customFields = (item.customFields || []).filter((_, i) => i !== idx);
+        return { ...prev, [option]: { ...item, customFields } };
+      });
+    }
+    if (group === "loan") {
+      setLoanFormData((prev) => {
+        const item = prev[option];
+        const customFields = (item.customFields || []).filter((_, i) => i !== idx);
+        return { ...prev, [option]: { ...item, customFields } };
+      });
     }
   };
 
@@ -492,7 +660,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
           <Row>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Submission Date</Form.Label>
+                {renderLabel(option, "insurance", "submissionDate", "Submission Date")}
                 <Form.Control
                   type="date"
                   value={insuranceFormData[option]?.submissionDate || getCurrentDate()}
@@ -505,9 +673,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>
-                  {option === "LIC Policy" ? "Policy Holder Name" : "Member Name"}
-                </Form.Label>
+                {renderLabel(option, "insurance", "memberName", option === "LIC Policy" ? "Policy Holder Name" : "Member Name")}
                 <Form.Select
                   name="memberName"
                   value={insuranceFormData[option]?.memberName || ""}
@@ -521,7 +687,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                       ? "Select Policy Holder Name"
                       : "Select Member Name"}
                   </option>
-                  {familyMembers.map((member) => (
+                  {getMemberList().map((member) => (
                     <option key={member._id} value={member.name}>
                       {member.name}
                     </option>
@@ -531,7 +697,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Insurance Company</Form.Label>
+                {renderLabel(option, "insurance", "insuranceCompany", "Insurance Company")}
                 <Form.Select
                   value={insuranceFormData[option]?.insuranceCompany || ""}
                   onChange={(e) =>
@@ -540,17 +706,23 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   required
                 >
                   <option value="">Select Insurance Company</option>
-                  {INSURANCE_COMPANY_OPTIONS.map((company) => (
-                    <option key={company} value={company}>
-                      {company}
-                    </option>
-                  ))}
+                  {companies && companies.length > 0
+                    ? companies.map((company) => (
+                        <option key={company._id} value={company.companyName}>
+                          {company.companyName}
+                        </option>
+                      ))
+                    : INSURANCE_COMPANY_OPTIONS.map((company) => (
+                        <option key={company} value={company}>
+                          {company}
+                        </option>
+                      ))}
                 </Form.Select>
               </Form.Group>
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Policy Number</Form.Label>
+                {renderLabel(option, "insurance", "policyNumber", "Policy Number")}
                 <Form.Control
                   type="text"
                   value={insuranceFormData[option]?.policyNumber || ""}
@@ -563,7 +735,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Plan Name</Form.Label>
+                {renderLabel(option, "insurance", "planName", "Plan Name")}
                 <Form.Control
                   type="text"
                   value={insuranceFormData[option]?.planName || ""}
@@ -576,9 +748,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>
-                  {option === "Motor Policy" ? "DV Value" : "Sum Assured"}
-                </Form.Label>
+                {renderLabel(option, "insurance", "sumAssured", option === "Motor Policy" ? "DV Value" : "Sum Assured")}
                 <Form.Control
                   type="number"
                   value={insuranceFormData[option]?.sumAssured || ""}
@@ -591,7 +761,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Mode</Form.Label>
+                {renderLabel(option, "insurance", "mode", "Mode")}
                 <Form.Select
                   value={insuranceFormData[option]?.mode || ""}
                   onChange={(e) =>
@@ -610,7 +780,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Premium</Form.Label>
+                {renderLabel(option, "insurance", "premium", "Premium")}
                 <Form.Control
                   type="number"
                   value={insuranceFormData[option]?.premium || ""}
@@ -623,7 +793,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Start Date</Form.Label>
+                {renderLabel(option, "insurance", "startDate", "Start Date")}
                 <Form.Control
                   type="date"
                   value={insuranceFormData[option]?.startDate || ""}
@@ -636,9 +806,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>
-                  {option === "Health Policy" ? "Expire Date" : "Maturity Date"}
-                </Form.Label>
+                {renderLabel(option, "insurance", "maturityDate", option === "Health Policy" ? "Expire Date" : "Maturity Date")}
                 <Form.Control
                   type="date"
                   value={insuranceFormData[option]?.maturityDate || ""}
@@ -653,7 +821,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
               <>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Term</Form.Label>
+                    {renderLabel(option, "insurance", "term", "Term")}
                     <Form.Control
                       type="text"
                       value={insuranceFormData[option]?.term || ""}
@@ -666,7 +834,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>PPT</Form.Label>
+                    {renderLabel(option, "insurance", "ppt", "PPT")}
                     <Form.Control
                       type="text"
                       value={insuranceFormData[option]?.ppt || ""}
@@ -689,6 +857,80 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   onChange={(e) => handleFileChange(option, "insurance", e.target.files)}
                 />
               </Form.Group>
+            </Col>
+
+            {/* Custom fields list */}
+            {(insuranceFormData[option]?.customFields || []).map((cf, idx) => (
+              <Col md={4} key={idx}>
+                <Form.Group>
+                  <Form.Control
+                    type="text"
+                    value={cf.key || ""}
+                    onChange={(e) => handleCustomFieldKeyChange(option, "insurance", idx, e.target.value)}
+                    placeholder="Field Name"
+                    className="mb-1 fw-bold cf-key-input"
+                    style={{ fontSize: '0.78rem', minHeight: '24px', padding: '0.1rem 0.3rem', border: 'none', borderBottom: '1px dashed #ced4da', background: 'transparent' }}
+                  />
+                  <div className="d-flex align-items-center">
+                    <Form.Control
+                      type="text"
+                      value={cf.value || ""}
+                      onChange={(e) => handleCustomFieldChange(option, "insurance", idx, e.target.value)}
+                      required
+                    />
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      className="ms-1"
+                      onClick={() => handleRemoveCustomField(option, "insurance", idx)}
+                      type="button"
+                    >
+                      &times;
+                    </Button>
+                  </div>
+                </Form.Group>
+              </Col>
+            ))}
+
+            {/* Add Custom Field Form */}
+            <Col md={12} className="mt-2">
+              <div className="d-flex align-items-end gap-2 border p-2 rounded">
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. Branch Name"
+                    id={`new-cf-key-insurance-${option.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Value</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Value"
+                    id={`new-cf-val-insurance-${option.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => {
+                    const keyInput = document.getElementById(`new-cf-key-insurance-${option.replace(/\s+/g, '-')}`);
+                    const valInput = document.getElementById(`new-cf-val-insurance-${option.replace(/\s+/g, '-')}`);
+                    if (keyInput && keyInput.value.trim()) {
+                      handleAddCustomField(option, "insurance", keyInput.value.trim(), valInput ? valInput.value : "");
+                      keyInput.value = "";
+                      if (valInput) valInput.value = "";
+                    }
+                  }}
+                  type="button"
+                  style={{ minHeight: '28px', fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                >
+                  Add Field
+                </Button>
+              </div>
             </Col>
           </Row>
           <Button
@@ -715,7 +957,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
           <Row>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Submission Date</Form.Label>
+                {renderLabel(option, "investment", "submissionDate", "Submission Date")}
                 <Form.Control
                   type="date"
                   value={investmentFormData[option]?.submissionDate || getCurrentDate()}
@@ -728,7 +970,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Member Name</Form.Label>
+                {renderLabel(option, "investment", "memberName", "Member Name")}
                 <Form.Select
                   name="memberName"
                   value={investmentFormData[option]?.memberName || ""}
@@ -738,7 +980,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   required
                 >
                   <option value="">Select Member Name</option>
-                  {familyMembers.map((member) => (
+                  {getMemberList().map((member) => (
                     <option key={member._id} value={member.name}>
                       {member.name}
                     </option>
@@ -748,33 +990,45 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Financial Product</Form.Label>
-                <Form.Control
-                  type="text"
+                {renderLabel(option, "investment", "financialProduct", "Financial Product")}
+                <Form.Select
                   value={investmentFormData[option]?.financialProduct || ""}
                   onChange={(e) =>
                     handleFormChange(option, "investment", "financialProduct", e.target.value)
                   }
                   required
-                />
+                >
+                  <option value="">Select Financial Product</option>
+                  {products?.map((product) => (
+                    <option key={product._id} value={product.name}>
+                      {product.name}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Company Name</Form.Label>
-                <Form.Control
-                  type="text"
+                {renderLabel(option, "investment", "companyName", "Company Name")}
+                <Form.Select
                   value={investmentFormData[option]?.companyName || ""}
                   onChange={(e) =>
                     handleFormChange(option, "investment", "companyName", e.target.value)
                   }
                   required
-                />
+                >
+                  <option value="">Select Company</option>
+                  {companies?.map((company) => (
+                    <option key={company._id} value={company.companyName}>
+                      {company.companyName}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Plan Name</Form.Label>
+                {renderLabel(option, "investment", "planName", "Plan Name")}
                 <Form.Control
                   type="text"
                   value={investmentFormData[option]?.planName || ""}
@@ -787,9 +1041,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>
-                  {option === "Deposits" ? "Investment Amount" : "Amount"}
-                </Form.Label>
+                {renderLabel(option, "investment", "amount", option === "Deposits" ? "Investment Amount" : "Amount")}
                 <Form.Control
                   type="number"
                   value={investmentFormData[option]?.amount || ""}
@@ -803,7 +1055,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             {option === "Deposits" && (
               <Col md={4}>
                 <Form.Group>
-                  <Form.Label>Maturity Amt</Form.Label>
+                  {renderLabel(option, "investment", "maturityAmt", "Maturity Amt")}
                   <Form.Control
                     type="number"
                     value={investmentFormData[option]?.maturityAmt || ""}
@@ -817,7 +1069,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             )}
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Start Date</Form.Label>
+                {renderLabel(option, "investment", "startDate", "Start Date")}
                 <Form.Control
                   type="date"
                   value={investmentFormData[option]?.startDate || ""}
@@ -830,7 +1082,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Maturity Date</Form.Label>
+                {renderLabel(option, "investment", "maturityDate", "Maturity Date")}
                 <Form.Control
                   type="date"
                   value={investmentFormData[option]?.maturityDate || ""}
@@ -851,6 +1103,80 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   onChange={(e) => handleFileChange(option, "investment", e.target.files)}
                 />
               </Form.Group>
+            </Col>
+
+            {/* Custom fields list */}
+            {(investmentFormData[option]?.customFields || []).map((cf, idx) => (
+              <Col md={4} key={idx}>
+                <Form.Group>
+                  <Form.Control
+                    type="text"
+                    value={cf.key || ""}
+                    onChange={(e) => handleCustomFieldKeyChange(option, "investment", idx, e.target.value)}
+                    placeholder="Field Name"
+                    className="mb-1 fw-bold cf-key-input"
+                    style={{ fontSize: '0.78rem', minHeight: '24px', padding: '0.1rem 0.3rem', border: 'none', borderBottom: '1px dashed #ced4da', background: 'transparent' }}
+                  />
+                  <div className="d-flex align-items-center">
+                    <Form.Control
+                      type="text"
+                      value={cf.value || ""}
+                      onChange={(e) => handleCustomFieldChange(option, "investment", idx, e.target.value)}
+                      required
+                    />
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      className="ms-1"
+                      onClick={() => handleRemoveCustomField(option, "investment", idx)}
+                      type="button"
+                    >
+                      &times;
+                    </Button>
+                  </div>
+                </Form.Group>
+              </Col>
+            ))}
+
+            {/* Add Custom Field Form */}
+            <Col md={12} className="mt-2">
+              <div className="d-flex align-items-end gap-2 border p-2 rounded">
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. Folio Number"
+                    id={`new-cf-key-investment-${option.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Value</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Value"
+                    id={`new-cf-val-investment-${option.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => {
+                    const keyInput = document.getElementById(`new-cf-key-investment-${option.replace(/\s+/g, '-')}`);
+                    const valInput = document.getElementById(`new-cf-val-investment-${option.replace(/\s+/g, '-')}`);
+                    if (keyInput && keyInput.value.trim()) {
+                      handleAddCustomField(option, "investment", keyInput.value.trim(), valInput ? valInput.value : "");
+                      keyInput.value = "";
+                      if (valInput) valInput.value = "";
+                    }
+                  }}
+                  type="button"
+                  style={{ minHeight: '28px', fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                >
+                  Add Field
+                </Button>
+              </div>
             </Col>
           </Row>
           <Button
@@ -877,7 +1203,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
           <Row>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Submission Date</Form.Label>
+                {renderLabel(option, "loan", "submissionDate", "Submission Date")}
                 <Form.Control
                   type="date"
                   value={loanFormData[option]?.submissionDate || getCurrentDate()}
@@ -890,7 +1216,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Member Name</Form.Label>
+                {renderLabel(option, "loan", "memberName", "Member Name")}
                 <Form.Select
                   name="memberName"
                   value={loanFormData[option]?.memberName || ""}
@@ -900,7 +1226,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   required
                 >
                   <option value="">Select Member Name</option>
-                  {familyMembers.map((member) => (
+                  {getMemberList().map((member) => (
                     <option key={member._id} value={member.name}>
                       {member.name}
                     </option>
@@ -910,7 +1236,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Loan Type</Form.Label>
+                {renderLabel(option, "loan", "loanType", "Loan Type")}
                 <Form.Control
                   type="text"
                   value={loanFormData[option]?.loanType || ""}
@@ -923,20 +1249,26 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Company Name</Form.Label>
-                <Form.Control
-                  type="text"
+                {renderLabel(option, "loan", "companyName", "Company Name")}
+                <Form.Select
                   value={loanFormData[option]?.companyName || ""}
                   onChange={(e) =>
                     handleFormChange(option, "loan", "companyName", e.target.value)
                   }
                   required
-                />
+                >
+                  <option value="">Select Company</option>
+                  {companies?.map((company) => (
+                    <option key={company._id} value={company.companyName}>
+                      {company.companyName}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Loan Account Number</Form.Label>
+                {renderLabel(option, "loan", "loanAccountNumber", "Loan Account Number")}
                 <Form.Control
                   type="text"
                   value={loanFormData[option]?.loanAccountNumber || ""}
@@ -949,7 +1281,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Outstanding Amount</Form.Label>
+                {renderLabel(option, "loan", "outstandingAmount", "Outstanding Amount")}
                 <Form.Control
                   type="number"
                   value={loanFormData[option]?.outstandingAmount || ""}
@@ -962,7 +1294,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Interest Rate (%)</Form.Label>
+                {renderLabel(option, "loan", "interestRate", "Interest Rate (%)")}
                 <Form.Control
                   type="number"
                   step="0.01"
@@ -976,7 +1308,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Term</Form.Label>
+                {renderLabel(option, "loan", "term", "Term")}
                 <Form.Control
                   type="text"
                   placeholder="e.g., 5 years, 60 months"
@@ -990,7 +1322,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Start Date</Form.Label>
+                {renderLabel(option, "loan", "startDate", "Start Date")}
                 <Form.Control
                   type="date"
                   value={loanFormData[option]?.startDate || ""}
@@ -1003,7 +1335,7 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
             </Col>
             <Col md={4}>
               <Form.Group>
-                <Form.Label>Maturity Date</Form.Label>
+                {renderLabel(option, "loan", "maturityDate", "Maturity Date")}
                 <Form.Control
                   type="date"
                   value={loanFormData[option]?.maturityDate || ""}
@@ -1024,6 +1356,80 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
                   onChange={(e) => handleFileChange(option, "loan", e.target.files)}
                 />
               </Form.Group>
+            </Col>
+
+            {/* Custom fields list */}
+            {(loanFormData[option]?.customFields || []).map((cf, idx) => (
+              <Col md={4} key={idx}>
+                <Form.Group>
+                  <Form.Control
+                    type="text"
+                    value={cf.key || ""}
+                    onChange={(e) => handleCustomFieldKeyChange(option, "loan", idx, e.target.value)}
+                    placeholder="Field Name"
+                    className="mb-1 fw-bold cf-key-input"
+                    style={{ fontSize: '0.78rem', minHeight: '24px', padding: '0.1rem 0.3rem', border: 'none', borderBottom: '1px dashed #ced4da', background: 'transparent' }}
+                  />
+                  <div className="d-flex align-items-center">
+                    <Form.Control
+                      type="text"
+                      value={cf.value || ""}
+                      onChange={(e) => handleCustomFieldChange(option, "loan", idx, e.target.value)}
+                      required
+                    />
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      className="ms-1"
+                      onClick={() => handleRemoveCustomField(option, "loan", idx)}
+                      type="button"
+                    >
+                      &times;
+                    </Button>
+                  </div>
+                </Form.Group>
+              </Col>
+            ))}
+
+            {/* Add Custom Field Form */}
+            <Col md={12} className="mt-2">
+              <div className="d-flex align-items-end gap-2 border p-2 rounded">
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. Branch"
+                    id={`new-cf-key-loan-${option.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <Form.Label className="mb-0 text-muted" style={{ fontSize: '0.7rem' }}>New Field Value</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Value"
+                    id={`new-cf-val-loan-${option.replace(/\s+/g, '-')}`}
+                    style={{ minHeight: '28px', fontSize: '0.75rem' }}
+                  />
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => {
+                    const keyInput = document.getElementById(`new-cf-key-loan-${option.replace(/\s+/g, '-')}`);
+                    const valInput = document.getElementById(`new-cf-val-loan-${option.replace(/\s+/g, '-')}`);
+                    if (keyInput && keyInput.value.trim()) {
+                      handleAddCustomField(option, "loan", keyInput.value.trim(), valInput ? valInput.value : "");
+                      keyInput.value = "";
+                      if (valInput) valInput.value = "";
+                    }
+                  }}
+                  type="button"
+                  style={{ minHeight: '28px', fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                >
+                  Add Field
+                </Button>
+              </div>
             </Col>
           </Row>
           <Button
