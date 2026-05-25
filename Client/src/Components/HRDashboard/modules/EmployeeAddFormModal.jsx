@@ -43,7 +43,29 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("1");
-  const [documents, setDocuments] = useState([]);
+  const defaultDocuments = [
+    "CV/Bio Data form",
+    "Brief Introduction [Self]",
+    "Office Data sheet",
+    "KYC Related Document",
+    "Offer Letter",
+    "Joining Letter",
+    "Undertaking by Employee with Bond Acceptance",
+    "Office kit acceptance sheet",
+    "Official Letter for Completion of Probation Period",
+    "Clearance Certificate"
+  ];
+
+  const initDocuments = () => defaultDocuments.map((title) => ({
+    key: Math.random() + Date.now(),
+    title,
+    file: null,
+    filePath: "",
+    status: "idle",
+    isDefault: true
+  }));
+
+  const [documents, setDocuments] = useState(initDocuments());
 
   const addDocumentRow = () => {
     setDocuments([
@@ -54,6 +76,7 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
         file: null,
         filePath: "",
         status: "idle",
+        isDefault: false
       },
     ]);
   };
@@ -328,12 +351,25 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
             }))
         : [];
 
+      // Extract primary work area from first managed area for RM
+      let primaryArea = {};
+      if (selectedRole === "RM" && formattedManagedAreas.length > 0) {
+        const firstArea = availableAreas.find(a => a.name === formattedManagedAreas[0].area);
+        primaryArea = {
+          workArea: formattedManagedAreas[0].area,
+          workPincode: formattedManagedAreas[0].pincode,
+          workSubArea: formattedManagedAreas[0].subAreas[0] || "",
+          workCity: firstArea?.city || ""
+        };
+      }
+
       const payload = {
         ...values,
         officeKitAllotment,
         recruitmentDetails,
         generalDocuments,
         managedAreas: formattedManagedAreas,
+        ...primaryArea,
         dateOfJoining: values.dateOfJoining.toDate(),
       };
 
@@ -710,11 +746,15 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
                   {documents.map((doc) => (
                     <Row gutter={16} key={doc.key} align="middle" style={{ marginBottom: 12, padding: 8, background: '#fafafa', borderRadius: 6, border: '1px solid #f0f0f0' }}>
                       <Col span={10}>
-                        <Input 
-                          placeholder="Document Title (e.g. Aadhar Card)" 
-                          value={doc.title} 
-                          onChange={(e) => handleTitleChange(doc.key, e.target.value)}
-                        />
+                        {doc.isDefault ? (
+                          <Text strong style={{ fontSize: 13 }}>{doc.title}</Text>
+                        ) : (
+                          <Input 
+                            placeholder="Document Title (e.g. Aadhar Card)" 
+                            value={doc.title} 
+                            onChange={(e) => handleTitleChange(doc.key, e.target.value)}
+                          />
+                        )}
                       </Col>
                       <Col span={10}>
                         <Upload
@@ -737,12 +777,14 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
                         </Upload>
                       </Col>
                       <Col span={4} style={{ textAlign: 'right' }}>
-                        <Button 
-                          type="text" 
-                          danger 
-                          icon={<DeleteOutlined />} 
-                          onClick={() => removeDocumentRow(doc.key)}
-                        />
+                        {!doc.isDefault && (
+                          <Button 
+                            type="text" 
+                            danger 
+                            icon={<DeleteOutlined />} 
+                            onClick={() => removeDocumentRow(doc.key)}
+                          />
+                        )}
                       </Col>
                     </Row>
                   ))}
