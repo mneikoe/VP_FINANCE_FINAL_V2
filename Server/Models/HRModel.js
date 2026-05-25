@@ -17,7 +17,7 @@ const HRSchema = new mongoose.Schema({
   // ✅ COMPLETE EMPLOYEE DATA (same as employee model)
   employeeCode: { type: String, trim: true, uppercase: true },
   designation: { type: String, trim: true },
-  gender: { type: String, enum: ["Male", "Female", "Other"], default: "" },
+  gender: { type: String, enum: ["Male", "Female", "Other", ""], default: "" },
   dob: { type: Date, default: null },
   marriageDate: { type: Date, default: null },
   

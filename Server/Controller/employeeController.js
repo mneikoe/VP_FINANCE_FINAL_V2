@@ -364,6 +364,69 @@ exports.updateEmployee = async (req, res) => {
       }
     );
 
+    // Sync to role-specific models for login/UI consistency
+    const role = updatedEmployee.role;
+    const emailId = updatedEmployee.emailId;
+    const name = updatedEmployee.name;
+    const mobileNo = updatedEmployee.mobileNo;
+    const designation = updatedEmployee.designation;
+
+    const syncData = {
+      username: name,
+      email: emailId,
+      mobileno: mobileNo,
+      designation: designation,
+      employeeCode: updatedEmployee.employeeCode,
+      gender: updatedEmployee.gender,
+      dob: updatedEmployee.dob,
+      marriageDate: updatedEmployee.marriageDate,
+      presentAddress: updatedEmployee.presentAddress,
+      permanentAddress: updatedEmployee.permanentAddress,
+      homeTown: updatedEmployee.homeTown,
+      familyContactPerson: updatedEmployee.familyContactPerson,
+      familyContactMobile: updatedEmployee.familyContactMobile,
+      emergencyContactPerson: updatedEmployee.emergencyContactPerson,
+      emergencyContactMobile: updatedEmployee.emergencyContactMobile,
+      officeMobile: updatedEmployee.officeMobile,
+      officeEmail: updatedEmployee.officeEmail,
+      allottedLoginId: updatedEmployee.allottedLoginId,
+      allocatedWorkArea: updatedEmployee.allocatedWorkArea,
+      dateOfJoining: updatedEmployee.dateOfJoining,
+      dateOfTermination: updatedEmployee.dateOfTermination,
+      salaryOnJoining: updatedEmployee.salaryOnJoining,
+      expenses: updatedEmployee.expenses,
+      incentives: updatedEmployee.incentives,
+      bankName: updatedEmployee.bankName,
+      accountNo: updatedEmployee.accountNo,
+      ifscCode: updatedEmployee.ifscCode,
+      micr: updatedEmployee.micr,
+      panNo: updatedEmployee.panNo,
+      aadharNo: updatedEmployee.aadharNo,
+    };
+
+    if (role === "HR") {
+      const HR = require("../Models/HRModel");
+      await HR.findOneAndUpdate(
+        { $or: [{ employeeRef: employeeId }, { email: emailId }] },
+        syncData,
+        { new: true }
+      );
+    } else if (role === "Telecaller") {
+      const Telecaller = require("../Models/telecallerModel");
+      await Telecaller.findOneAndUpdate(
+        { $or: [{ employeeRef: employeeId }, { email: emailId }] },
+        syncData,
+        { new: true }
+      );
+    } else if (role === "OA") {
+      const OA = require("../Models/OAModel");
+      await OA.findOneAndUpdate(
+        { $or: [{ employeeRef: employeeId }, { email: emailId }] },
+        syncData,
+        { new: true }
+      );
+    }
+
     res.status(200).json({
       success: true,
       message: "Employee updated successfully",

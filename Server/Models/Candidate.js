@@ -249,10 +249,9 @@ const candidateSchema = new mongoose.Schema(
 );
 
 // Calculate marks before saving (Same as frontend logic)
-candidateSchema.pre("save", function (next) {
+candidateSchema.pre("save", function () {
   this.totalMarks = calculateMarks(this);
   this.shortlisted = this.totalMarks >= 20;
-  next();
 });
 
 // Same calculation logic as frontend

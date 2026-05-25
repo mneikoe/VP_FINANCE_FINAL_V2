@@ -125,6 +125,75 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
   const [yearlyKit, setYearlyKit] = useState(initAllotment(defaultItems.yearly));
   const [monthlyKit, setMonthlyKit] = useState(initAllotment(defaultItems.monthly));
 
+  // RM area allocation states
+  const [selectedRole, setSelectedRole] = useState("Telecaller");
+  const [availableAreas, setAvailableAreas] = useState([]);
+  const [availableSubAreas, setAvailableSubAreas] = useState([]);
+  const [managedAreas, setManagedAreas] = useState([]);
+
+  useEffect(() => {
+    const fetchAreasAndSubAreas = async () => {
+      try {
+        const areaRes = await axios.get("/api/leadarea");
+        const subAreaRes = await axios.get("/api/leadsubarea");
+        setAvailableAreas(areaRes.data || []);
+        setAvailableSubAreas(subAreaRes.data || []);
+      } catch (err) {
+        console.error("Error fetching areas/subareas:", err);
+      }
+    };
+    fetchAreasAndSubAreas();
+  }, []);
+
+  const addManagedAreaRow = () => {
+    setManagedAreas([
+      ...managedAreas,
+      {
+        key: Date.now() + Math.random(),
+        areaId: "",
+        areaName: "",
+        pincode: "",
+        subAreas: []
+      }
+    ]);
+  };
+
+  const handleManagedAreaChange = (key, areaId) => {
+    const selectedArea = availableAreas.find(a => a._id === areaId);
+    if (!selectedArea) return;
+
+    setManagedAreas(prev =>
+      prev.map(row =>
+        row.key === key
+          ? {
+              ...row,
+              areaId: areaId,
+              areaName: selectedArea.name,
+              pincode: String(selectedArea.pincode),
+              subAreas: []
+            }
+          : row
+      )
+    );
+  };
+
+  const handleManagedSubAreasChange = (key, subAreasValues) => {
+    setManagedAreas(prev =>
+      prev.map(row =>
+        row.key === key
+          ? {
+              ...row,
+              subAreas: subAreasValues
+            }
+          : row
+      )
+    );
+  };
+
+  const removeManagedAreaRow = (key) => {
+    setManagedAreas(prev => prev.filter(row => row.key !== key));
+  };
+
   const roleOptions = [
     { value: "Telecaller", label: "Telecaller", code: "TC", designation: "Telecaller Executive" },
     { value: "Telemarketer", label: "Telemarketer", code: "TM", designation: "Telemarketing Executive" },
@@ -153,6 +222,7 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
   }, [candidate]);
 
   const handleRoleChange = (roleValue) => {
+    setSelectedRole(roleValue);
     const role = roleOptions.find(r => r.value === roleValue);
     if (role) {
       const code = `${role.code}${Math.floor(1000 + Math.random() * 9000)}`;
@@ -247,11 +317,23 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
         }
       };
 
+      // Format managedAreas for RM role
+      const formattedManagedAreas = selectedRole === "RM"
+        ? managedAreas
+            .filter(ma => ma.areaName && ma.pincode)
+            .map(ma => ({
+              area: ma.areaName,
+              pincode: ma.pincode,
+              subAreas: ma.subAreas
+            }))
+        : [];
+
       const payload = {
         ...values,
         officeKitAllotment,
         recruitmentDetails,
         generalDocuments,
+        managedAreas: formattedManagedAreas,
         dateOfJoining: values.dateOfJoining.toDate(),
       };
 
@@ -448,6 +530,89 @@ const EmployeeAddFormModal = ({ candidate, onClose, onEmployeeAdded }) => {
                   </Form.Item>
                 </Col>
              </Row>
+
+             {selectedRole === "RM" && (
+               <>
+                 <Divider orientation="left" style={{ color: "#f27405", borderColor: "#f27405" }}>Allocated Areas / Work Territories (RM Only)</Divider>
+                 <Alert 
+                   message="Allocate work territories (Areas, Pincodes and Sub-areas) for this Relationship Manager (RM). Suspects/Prospects from these areas will be filterable for them." 
+                   type="warning" 
+                   showIcon 
+                   style={{ marginBottom: 16 }}
+                 />
+                 
+                 <div style={{ marginBottom: 16 }}>
+                   <Button type="dashed" onClick={addManagedAreaRow} icon={<PlusOutlined />} block>
+                     Allocate New Area
+                   </Button>
+                 </div>
+
+                 {managedAreas.length === 0 ? (
+                   <div style={{ textAlign: 'center', padding: '20px', background: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9', marginBottom: 20 }}>
+                     <Text type="secondary">No areas allocated yet. Click "Allocate New Area" to assign territories.</Text>
+                   </div>
+                 ) : (
+                   <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: 20 }}>
+                     {managedAreas.map((row) => {
+                       const subAreasForArea = availableSubAreas.filter(sa => 
+                         (sa.areaId?._id || sa.areaId) === row.areaId
+                       );
+                       
+                       return (
+                         <Row gutter={16} key={row.key} align="middle" style={{ marginBottom: 12, padding: 8, background: '#fafafa', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+                           <Col span={10}>
+                             <div style={{ display: 'flex', flexDirection: 'column' }}>
+                               <span style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}><span style={{ color: 'red' }}>*</span> Select Area</span>
+                               <Select
+                                 showSearch
+                                 placeholder="Search & Select Area"
+                                 optionFilterProp="children"
+                                 value={row.areaId || undefined}
+                                 onChange={(val) => handleManagedAreaChange(row.key, val)}
+                                 style={{ width: '100%' }}
+                               >
+                                 {availableAreas.map(a => (
+                                   <Select.Option key={a._id} value={a._id}>
+                                     {a.name} ({a.pincode})
+                                   </Select.Option>
+                                 ))}
+                               </Select>
+                             </div>
+                           </Col>
+                           <Col span={10}>
+                             <div style={{ display: 'flex', flexDirection: 'column' }}>
+                               <span style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Allocate Sub-areas</span>
+                               <Select
+                                 mode="multiple"
+                                 placeholder="Select Sub-areas"
+                                 disabled={!row.areaId}
+                                 value={row.subAreas}
+                                 onChange={(val) => handleManagedSubAreasChange(row.key, val)}
+                                 style={{ width: '100%' }}
+                               >
+                                 {subAreasForArea.map(sa => (
+                                   <Select.Option key={sa._id} value={sa.subAreaName}>
+                                     {sa.subAreaName}
+                                   </Select.Option>
+                                 ))}
+                               </Select>
+                             </div>
+                           </Col>
+                           <Col span={4} style={{ textAlign: 'right', paddingTop: 24 }}>
+                             <Button 
+                               type="text" 
+                               danger 
+                               icon={<DeleteOutlined />} 
+                               onClick={() => removeManagedAreaRow(row.key)}
+                             />
+                           </Col>
+                         </Row>
+                       );
+                     })}
+                   </div>
+                 )}
+               </>
+             )}
           </Form>
         </TabPane>
 

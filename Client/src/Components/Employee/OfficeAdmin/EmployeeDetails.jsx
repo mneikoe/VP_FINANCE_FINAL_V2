@@ -191,6 +191,7 @@ const EmployeeDetails = () => {
       // HR Actions & Files
       hrActions: empData.hrActions || [],
       generalDocuments: empData.generalDocuments || [],
+      taskRewards: empData.taskRewards || [],
 
       // Source identifier
       source: "employee",
@@ -450,6 +451,7 @@ const EmployeeDetails = () => {
   }
 
   tabs.push({ id: 5, label: "HR Actions & Files", icon: FaIdCardAlt });
+  tabs.push({ id: 6, label: "Task Rewards", icon: FaIdCardAlt });
 
   if (loading) {
     return (
@@ -1078,6 +1080,56 @@ const EmployeeDetails = () => {
                         <div className="text-center py-4 bg-light rounded border border-dashed">
                           <p className="text-muted mb-0">No general documents uploaded to this profile.</p>
                         </div>
+                      )}
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            )}
+
+            {/* Task Rewards Tab */}
+            {tabIndex === 6 && (
+              <div className="tab-content">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <h3>Task Rewards & Completion Points</h3>
+                  <div className="total-points">
+                    <Badge bg="success" className="p-2" style={{ fontSize: '1rem' }}>
+                      Total Reward Points: {employee.taskRewards?.reduce((acc, curr) => acc + (curr.points || 0), 0) || 0}
+                    </Badge>
+                  </div>
+                </div>
+
+                <Row>
+                  <Col md={12}>
+                    <div className="detail-section">
+                      <h5>Rewards History</h5>
+                      {employee.taskRewards && employee.taskRewards.length > 0 ? (
+                        <div className="table-responsive">
+                          <table className="table table-bordered table-hover bg-white rounded">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Date</th>
+                                <th>Task Name</th>
+                                <th>Points</th>
+                                <th>Remarks</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {employee.taskRewards.map((reward, idx) => (
+                                <tr key={idx}>
+                                  <td>{formatDate(reward.rewardDate)}</td>
+                                  <td><strong>{reward.taskName || "N/A"}</strong></td>
+                                  <td><span className="text-success font-weight-bold">+{reward.points} pts</span></td>
+                                  <td>{reward.remarks || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <Alert variant="info" className="text-center py-4">
+                          No task rewards or points recorded for this employee yet.
+                        </Alert>
                       )}
                     </div>
                   </Col>

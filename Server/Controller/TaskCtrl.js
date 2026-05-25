@@ -559,6 +559,18 @@ export const assignCompositeTask = async (req, res) => {
         continue;
       }
 
+      // Check if employee has an active assignment for this task
+      const alreadyAssigned = task.assignments?.some(
+        (existing) => 
+          existing.employeeId.toString() === employeeId &&
+          ["pending", "in-progress", "overdue"].includes(existing.status)
+      );
+
+      if (alreadyAssigned) {
+        errors.push(`Employee ${employee.name} is already actively assigned to this task`);
+        continue;
+      }
+
       // ✅ FIX: Ab employee variable available hai
       if (employee.role !== employeeRole) {
         errors.push(`Employee ${employee.name} is not a ${employeeRole}`);
@@ -1349,17 +1361,19 @@ export const assignMarketingTask = async (req, res) => {
       });
     }
 
-    // // Check if employee is already assigned to this task
-    // const alreadyAssigned = task.assignments?.some(
-    //   (assignment) => assignment.employeeId.toString() === employeeId
-    // );
+    // Check if employee is already actively assigned to this task
+    const alreadyAssigned = task.assignments?.some(
+      (assignment) => 
+        assignment.employeeId.toString() === employeeId &&
+        ["pending", "in-progress", "overdue"].includes(assignment.status)
+    );
 
-    // if (alreadyAssigned) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: `Employee ${employee.name} is already assigned to this task`,
-    //   });
-    // }
+    if (alreadyAssigned) {
+      return res.status(400).json({
+        success: false,
+        message: `Employee ${employee.name} is already actively assigned to this task`,
+      });
+    }
 
     // Create assignment with client/prospect data
     const assignment = {
@@ -2137,17 +2151,19 @@ export const assignServiceTask = async (req, res) => {
       });
     }
 
-    // // Check if employee is already assigned to this task
-    // const alreadyAssigned = task.assignments?.some(
-    //   (assignment) => assignment.employeeId.toString() === employeeId
-    // );
+    // Check if employee is already actively assigned to this task
+    const alreadyAssigned = task.assignments?.some(
+      (assignment) => 
+        assignment.employeeId.toString() === employeeId &&
+        ["pending", "in-progress", "overdue"].includes(assignment.status)
+    );
 
-    // if (alreadyAssigned) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: `Employee ${employee.name} is already assigned to this task`,
-    //   });
-    // }
+    if (alreadyAssigned) {
+      return res.status(400).json({
+        success: false,
+        message: `Employee ${employee.name} is already actively assigned to this task`,
+      });
+    }
 
     // Create assignment with client/prospect data
     const assignment = {

@@ -20,6 +20,8 @@ import {
   Statistic,
   Tabs,
   Select,
+  Form,
+  Modal,
 } from "antd";
 import {
   SearchOutlined,
@@ -94,6 +96,11 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [editForm] = Form.useForm();
+  const [editSubmitLoading, setEditSubmitLoading] = useState(false);
 
   // Role configuration with Ant Design icons
   const roleConfig = {
@@ -183,6 +190,7 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
                 .filter(tc => tc && typeof tc === 'object')
                 .map((tc) => ({
                   _id: tc._id,
+                  employeeRef: tc.employeeRef,
                   name: tc.username || "Unnamed",
                   employeeCode: tc.employeeCode || `TC-${tc._id?.slice(-4) || "0000"}`,
                   emailId: tc.email || "-",
@@ -208,6 +216,7 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
                 .filter(hr => hr && typeof hr === 'object')
                 .map((hr) => ({
                   _id: hr._id,
+                  employeeRef: hr.employeeRef,
                   name: hr.username || "Unnamed",
                   employeeCode: hr.employeeCode || `HR-${hr._id?.slice(-4) || "0000"}`,
                   emailId: hr.email || "-",
@@ -233,6 +242,7 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
                 .filter(oa => oa && typeof oa === 'object')
                 .map((oa) => ({
                   _id: oa._id,
+                  employeeRef: oa.employeeRef,
                   name: oa.username || "Unnamed",
                   employeeCode: oa.employeeCode || `OA-${oa._id?.slice(-4) || "0000"}`,
                   emailId: oa.email || "-",
@@ -335,9 +345,82 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
   };
 
   const handleEdit = (employee) => {
-    navigate(`/edit-employee/${employee._id}`, {
-      state: { employeeData: employee },
+    setEditingEmployee(employee);
+    editForm.setFieldsValue({
+      name: employee.name,
+      emailId: employee.emailId,
+      mobileNo: employee.mobileNo,
+      role: employee.role,
+      designation: employee.designation,
+      employeeCode: employee.employeeCode,
+      presentAddress: employee.presentAddress || "",
+      emergencyContact: employee.emergencyContact || "",
+      salary: employee.salary || "",
     });
+    setIsEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async (values) => {
+    setEditSubmitLoading(true);
+    try {
+      const currentEmp = employees.find((e) => e._id === editingEmployee._id);
+      
+      const payload = {
+        name: values.name,
+        emailId: values.emailId,
+        mobileNo: values.mobileNo,
+        role: values.role,
+        designation: values.designation,
+        presentAddress: values.presentAddress,
+        emergencyContactMobile: values.emergencyContact,
+        salaryOnJoining: values.salary,
+        employeeCode: values.employeeCode,
+      };
+
+      if (currentEmp.source === "hr") {
+        const hrPayload = {
+          username: values.name,
+          email: values.emailId,
+          mobileno: values.mobileNo,
+          designation: values.designation,
+          presentAddress: values.presentAddress,
+          employeeCode: values.employeeCode,
+        };
+        await axiosInstance.put(`/api/hr/${editingEmployee._id}`, hrPayload);
+        if (currentEmp.employeeRef) {
+          await axiosInstance.put("/api/employee/updateEmployee", {
+            employeeId: currentEmp.employeeRef,
+            ...payload,
+          });
+        }
+      } else if (currentEmp.source === "telecaller" || currentEmp.source === "oa") {
+        if (currentEmp.employeeRef) {
+          await axiosInstance.put("/api/employee/updateEmployee", {
+            employeeId: currentEmp.employeeRef,
+            ...payload,
+          });
+        } else {
+          await axiosInstance.put("/api/employee/updateEmployee", {
+            employeeId: editingEmployee._id,
+            ...payload,
+          });
+        }
+      } else {
+        await axiosInstance.put("/api/employee/updateEmployee", {
+          employeeId: editingEmployee._id,
+          ...payload,
+        });
+      }
+
+      message.success("Employee updated successfully!");
+      setIsEditModalVisible(false);
+      fetchEmployeesByRole(activeTab);
+    } catch (err) {
+      console.error("Error updating employee:", err);
+      message.error(err.response?.data?.message || err.message || "Failed to update employee");
+    } finally {
+      setEditSubmitLoading(false);
+    }
   };
 
   const handleDelete = async (employeeId, employeeName) => {
@@ -566,24 +649,45 @@ const EmployeeList = ({ initialRole = "telecaller", lockRole = false }) => {
     {
       title: "Actions",
       key: "actions",
-      width: 130,
+      width: (JSON.parse(localStorage.getItem("user") || "{}").role === "HR" || location.pathname.startsWith("/dashboard")) ? 130 : 80,
       align: "center",
       fixed: "right",
-      render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewDetails(record)}
-              style={{ color: "#1677ff" }}
-            />
-          </Tooltip>
+      render: (_, record) => {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const isHR = user.role === "HR" || location.pathname.startsWith("/dashboard");
         
-          
-        </Space>
-      ),
+        return (
+          <Space size={4}>
+            <Tooltip title="View Details">
+              <Button
+                type="text"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => handleViewDetails(record)}
+                style={{ color: "#1677ff" }}
+              />
+            </Tooltip>
+            {isHR && (
+              <Tooltip title="Delete Employee">
+                <Popconfirm
+                  title={`Are you sure you want to delete ${record.name}?`}
+                  onConfirm={() => handleDelete(record._id, record.name)}
+                  okText="Yes"
+                  cancelText="No"
+                  okButtonProps={{ loading: deleteLoading === record._id }}
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                  />
+                </Popconfirm>
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
