@@ -24,7 +24,7 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: "https://vpf.amnrj.in",
+        target: "https://vpfinancefinalv2-production.up.railway.app/",
         //target: "http://localhost:6060",
         changeOrigin: true,
         secure: false,
