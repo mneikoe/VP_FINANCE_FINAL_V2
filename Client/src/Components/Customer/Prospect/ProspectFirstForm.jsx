@@ -21,7 +21,20 @@ const ProspectFirstForm = () => {
   const [prospectId, setProspectId] = useState(id || "");
   const [isEdit, setIsEdit] = useState(false);
   const [prospectData, setProspectData] = useState(null);
+
+  // Central drafts for Prospect form persistence
   const [personalDraft, setPersonalDraft] = useState(null);
+  const [familyDraft, setFamilyDraft] = useState([]);
+  const [financialDraft, setFinancialDraft] = useState({
+    insurance: [],
+    investments: [],
+    loans: [],
+  });
+  const [prioritiesDraft, setPrioritiesDraft] = useState({
+    futurePriorities: [],
+    needs: {},
+  });
+  const [proposedPlanDraft, setProposedPlanDraft] = useState([]);
 
   useEffect(() => {
     dispatch(getAllOccupationTypes());
@@ -32,9 +45,43 @@ const ProspectFirstForm = () => {
       setIsEdit(true);
       dispatch(getProspectById(id)).then((response) => {
         if (response?.payload?.prospect) {
-          setProspectData(response?.payload?.prospect);
+          const data = response.payload.prospect;
+          setProspectData(data);
+          setProspectId(data._id || id);
+
+          // Load existing data for editing
+          setPersonalDraft(data.personalDetails || null);
+          setFamilyDraft(data.familyMembers || []);
+          setFinancialDraft(
+            data.financialInfo || {
+              insurance: [],
+              investments: [],
+              loans: [],
+            }
+          );
+          setPrioritiesDraft({
+            futurePriorities: data.futurePriorities || [],
+            needs: data.needs || {},
+          });
+          setProposedPlanDraft(data.proposedPlan || []);
         }
       });
+    } else {
+      setIsEdit(false);
+      setProspectId("");
+      setProspectData(null);
+      setPersonalDraft(null);
+      setFamilyDraft([]);
+      setFinancialDraft({
+        insurance: [],
+        investments: [],
+        loans: [],
+      });
+      setPrioritiesDraft({
+        futurePriorities: [],
+        needs: {},
+      });
+      setProposedPlanDraft([]);
     }
   }, [dispatch, id]);
 
@@ -43,9 +90,30 @@ const ProspectFirstForm = () => {
   };
 
   const handleProspectCreated = (newProspectId) => {
-    // setProspectData(newProspectId);
     setProspectId(newProspectId);
+    setIsEdit(true);
+    dispatch(getProspectById(newProspectId)).then((response) => {
+      if (response?.payload?.prospect) {
+        const data = response.payload.prospect;
+        setProspectData(data);
+        setPersonalDraft(data.personalDetails || null);
+        setFamilyDraft(data.familyMembers || []);
+        setFinancialDraft(
+          data.financialInfo || {
+            insurance: [],
+            investments: [],
+            loans: [],
+          }
+        );
+        setPrioritiesDraft({
+          futurePriorities: data.futurePriorities || [],
+          needs: data.needs || {},
+        });
+        setProposedPlanDraft(data.proposedPlan || []);
+      }
+    });
   };
+
   const sectionTitles = {
     personal: { icon: <FaUser />, label: "Personal Details" },
     family: { icon: <FaUsers />, label: "Family Details" },
@@ -53,6 +121,14 @@ const ProspectFirstForm = () => {
     priorities: { icon: <FaBullseye />, label: "Future Priorities" },
     proposed: { icon: <FaBullseye />, label: "Proposed Financial Plan" },
   };
+
+  const memoizedProspectDataForFamily = React.useMemo(() => {
+    if (isEdit) return prospectData;
+    return {
+      personalDetails: personalDraft,
+      familyMembers: familyDraft,
+    };
+  }, [isEdit, prospectData, personalDraft, familyDraft]);
 
   return (
     <div className="container-fluid p-0">
@@ -123,7 +199,7 @@ const ProspectFirstForm = () => {
         {activeTab === "personal" && (
           <PersonalDetailsForm
             isEdit={isEdit}
-            prospectData={prospectData}
+            prospectData={isEdit ? prospectData : (personalDraft ? { personalDetails: personalDraft } : null)}
             onProspectCreated={handleProspectCreated}
             onFormDataUpdate={setPersonalDraft}
           />
@@ -131,80 +207,112 @@ const ProspectFirstForm = () => {
         {activeTab === "family" && (
           <FamilyMembersForm
             prospectId={prospectId}
-            prospectData={
-              isEdit
-                ? prospectData
-                : personalDraft
-                  ? { personalDetails: personalDraft }
-                  : null
-            }
+            prospectData={memoizedProspectDataForFamily}
             onProspectCreated={handleProspectCreated}
+            onDataUpdate={setFamilyDraft}
           />
         )}
         {activeTab === "financial" && (
           <FinancialInformationForm
             prospectId={prospectId}
-            prospectData={isEdit ? prospectData : null}
+            prospectData={isEdit ? prospectData : (financialDraft ? { financialInfo: financialDraft } : null)}
             onProspectCreated={handleProspectCreated}
+            onDataUpdate={setFinancialDraft}
           />
         )}
         {activeTab === "priorities" && (
           <FuturePrioritiesForm
             prospectId={prospectId}
-            prospectData={isEdit ? prospectData : null}
+            prospectData={isEdit ? prospectData : (prioritiesDraft ? { futurePriorities: prioritiesDraft.futurePriorities, needs: prioritiesDraft.needs } : null)}
             onProspectCreated={handleProspectCreated}
+            onDataUpdate={setPrioritiesDraft}
           />
         )}
         {activeTab === "proposed" && (
           <ProposedPlanForm
             prospectId={prospectId}
-            prospectData={isEdit ? prospectData : null}
+            prospectData={isEdit ? prospectData : (proposedPlanDraft ? { proposedPlan: proposedPlanDraft } : null)}
+            onDataUpdate={setProposedPlanDraft}
           />
         )}
       </div>
+
+      {/* Navigation Buttons */}
+      <div className="d-flex justify-content-between mt-3 p-2 border-top bg-white rounded shadow-sm">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            if (activeTab === "family") handleTabChange("personal");
+            else if (activeTab === "financial") handleTabChange("family");
+            else if (activeTab === "priorities") handleTabChange("financial");
+            else if (activeTab === "proposed") handleTabChange("priorities");
+            else navigate(-1);
+          }}
+          disabled={activeTab === "personal"}
+          size="sm"
+        >
+          ← Previous
+        </Button>
+
+        {activeTab !== "proposed" && (
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (activeTab === "personal") handleTabChange("family");
+              else if (activeTab === "family") handleTabChange("financial");
+              else if (activeTab === "financial") handleTabChange("priorities");
+              else if (activeTab === "priorities") handleTabChange("proposed");
+            }}
+            size="sm"
+          >
+            Next →
+          </Button>
+        )}
+      </div>
+
       <style>{`
   .prospect-form-shell {
     border-color: #e5e7eb !important;
   }
+  .nav-pills {
+    width: 100%;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+  }
+  .nav-pills .nav-item {
+    flex: 1;
+  }
   .custom-tab {
-    padding: 5px 10px;
-    border-radius: 0;
+    width: 100%;
+    padding: 8px 16px;
+    border-radius: 6px !important;
     border: none;
     background: transparent;
-    color: #6c757d;
-    font-weight: 500;
-    font-size: 0.8rem;
-    transition: all 0.3s ease;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
   
   .custom-tab:hover {
-    color: #0d6efd;
-    background: rgba(13, 110, 253, 0.1);
+    color: #0f172a;
+    background: #e2e8f0;
   }
   
   .active-custom {
     color: #ffffff !important;
-    background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;
-    border-bottom: 2px solid #0a58ca !important;
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.15) !important;
+    background: linear-gradient(135deg, #0d6efd, #0284c7) !important;
+    box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.25), 0 2px 4px -2px rgba(13, 110, 253, 0.25) !important;
   }
   
-  /* Alternative color options */
-  .active-custom.blue {
-    background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;
-  }
-  
-  .active-custom.green {
-    background: linear-gradient(135deg, #198754, #157347) !important;
-  }
-  
-  .active-custom.purple {
-    background: linear-gradient(135deg, #6f42c1, #5a32a3) !important;
-  }
-  
-  .active-custom.orange {
-    background: linear-gradient(135deg, #fd7e14, #e96a00) !important;
-  }
   .section-title {
     font-size: 0.9rem;
     text-align: center;
@@ -212,6 +320,7 @@ const ProspectFirstForm = () => {
     justify-content: center;
     align-items: center;
     gap: 0.35rem;
+    margin-bottom: 0.75rem;
   }
 `}</style>
       </div>

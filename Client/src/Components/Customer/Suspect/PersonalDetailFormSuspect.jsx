@@ -127,9 +127,9 @@ const PersonalDetailsFormForSuspect = ({
     fetchOccupationTypes();
   }, [dispatch]);
 
-  // Load data when editing
+  // Load data when editing or from draft
   useEffect(() => {
-    if (isEdit && suspectData) {
+    if (suspectData) {
       const data = suspectData.personalDetails || {};
       const combined = (data.groupHeadName || data.groupName || "").trim();
       const parts = splitGroupHeadName(combined);
@@ -165,8 +165,10 @@ const PersonalDetailsFormForSuspect = ({
         officeSubArea:
           data.officeSubArea ?? (preferredOffice ? data.subArea : "") ?? "",
       });
+    } else {
+      setFormData(initialFormState);
     }
-  }, [isEdit, suspectData]);
+  }, [suspectData]);
 
   // Notify parent when form data changes
   useEffect(() => {
@@ -383,6 +385,37 @@ const PersonalDetailsFormForSuspect = ({
     formData.officeAddr,
   ]);
 
+
+  const generateTimeOptions = () => {
+    const options = [];
+    for (let h = 0; h < 24; h++) {
+      const ampm = h >= 12 ? "PM" : "AM";
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      const hourStr = String(hour12).padStart(2, "0");
+      options.push(`${hourStr}:00 ${ampm}`);
+      options.push(`${hourStr}:15 ${ampm}`);
+      options.push(`${hourStr}:30 ${ampm}`);
+      options.push(`${hourStr}:45 ${ampm}`);
+    }
+    const currentTime = formData.time || "10:00 AM";
+    if (!options.includes(currentTime)) {
+      options.push(currentTime);
+    }
+    const timeToMinutes = (tStr) => {
+      const match = tStr.match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return 0;
+      let hrs = parseInt(match[1], 10);
+      const mins = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === "PM" && hrs !== 12) hrs += 12;
+      if (ampm === "AM" && hrs === 12) hrs = 0;
+      return hrs * 60 + mins;
+    };
+    options.sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+    return options;
+  };
+
+  const timeOptions = generateTimeOptions();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -977,7 +1010,7 @@ const PersonalDetailsFormForSuspect = ({
             />
           </Form.Group>
         </Col>
-        <Col xs={12} md={5}>
+        <Col xs={12} md={4}>
           <Form.Group controlId="meetingLandmark">
             <Form.Label>Landmark</Form.Label>
             <Form.Control
@@ -1005,16 +1038,22 @@ const PersonalDetailsFormForSuspect = ({
             </Form.Select>
           </Form.Group>
         </Col>
-        <Col xs={6} md={1}>
+        <Col xs={6} md={2}>
           <Form.Group controlId="time">
             <Form.Label>Specific Time</Form.Label>
-            <Form.Control
+            <Form.Select
               name="time"
-              type="text"
               value={formData.time ?? ""}
               onChange={handleChange}
               size="sm"
-            />
+            >
+              <option value="">-- Select Time --</option>
+              {timeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </Form.Select>
           </Form.Group>
         </Col>
       </Row>

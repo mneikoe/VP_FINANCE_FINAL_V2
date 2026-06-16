@@ -26,7 +26,20 @@ const ClientFirstFrom = () => {
   const [clientId, setClientId] = useState(id || "");
   const [isEdit, setIsEdit] = useState(false);
   const [clientData, setClientData] = useState(null);
-  const [familyDetail, setFamilyDetail] = useState(null);
+
+  // Central draft states for Client
+  const [familyDetail, setFamilyDetail] = useState(null); // personalDetails draft
+  const [familyDraft, setFamilyDraft] = useState([]);
+  const [financialDraft, setFinancialDraft] = useState({
+    insurance: [],
+    investments: [],
+    loans: [],
+  });
+  const [prioritiesDraft, setPrioritiesDraft] = useState({
+    futurePriorities: [],
+    needs: {},
+  });
+  const [proposedPlanDraft, setProposedPlanDraft] = useState([]);
 
   // proposed
 
@@ -53,9 +66,43 @@ const ClientFirstFrom = () => {
       setIsEdit(true);
       dispatch(getClientById(id)).then((response) => {
         if (response?.payload?.client) {
-          setClientData(response?.payload?.client);
+          const data = response.payload.client;
+          setClientData(data);
+          setClientId(data._id || id);
+
+          // Load existing data for editing
+          setFamilyDetail(data.personalDetails || null);
+          setFamilyDraft(data.familyMembers || []);
+          setFinancialDraft(
+            data.financialInfo || {
+              insurance: [],
+              investments: [],
+              loans: [],
+            }
+          );
+          setPrioritiesDraft({
+            futurePriorities: data.futurePriorities || [],
+            needs: data.needs || {},
+          });
+          setProposedPlanDraft(data.proposedPlan || []);
         }
       });
+    } else {
+      setIsEdit(false);
+      setClientId("");
+      setClientData(null);
+      setFamilyDetail(null);
+      setFamilyDraft([]);
+      setFinancialDraft({
+        insurance: [],
+        investments: [],
+        loans: [],
+      });
+      setPrioritiesDraft({
+        futurePriorities: [],
+        needs: {},
+      });
+      setProposedPlanDraft([]);
     }
   }, [dispatch, id]);
 
@@ -65,7 +112,27 @@ const ClientFirstFrom = () => {
 
   const handleClientCreated = (newClientId) => {
     setClientId(newClientId);
-    // setActiveTab("family")
+    setIsEdit(true);
+    dispatch(getClientById(newClientId)).then((response) => {
+      if (response?.payload?.client) {
+        const data = response.payload.client;
+        setClientData(data);
+        setFamilyDetail(data.personalDetails || null);
+        setFamilyDraft(data.familyMembers || []);
+        setFinancialDraft(
+          data.financialInfo || {
+            insurance: [],
+            investments: [],
+            loans: [],
+          }
+        );
+        setPrioritiesDraft({
+          futurePriorities: data.futurePriorities || [],
+          needs: data.needs || {},
+        });
+        setProposedPlanDraft(data.proposedPlan || []);
+      }
+    });
   };
 
   //   const changeTab=(tabChange)=>{
@@ -150,7 +217,7 @@ const ClientFirstFrom = () => {
         {activeTab === "personal" && (
           <PersonalDetailsForm
             isEdit={isEdit}
-            clientData={clientData}
+            clientData={isEdit ? clientData : (familyDetail ? { personalDetails: familyDetail } : null)}
             onClientCreated={handleClientCreated}
             setFamilyDetail={setFamilyDetail}
             onFormDataUpdate={setFamilyDetail}
@@ -163,44 +230,119 @@ const ClientFirstFrom = () => {
             clientData={
               isEdit
                 ? clientData
-                : familyDetail
-                  ? { personalDetails: familyDetail }
-                  : null
+                : {
+                    personalDetails: familyDetail,
+                    familyMembers: familyDraft,
+                  }
             }
             onClientCreated={handleClientCreated}
             familyDetail={familyDetail}
             setFamilyDetail={setFamilyDetail}
+            onDataUpdate={setFamilyDraft}
           />
         )}
         {activeTab === "financial" && (
           <FinancialInformationForm
             clientId={clientId}
-            clientData={isEdit ? clientData : null}
+            clientData={isEdit ? clientData : (financialDraft ? { financialInfo: financialDraft } : null)}
             onClientCreated={handleClientCreated}
+            onDataUpdate={setFinancialDraft}
           />
         )}
         {activeTab === "priorities" && (
           <FuturePrioritiesForm
             clientId={clientId}
-            clientData={isEdit ? clientData : null}
+            clientData={isEdit ? clientData : (prioritiesDraft ? { futurePriorities: prioritiesDraft.futurePriorities, needs: prioritiesDraft.needs } : null)}
             onClientCreated={handleClientCreated}
+            onDataUpdate={setPrioritiesDraft}
           />
         )}
         {activeTab === "proposed" && (
           <ProposedPlanForm
             clientId={clientId}
-            clientData={isEdit ? clientData : null}
+            clientData={isEdit ? clientData : (proposedPlanDraft ? { proposedPlan: proposedPlanDraft } : null)}
+            onDataUpdate={setProposedPlanDraft}
           />
         )}
       </div>
+
+      {/* Navigation Buttons */}
+      <div className="d-flex justify-content-between mt-3 p-2 border-top bg-white rounded shadow-sm">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            if (activeTab === "family") handleTabChange("personal");
+            else if (activeTab === "financial") handleTabChange("family");
+            else if (activeTab === "priorities") handleTabChange("financial");
+            else if (activeTab === "proposed") handleTabChange("priorities");
+            else navigate(-1);
+          }}
+          disabled={activeTab === "personal"}
+          size="sm"
+        >
+          ← Previous
+        </Button>
+
+        {activeTab !== "proposed" && (
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (activeTab === "personal") handleTabChange("family");
+              else if (activeTab === "family") handleTabChange("financial");
+              else if (activeTab === "financial") handleTabChange("priorities");
+              else if (activeTab === "priorities") handleTabChange("proposed");
+            }}
+            size="sm"
+          >
+            Next →
+          </Button>
+        )}
+      </div>
+
       <style>{`
         .client-form-tag {
           font-size: 1.1rem;
           font-weight: 700;
           color: #0d6efd;
-          margin: 0 0 0.35rem 0.1rem;
+          margin: 0 0 0.5rem 0.1rem;
           line-height: 1.15;
           letter-spacing: 0.01em;
+        }
+        .nav-pills {
+          width: 100%;
+          border-radius: 8px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 4px;
+          display: flex;
+          gap: 4px;
+        }
+        .nav-pills .nav-item {
+          flex: 1;
+        }
+        .custom-tab {
+          width: 100%;
+          padding: 8px 16px;
+          border-radius: 6px !important;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          font-weight: 600;
+          font-size: 0.82rem;
+          transition: all 0.2s ease-in-out;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .custom-tab:hover {
+          color: #0f172a;
+          background: #e2e8f0;
+        }
+        .active-custom {
+          color: #ffffff !important;
+          background: linear-gradient(135deg, #0d6efd, #0284c7) !important;
+          box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.25), 0 2px 4px -2px rgba(13, 110, 253, 0.25) !important;
         }
         .section-title {
           font-size: 0.9rem;
@@ -209,6 +351,7 @@ const ClientFirstFrom = () => {
           justify-content: center;
           align-items: center;
           gap: 0.35rem;
+          margin-bottom: 0.75rem;
         }
       `}</style>
     </div>

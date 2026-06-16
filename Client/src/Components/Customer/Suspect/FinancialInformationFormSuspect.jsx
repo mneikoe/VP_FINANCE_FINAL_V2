@@ -104,6 +104,7 @@ const FinancialInformationFormForSuspect = ({
   suspectId,
   suspectData,
   onSuspectCreated,
+  onDataUpdate,
 }) => {
   const dispatch = useDispatch();
 
@@ -118,6 +119,30 @@ const FinancialInformationFormForSuspect = ({
   const [insuranceFormData, setInsuranceFormData] = useState({});
   const [investmentFormData, setInvestmentFormData] = useState({});
   const [loanFormData, setLoanFormData] = useState({});
+
+  // Initialize from suspectData (draft or DB)
+  React.useEffect(() => {
+    if (suspectData?.financialInfo) {
+      setInsuranceForms(suspectData.financialInfo.insurance || []);
+      setInvestmentForms(suspectData.financialInfo.investments || []);
+      setLoanForms(suspectData.financialInfo.loans || []);
+    } else {
+      setInsuranceForms([]);
+      setInvestmentForms([]);
+      setLoanForms([]);
+    }
+  }, [suspectData]);
+
+  // Sync state changes to parent component
+  React.useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        insurance: insuranceForms,
+        investments: investmentForms,
+        loans: loanForms,
+      });
+    }
+  }, [insuranceForms, investmentForms, loanForms, onDataUpdate]);
 
   const handleCheckboxChange = (option, group) => {
     if (group === "insurance") {

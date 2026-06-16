@@ -8,6 +8,7 @@ const ProposedPlanFormForSuspect = ({
   suspectId,
   suspectData,
   onSuspectCreated,
+  onDataUpdate,
 }) => {
   const dispatch = useDispatch();
 
@@ -23,6 +24,22 @@ const ProposedPlanFormForSuspect = ({
     },
   ]);
   const [savedPlans, setSavedPlans] = useState([]);
+
+  // Load from draft
+  React.useEffect(() => {
+    if (suspectData?.proposedPlan) {
+      setSavedPlans(suspectData.proposedPlan || []);
+    } else {
+      setSavedPlans([]);
+    }
+  }, [suspectData]);
+
+  // Sync back to parent
+  React.useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate(savedPlans);
+    }
+  }, [savedPlans, onDataUpdate]);
 
   const handleInputChange = (index, e) => {
     const { name, value } = e.target;

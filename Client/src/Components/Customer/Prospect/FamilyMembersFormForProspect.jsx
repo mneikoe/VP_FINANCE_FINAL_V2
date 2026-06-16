@@ -4,6 +4,7 @@ import { Form, Row, Col, Button, Modal } from "react-bootstrap";
 import { FaSave, FaUserPlus, FaTrash } from "react-icons/fa";
 import { addFamilyMember } from "../../../redux/feature/ProspectRedux/ProspectThunx";
 import { toast } from "react-toastify";
+import { splitGroupHeadName, joinGroupHeadName } from "../../../utils/groupNameParts";
 
 const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }) => {
   const dispatch = useDispatch();
@@ -14,37 +15,44 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
 
   const personalDetails = prospectData?.personalDetails || {};
 
-  const defaultMember = (isSelf = false, data = {}) => ({
-    _id: data._id || undefined,
-    title: data.title || "",
-    name: isSelf
+  const defaultMember = (isSelf = false, data = {}) => {
+    const rawName = isSelf
       ? personalDetails.groupHeadName ||
         personalDetails.groupName ||
         personalDetails.name ||
         data.name ||
         ""
-      : data.name || "",
-    relation: isSelf ? "Self" : data.relation || "",
-    dobActual: data.dobActual || "",
-    dobRecord: data.dobRecord || "",
-    marriageDate: data.marriageDate || "",
-    occupation: data.occupation || "",
-    occupationType: data.occupationType || "",
-    designation: data.designation || "",
-    annualIncome: data.annualIncome || "",
-    contact: isSelf ? personalDetails.mobileNo || data.contact || "" : data.contact || "",
-    adharNumber: data.adharNumber || "",
-    panCardNumber: data.panCardNumber || "",
-    includeHealth: data.includeHealth || false,
-    healthHistory: {
-      submissionDate: data.healthHistory?.submissionDate || "",
-      diseaseName: data.healthHistory?.diseaseName || "",
-      since: data.healthHistory?.since || "",
-      height: data.healthHistory?.height || "",
-      weight: data.healthHistory?.weight || "",
-      remark: data.healthHistory?.remark || "",
-    },
-  });
+      : data.name || "";
+    const nameParts = splitGroupHeadName(rawName);
+    return {
+      _id: data._id || undefined,
+      title: data.title || "",
+      name: rawName,
+      nameFirst: nameParts.first,
+      nameMiddle: nameParts.middle,
+      nameLast: nameParts.last,
+      relation: isSelf ? "Self" : data.relation || "",
+      dobActual: data.dobActual || "",
+      dobRecord: data.dobRecord || "",
+      marriageDate: data.marriageDate || "",
+      occupation: data.occupation || "",
+      occupationType: data.occupationType || "",
+      designation: data.designation || "",
+      annualIncome: data.annualIncome || "",
+      contact: isSelf ? personalDetails.mobileNo || data.contact || "" : data.contact || "",
+      adharNumber: data.adharNumber || "",
+      panCardNumber: data.panCardNumber || "",
+      includeHealth: data.includeHealth || false,
+      healthHistory: {
+        submissionDate: data.healthHistory?.submissionDate || "",
+        diseaseName: data.healthHistory?.diseaseName || "",
+        since: data.healthHistory?.since || "",
+        height: data.healthHistory?.height || "",
+        weight: data.healthHistory?.weight || "",
+        remark: data.healthHistory?.remark || "",
+      },
+    };
+  };
 
   useEffect(() => {
     if (prospectData?.familyMembers?.length > 0) {
@@ -56,34 +64,40 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
     } else {
       setFamilyMembers([defaultMember(true)]);
     }
-  }, [prospectData]);
+  }, [prospectData?._id]);
 
   useEffect(() => {
     setFamilyMembers((prev) =>
-      prev.map((member) =>
-        member.relation === "Self"
-          ? {
-              ...member,
-              title: personalDetails?.salutation || personalDetails?.title || member.title,
-              name:
-                personalDetails?.groupHeadName ||
-                personalDetails?.groupName ||
-                personalDetails?.name ||
-                member.name,
-              occupation:
-                personalDetails?.leadOccupation ||
-                personalDetails?.occupation ||
-                member.occupation,
-              occupationType:
-                personalDetails?.leadOccupationType ||
-                personalDetails?.occupationType ||
-                member.occupationType,
-              designation: personalDetails?.designation || member.designation,
-              annualIncome: personalDetails?.annualIncome || member.annualIncome,
-              contact: personalDetails?.mobileNo || member.contact,
-            }
-          : member
-      )
+      prev.map((member) => {
+        if (member.relation === "Self") {
+          const rawName =
+            personalDetails?.groupHeadName ||
+            personalDetails?.groupName ||
+            personalDetails?.name ||
+            member.name;
+          const nameParts = splitGroupHeadName(rawName);
+          return {
+            ...member,
+            title: personalDetails?.salutation || personalDetails?.title || member.title,
+            name: rawName,
+            nameFirst: nameParts.first,
+            nameMiddle: nameParts.middle,
+            nameLast: nameParts.last,
+            occupation:
+              personalDetails?.leadOccupation ||
+              personalDetails?.occupation ||
+              member.occupation,
+            occupationType:
+              personalDetails?.leadOccupationType ||
+              personalDetails?.occupationType ||
+              member.occupationType,
+            designation: personalDetails?.designation || member.designation,
+            annualIncome: personalDetails?.annualIncome || member.annualIncome,
+            contact: personalDetails?.mobileNo || member.contact,
+          };
+        }
+        return member;
+      })
     );
   }, [personalDetails]);
 
@@ -115,14 +129,22 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
       name === "adharNumber" || name === "contact"
         ? String(value).replace(/\D/g, "")
         : name === "panCardNumber"
-        ? String(value).toUpperCase().replace(/[^A-Z0-9]/g, "")
-        : value;
+          ? String(value).toUpperCase().replace(/[^A-Z0-9]/g, "")
+          : value;
 
     setFamilyMembers((prev) =>
       prev.map((member, i) => {
         if (i !== index) return member;
         if (keys.length === 1) {
-          return { ...member, [keys[0]]: type === "checkbox" ? checked : normalizedValue };
+          const updatedMember = { ...member, [keys[0]]: type === "checkbox" ? checked : normalizedValue };
+          if (["nameFirst", "nameMiddle", "nameLast"].includes(keys[0])) {
+            updatedMember.name = joinGroupHeadName({
+              first: updatedMember.nameFirst,
+              middle: updatedMember.nameMiddle,
+              last: updatedMember.nameLast,
+            });
+          }
+          return updatedMember;
         }
         if (keys.length === 2) {
           return {
@@ -143,19 +165,19 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
       prev.map((member, i) =>
         i === index
           ? {
-              ...member,
-              includeHealth: checked,
-              healthHistory: checked
-                ? member.healthHistory
-                : {
-                    submissionDate: "",
-                    diseaseName: "",
-                    since: "",
-                    height: "",
-                    weight: "",
-                    remark: "",
-                  },
-            }
+            ...member,
+            includeHealth: checked,
+            healthHistory: checked
+              ? member.healthHistory
+              : {
+                submissionDate: "",
+                diseaseName: "",
+                since: "",
+                height: "",
+                weight: "",
+                remark: "",
+              },
+          }
           : member
       )
     );
@@ -212,9 +234,9 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
       name:
         member.relation === "Self"
           ? personalDetails.groupHeadName ||
-            personalDetails.groupName ||
-            personalDetails.name ||
-            member.name
+          personalDetails.groupName ||
+          personalDetails.name ||
+          member.name
           : member.name,
       relation: member.relation || "Self",
       dobActual: member.dobActual,
@@ -310,7 +332,7 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
 
       {selfMember && (
         <div className="border rounded p-3 mb-3 bg-light self-card">
-          <span className="self-badge">Primary Client (Self)</span>
+          <span className="self-badge">Group Head</span>
           <Row className="mb-1">
             <Col md={2}>
               <Form.Group controlId="title-self">
@@ -321,7 +343,11 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
             <Col md={4}>
               <Form.Group controlId="name-self">
                 <Form.Label>Name <span className="text-danger">*</span></Form.Label>
-                <Form.Control readOnly value={primaryName} />
+                <div className="d-flex gap-1">
+                  <Form.Control readOnly value={splitGroupHeadName(primaryName).first} placeholder="First" />
+                  <Form.Control readOnly value={splitGroupHeadName(primaryName).middle} placeholder="Middle" />
+                  <Form.Control readOnly value={splitGroupHeadName(primaryName).last} placeholder="Last" />
+                </div>
               </Form.Group>
             </Col>
             <Col md={3}>
@@ -461,7 +487,7 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
                   {selfMember.includeHealth && (
                     <small className="text-muted">
                       {selfMember.healthHistory?.submissionDate &&
-                      selfMember.healthHistory?.diseaseName
+                        selfMember.healthHistory?.diseaseName
                         ? "Details added"
                         : "Please complete details"}
                     </small>
@@ -490,7 +516,27 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
             <Col md={4}>
               <Form.Group controlId={`name-${member._id || index}`}>
                 <Form.Label>Name <span className="text-danger">*</span></Form.Label>
-                <Form.Control name="name" value={member.name} onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))} required />
+                <div className="d-flex gap-1">
+                  <Form.Control
+                    name="nameFirst"
+                    value={member.nameFirst || ""}
+                    placeholder="First"
+                    onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                    required
+                  />
+                  <Form.Control
+                    name="nameMiddle"
+                    value={member.nameMiddle || ""}
+                    placeholder="Middle"
+                    onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  />
+                  <Form.Control
+                    name="nameLast"
+                    value={member.nameLast || ""}
+                    placeholder="Last"
+                    onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  />
+                </div>
               </Form.Group>
             </Col>
             <Col md={3}>
@@ -635,7 +681,7 @@ const FamilyMembersFormForProspect = ({ prospectId, prospectData, onDataUpdate }
         title="Add New Member"
       >
         <FaUserPlus className="me-1" />
-             </Button>
+      </Button>
       <Button type="submit" className="btn btn-primary btn-sm" title="Save Members">
         <FaSave />
       </Button>

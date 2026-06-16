@@ -109,7 +109,7 @@ const initialLoanForm = {
   customFields: [],
 };
 
-const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => {
+const FinancialInformationForm = ({ clientId, clientData, onClientCreated, onDataUpdate }) => {
   const dispatch = useDispatch();
   const { financialInfo, loading, error } = useSelector((state) => state.client || {});
   const companies = useSelector((state) => state.CompanyName?.CompanyNames || []);
@@ -131,6 +131,30 @@ const FinancialInformationForm = ({ clientId, clientData, onClientCreated }) => 
   const [insuranceFormData, setInsuranceFormData] = useState({});
   const [investmentFormData, setInvestmentFormData] = useState({});
   const [loanFormData, setLoanFormData] = useState({});
+
+  // Prepopulate forms with draft or saved info
+  useEffect(() => {
+    if (clientData?.financialInfo) {
+      setInsuranceForms(clientData.financialInfo.insurance || []);
+      setInvestmentForms(clientData.financialInfo.investments || []);
+      setLoanForms(clientData.financialInfo.loans || []);
+    } else {
+      setInsuranceForms([]);
+      setInvestmentForms([]);
+      setLoanForms([]);
+    }
+  }, [clientData]);
+
+  // Sync back to parent
+  useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        insurance: insuranceForms,
+        investments: investmentForms,
+        loans: loanForms,
+      });
+    }
+  }, [insuranceForms, investmentForms, loanForms, onDataUpdate]);
 
   const [insuranceFiles, setInsuranceFiles] = useState({});
   const [investmentFiles, setInvestmentFiles] = useState({});

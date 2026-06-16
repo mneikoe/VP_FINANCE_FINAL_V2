@@ -262,7 +262,7 @@ import { Form, Row, Col, Button } from "react-bootstrap";
 import { addProposedFinancialPlan } from "../../../redux/feature/ProspectRedux/ProspectThunx";
 import { toast } from "react-toastify";
 
-const ProposedPlanFormForProspect = ({ prospectId, prospectData, onProspectCreated }) => {
+const ProposedPlanFormForProspect = ({ prospectId, prospectData, onProspectCreated, onDataUpdate }) => {
   const dispatch = useDispatch();
 
   const [plans, setPlans] = useState([{
@@ -275,6 +275,22 @@ const ProposedPlanFormForProspect = ({ prospectId, prospectData, onProspectCreat
     status: "Proposed", // Added status field with default value
   }]);
   const [savedPlans, setSavedPlans] = useState([]);
+
+  // Load from draft
+  React.useEffect(() => {
+    if (prospectData?.proposedPlan) {
+      setSavedPlans(prospectData.proposedPlan || []);
+    } else {
+      setSavedPlans([]);
+    }
+  }, [prospectData]);
+
+  // Sync back to parent
+  React.useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate(savedPlans);
+    }
+  }, [savedPlans, onDataUpdate]);
 
   const handleInputChange = (index, e) => {
     const { name, value } = e.target;

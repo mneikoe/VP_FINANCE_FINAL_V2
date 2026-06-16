@@ -76,6 +76,22 @@ const SuspectFirstForm = () => {
           setProposedPlanData(data.proposedPlan || []);
         }
       });
+    } else {
+      setIsEdit(false);
+      setSuspectId("");
+      setSuspectData(null);
+      setPersonalData(null);
+      setFamilyData([]);
+      setFinancialData({
+        insurance: [],
+        investments: [],
+        loans: [],
+      });
+      setPrioritiesData({
+        futurePriorities: [],
+        needs: {},
+      });
+      setProposedPlanData([]);
     }
   }, [dispatch, id]);
 
@@ -106,8 +122,11 @@ const SuspectFirstForm = () => {
 
   const memoizedSuspectDataForFamily = React.useMemo(() => {
     if (isEdit) return suspectData;
-    return personalData ? { personalDetails: personalData } : null;
-  }, [isEdit, suspectData, personalData]);
+    return {
+      personalDetails: personalData,
+      familyMembers: familyData,
+    };
+  }, [isEdit, suspectData, personalData, familyData]);
 
   // Handle Next button click - ONLY NAVIGATION
   const handleNextClick = () => {
@@ -166,10 +185,27 @@ const SuspectFirstForm = () => {
         setSuspectId(newSuspectId);
         toast.success("🎉 Suspect Created Successfully!");
 
-        // Optional: Auto redirect after creation
-        // setTimeout(() => {
-        //   navigate("/suspects");
-        // }, 2000);
+        setIsEdit(true);
+        dispatch(getSuspectById(newSuspectId)).then((response) => {
+          if (response?.payload?.suspect) {
+            const data = response.payload.suspect;
+            setSuspectData(data);
+            setPersonalData(data.personalDetails || null);
+            setFamilyData(data.familyMembers || []);
+            setFinancialData(
+              data.financialInfo || {
+                insurance: [],
+                investments: [],
+                loans: [],
+              }
+            );
+            setPrioritiesData({
+              futurePriorities: data.futurePriorities || [],
+              needs: data.needs || {},
+            });
+            setProposedPlanData(data.proposedPlan || []);
+          }
+        });
       }
     } catch (error) {
       toast.error("Failed to create suspect");
@@ -228,33 +264,26 @@ const SuspectFirstForm = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div
-        className="nav nav-pills mb-1 bg-white shadow-sm rounded"
+      <ul
+        className="nav nav-pills mb-1 bg-white shadow-sm"
         role="tablist"
       >
         {tabs.map((tab) => (
-          <div className="nav-item" key={tab.id} role="presentation">
+          <li className="nav-item" key={tab.id} role="presentation">
             <button
               className={`nav-link custom-tab d-flex align-items-center ${
                 activeTab === tab.id
-                  ? "active-custom bg-primary text-white"
+                  ? "active-custom"
                   : ""
               }`}
               onClick={() => handleTabChange(tab.id)}
-              style={{
-                minWidth: "160px",
-                borderRadius: "0",
-                padding: "5px 10px",
-                borderRight: "1px solid #e5e7eb",
-                fontSize: "0.8rem",
-              }}
             >
               {tab.icon}
               {tab.name}
             </button>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {/* Tab Content */}
       <div className="tab-content p-2 border rounded bg-light shadow-sm compact-suspect-content">
@@ -267,7 +296,7 @@ const SuspectFirstForm = () => {
             </h6>
             <PersonalDetailFormSuspect
               isEdit={isEdit}
-              suspectData={suspectData}
+              suspectData={isEdit ? suspectData : (personalData ? { personalDetails: personalData } : null)}
               onFormDataUpdate={handlePersonalDataUpdate}
             />
           </div>
@@ -298,7 +327,7 @@ const SuspectFirstForm = () => {
             </h6>
             <FinancialInformationFormSuspect
               suspectId={suspectId}
-              suspectData={isEdit ? suspectData : null}
+              suspectData={isEdit ? suspectData : (financialData ? { financialInfo: financialData } : null)}
               onDataUpdate={handleFinancialDataUpdate}
               onBack={() => handleTabChange("family")}
             />
@@ -314,7 +343,7 @@ const SuspectFirstForm = () => {
             </h6>
             <FuturePrioritiesFromSuspect
               suspectId={suspectId}
-              suspectData={isEdit ? suspectData : null}
+              suspectData={isEdit ? suspectData : (prioritiesData ? { futurePriorities: prioritiesData.futurePriorities, needs: prioritiesData.needs } : null)}
               onDataUpdate={handlePrioritiesDataUpdate}
               onBack={() => handleTabChange("financial")}
             />
@@ -330,7 +359,7 @@ const SuspectFirstForm = () => {
             </h6>
             <ProposedPanFormSuspect
               suspectId={suspectId}
-              suspectData={isEdit ? suspectData : null}
+              suspectData={isEdit ? suspectData : (proposedPlanData ? { proposedPlan: proposedPlanData } : null)}
               onDataUpdate={handleProposedPlanDataUpdate}
               onBack={() => handleTabChange("priorities")}
             />
@@ -381,10 +410,41 @@ const SuspectFirstForm = () => {
         .suspect-form-shell {
           border-color: #e5e7eb !important;
         }
+        .nav-pills {
+          width: 100%;
+          border-radius: 8px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 4px;
+          display: flex;
+          gap: 4px;
+        }
+        .nav-pills .nav-item {
+          flex: 1;
+        }
         .custom-tab {
-          font-size: 0.8rem;
-          font-weight: 500;
-          line-height: 1.1;
+          width: 100%;
+          padding: 8px 16px;
+          border-radius: 6px !important;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          font-weight: 600;
+          font-size: 0.82rem;
+          transition: all 0.2s ease-in-out;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .custom-tab:hover {
+          color: #0f172a;
+          background: #e2e8f0;
+        }
+        .active-custom {
+          color: #ffffff !important;
+          background: linear-gradient(135deg, #0d6efd, #0284c7) !important;
+          box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.25), 0 2px 4px -2px rgba(13, 110, 253, 0.25) !important;
         }
         .compact-suspect-content .row {
           --bs-gutter-x: 0.5rem;
@@ -426,6 +486,7 @@ const SuspectFirstForm = () => {
           justify-content: center;
           align-items: center;
           gap: 0.35rem;
+          margin-bottom: 0.75rem;
         }
       `}</style>
     </div>

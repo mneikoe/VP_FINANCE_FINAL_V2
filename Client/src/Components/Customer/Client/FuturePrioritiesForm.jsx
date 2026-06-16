@@ -44,7 +44,7 @@ const initialNeeds = {
   anyUpdation: "",
 };
 
-const FuturePrioritiesForm = ({ clientId }) => {
+const FuturePrioritiesForm = ({ clientId, clientData, onClientCreated, onDataUpdate }) => {
   const dispatch = useDispatch();
   const { client, loading, error } = useSelector((state) => state.client || {});
 
@@ -60,7 +60,7 @@ const FuturePrioritiesForm = ({ clientId }) => {
     if (familyMembers && familyMembers.length > 0) {
       return familyMembers;
     }
-    const selfName = customerName || client?.personalDetails?.name || client?.name || "";
+    const selfName = customerName || clientData?.personalDetails?.name || clientData?.name || client?.personalDetails?.name || client?.name || "";
     return [{ _id: "self", name: selfName || "Self" }];
   };
 
@@ -70,9 +70,6 @@ const FuturePrioritiesForm = ({ clientId }) => {
     }
       
   }, [clientId, dispatch]);
-
-
-
 
   useEffect(() => {
     const fetchClientData = async () => {
@@ -98,6 +95,36 @@ const FuturePrioritiesForm = ({ clientId }) => {
     fetchClientData();
   }, [clientId]);
 
+  // Load from draft or clientData
+  useEffect(() => {
+    if (clientData) {
+      setSavedFuturePriorityForms(clientData.futurePriorities || []);
+      setNeeds({
+        ...initialNeeds,
+        ...clientData.needs,
+        createdDate: clientData.needs?.createdDate || new Date().toISOString(),
+      });
+      if (clientData.familyMembers) {
+        setFamilyMembers(clientData.familyMembers);
+      }
+      if (clientData.personalDetails?.name) {
+        setCustomerName(clientData.personalDetails.name);
+      }
+    } else {
+      setSavedFuturePriorityForms([]);
+      setNeeds(initialNeeds);
+    }
+  }, [clientData]);
+
+  // Sync back to parent
+  useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        futurePriorities: savedFuturePriorityForms,
+        needs: needs,
+      });
+    }
+  }, [savedFuturePriorityForms, needs, onDataUpdate]);
 
   useEffect(() => {
     if (client) {

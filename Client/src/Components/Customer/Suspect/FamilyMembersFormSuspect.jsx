@@ -7,6 +7,7 @@ import {
   updateFamilyMembers,
 } from "../../../redux/feature/SuspectRedux/SuspectThunx";
 import { toast } from "react-toastify";
+import { splitGroupHeadName, joinGroupHeadName } from "../../../utils/groupNameParts";
 
 
 
@@ -24,39 +25,46 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
 
   const personalDetails = React.useMemo(() => suspectData?.personalDetails || {}, [suspectData?.personalDetails]);
 
-  const defaultMember = (isSelf = false, data = {}) => ({
-    _id: data._id || undefined,
-    title: data.title || "",
-    name: isSelf
+  const defaultMember = (isSelf = false, data = {}) => {
+    const rawName = isSelf
       ? personalDetails.groupHeadName ||
-      personalDetails.groupName ||
-      personalDetails.name ||
-      data.name ||
-      ""
-      : data.name || "",
-    relation: isSelf ? "Self" : data.relation || "",
-    dobActual: data.dobActual || "",
-    dobRecord: data.dobRecord || "",
-    marriageDate: data.marriageDate || "",
-    occupation: data.occupation || "",
-    occupationType: data.occupationType || "",
-    designation: data.designation || "",
-    annualIncome: data.annualIncome || "",
-    contact: isSelf
-      ? personalDetails.mobileNo || data.contact || ""
-      : data.contact || "",
-    adharNumber: data.adharNumber || "",
-    panCardNumber: data.panCardNumber || "",
-    includeHealth: data.includeHealth || false,
-    healthHistory: {
-      submissionDate: data.healthHistory?.submissionDate || "",
-      diseaseName: data.healthHistory?.diseaseName || "",
-      since: data.healthHistory?.since || "",
-      height: data.healthHistory?.height || "",
-      weight: data.healthHistory?.weight || "",
-      remark: data.healthHistory?.remark || "",
-    },
-  });
+        personalDetails.groupName ||
+        personalDetails.name ||
+        data.name ||
+        ""
+      : data.name || "";
+    const nameParts = splitGroupHeadName(rawName);
+    return {
+      _id: data._id || undefined,
+      title: data.title || "",
+      name: rawName,
+      nameFirst: nameParts.first,
+      nameMiddle: nameParts.middle,
+      nameLast: nameParts.last,
+      relation: isSelf ? "Self" : data.relation || "",
+      dobActual: data.dobActual || "",
+      dobRecord: data.dobRecord || "",
+      marriageDate: data.marriageDate || "",
+      occupation: data.occupation || "",
+      occupationType: data.occupationType || "",
+      designation: data.designation || "",
+      annualIncome: data.annualIncome || "",
+      contact: isSelf
+        ? personalDetails.mobileNo || data.contact || ""
+        : data.contact || "",
+      adharNumber: data.adharNumber || "",
+      panCardNumber: data.panCardNumber || "",
+      includeHealth: data.includeHealth || false,
+      healthHistory: {
+        submissionDate: data.healthHistory?.submissionDate || "",
+        diseaseName: data.healthHistory?.diseaseName || "",
+        since: data.healthHistory?.since || "",
+        height: data.healthHistory?.height || "",
+        weight: data.healthHistory?.weight || "",
+        remark: data.healthHistory?.remark || "",
+      },
+    };
+  };
 
   useEffect(() => {
     if (suspectData?.familyMembers?.length > 0) {
@@ -65,23 +73,28 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
           m.relation === "Self" ? defaultMember(true, m) : defaultMember(false, m)
         )
       );
-    } else if (familyMembers.length === 0) {
+    } else {
       setFamilyMembers([defaultMember(true)]);
     }
-  }, [suspectData]);
+  }, [suspectData?._id]);
 
   useEffect(() => {
     setFamilyMembers((prev) =>
-      prev.map((member) =>
-        member.relation === "Self"
-          ? {
+      prev.map((member) => {
+        if (member.relation === "Self") {
+          const rawName =
+            personalDetails?.groupHeadName ||
+            personalDetails?.groupName ||
+            personalDetails?.name ||
+            member.name;
+          const nameParts = splitGroupHeadName(rawName);
+          return {
             ...member,
             title: personalDetails?.salutation || personalDetails?.title || member.title,
-            name:
-              personalDetails?.groupHeadName ||
-              personalDetails?.groupName ||
-              personalDetails?.name ||
-              member.name,
+            name: rawName,
+            nameFirst: nameParts.first,
+            nameMiddle: nameParts.middle,
+            nameLast: nameParts.last,
             occupation:
               personalDetails?.leadOccupation ||
               personalDetails?.occupation ||
@@ -93,9 +106,10 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
             designation: personalDetails?.designation || member.designation,
             annualIncome: personalDetails?.annualIncome || member.annualIncome,
             contact: personalDetails?.mobileNo || member.contact,
-          }
-          : member
-      )
+          };
+        }
+        return member;
+      })
     );
   }, [personalDetails]);
 
@@ -151,10 +165,18 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
         if (i !== index) return member;
 
         if (keys.length === 1) {
-          return {
+          const updatedMember = {
             ...member,
             [keys[0]]: type === "checkbox" ? checked : normalizedValue,
           };
+          if (["nameFirst", "nameMiddle", "nameLast"].includes(keys[0])) {
+            updatedMember.name = joinGroupHeadName({
+              first: updatedMember.nameFirst,
+              middle: updatedMember.nameMiddle,
+              last: updatedMember.nameLast,
+            });
+          }
+          return updatedMember;
         }
         if (keys.length === 2) {
           return {
@@ -363,7 +385,7 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
 
       {selfMember && (
         <div className="border rounded p-3 mb-3 bg-light self-card">
-          <span className="self-badge">Primary Client (Self)</span>
+          <span className="self-badge">Group Head</span>
           <Row className="mb-1">
             <Col md={2}>
               <Form.Group controlId="title-self">
@@ -376,7 +398,11 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 <Form.Label>
                   Name <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control readOnly value={primaryName} />
+                <div className="d-flex gap-1">
+                  <Form.Control readOnly value={splitGroupHeadName(primaryName).first} placeholder="First" />
+                  <Form.Control readOnly value={splitGroupHeadName(primaryName).middle} placeholder="Middle" />
+                  <Form.Control readOnly value={splitGroupHeadName(primaryName).last} placeholder="Last" />
+                </div>
               </Form.Group>
             </Col>
             <Col md={3}>
@@ -567,12 +593,27 @@ const FamilyMembersFormForSuspect = ({ suspectId, suspectData, onDataUpdate }) =
                 <Form.Label>
                   Name <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control
-                  name="name"
-                  value={member.name}
-                  onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
-                  required
-                />
+                <div className="d-flex gap-1">
+                  <Form.Control
+                    name="nameFirst"
+                    value={member.nameFirst || ""}
+                    placeholder="First"
+                    onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                    required
+                  />
+                  <Form.Control
+                    name="nameMiddle"
+                    value={member.nameMiddle || ""}
+                    placeholder="Middle"
+                    onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  />
+                  <Form.Control
+                    name="nameLast"
+                    value={member.nameLast || ""}
+                    placeholder="Last"
+                    onChange={(e) => handleMemberChange(e, familyMembers.indexOf(member))}
+                  />
+                </div>
               </Form.Group>
             </Col>
             <Col md={3}>

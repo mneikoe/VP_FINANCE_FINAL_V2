@@ -225,36 +225,37 @@ const AppRoutes = () => {
 
       {/* 🏢 OA (Office Admin) - Only OA can access Layout & all other routes */}
       <Route
-        path="/"
+        path="/*"
         element={
           <ProtectedRoute allowedRoles={["OA"]}>
             <Layout />
           </ProtectedRoute>
         }
       >
+        {/* NOTE: Static routes MUST come before dynamic /:param routes */}
         <Route index element={<Dashbord />} />
         {/* Masters - Only OA */}
-        <Route path="/task-assign" element={<TaskAssign />} />
-        <Route path="/appointment-assign" element={<RMAssignment />} />
-        <Route path="/area" element={<Area />} />
-        <Route path="/sub-area" element={<SubArea />} />
-        <Route path="/city" element={<City />} />
-        <Route path="/composite" element={<Composite />} />
-        <Route path="/kycdocument" element={<Kycdocument />} />
-        <Route path="/kyc-document-name-master" element={<DocumentNameMaster />} />
-        <Route path="/task-composite" element={<CompositeAssignments />} />
-        <Route path="/task-marketing" element={<MarketingAssignments />} />
-        <Route path="/task-servicing" element={<ServiceAssignments />} />
-        <Route path="/lead-type" element={<LeadType />} />
-        <Route path="/occupation-type" element={<OccupationType />} />
-        <Route path="/calling-purpose" element={<CallingPurpose />} />
-        <Route path="/lead-occupation" element={<LeadOccupation />} />
-        <Route path="/lead-source" element={<LeadSource />} />
-        <Route path="/marketing-task" element={<Marketing />} />
-        <Route path="/servicing-task" element={<Servicing />} />
-        <Route path="/marketing-documents" element={<MarketingDocumentsPage />} />
+        <Route path="task-assign" element={<TaskAssign />} />
+        <Route path="appointment-assign" element={<RMAssignment />} />
+        <Route path="area" element={<Area />} />
+        <Route path="sub-area" element={<SubArea />} />
+        <Route path="city" element={<City />} />
+        <Route path="composite" element={<Composite />} />
+        <Route path="kycdocument" element={<Kycdocument />} />
+        <Route path="kyc-document-name-master" element={<DocumentNameMaster />} />
+        <Route path="task-composite" element={<CompositeAssignments />} />
+        <Route path="task-marketing" element={<MarketingAssignments />} />
+        <Route path="task-servicing" element={<ServiceAssignments />} />
+        <Route path="lead-type" element={<LeadType />} />
+        <Route path="occupation-type" element={<OccupationType />} />
+        <Route path="calling-purpose" element={<CallingPurpose />} />
+        <Route path="lead-occupation" element={<LeadOccupation />} />
+        <Route path="lead-source" element={<LeadSource />} />
+        <Route path="marketing-task" element={<Marketing />} />
+        <Route path="servicing-task" element={<Servicing />} />
+        <Route path="marketing-documents" element={<MarketingDocumentsPage />} />
         <Route
-          path="/servicing-documents"
+          path="servicing-documents"
           element={
             <MarketingDocumentsPage
               department="servicing"
@@ -263,96 +264,97 @@ const AppRoutes = () => {
           }
         />
         {/* Customer - Only OA */}
-        <Route path="/client" element={<ClientLeadTabs />} />
-        <Route path="/client/:tabs" element={<ClientLeadTabs />} />
-        <Route path="/client/add" element={<ClientFirstFrom />} />
-        <Route path="/client/edit/:id" element={<ClientFirstFrom />} />
-        <Route path="/client/detail/:id" element={<CustomerDetail />} />
-        <Route path="/suspect" element={<DisplaySuspect />} />
-        <Route path="/suspect/add" element={<SuspectFirstForm />} />
-        <Route path="/suspect/edit/:id" element={<SuspectFirstForm />} />
-        <Route path="/suspect/detail/:id" element={<SuspectDetail />} />
-        <Route path="/prospect" element={<ProspectAppointmentList />} />
-        <Route path="/prospect/add" element={<ProspectFirstForm />} />
-        <Route path="/prospect/edit/:id" element={<ProspectFirstForm />} />
-        <Route path="/prospect/detail/:id" element={<ProspectDetail />} />
+        {/* IMPORTANT: Static routes MUST come before dynamic :param routes */}
+        <Route path="client/add" element={<ClientFirstFrom />} />
+        <Route path="client/edit/:id" element={<ClientFirstFrom />} />
+        <Route path="client/detail/:id" element={<CustomerDetail />} />
+        <Route path="client/:tabs" element={<ClientLeadTabs />} />
+        <Route path="client" element={<ClientLeadTabs />} />
+        <Route path="suspect/add" element={<SuspectFirstForm />} />
+        <Route path="suspect/edit/:id" element={<SuspectFirstForm />} />
+        <Route path="suspect/detail/:id" element={<SuspectDetail />} />
+        <Route path="suspect" element={<DisplaySuspect />} />
+        <Route path="prospect/add" element={<ProspectFirstForm />} />
+        <Route path="prospect/edit/:id" element={<ProspectFirstForm />} />
+        <Route path="prospect/detail/:id" element={<ProspectDetail />} />
+        <Route path="prospect" element={<ProspectAppointmentList />} />
         <Route
-          path="/reports/prospect-list"
+          path="reports/prospect-list"
           element={<ProspectAppointmentList />}
         />
-        <Route path="/reports/employee-report" element={<EmployeeReport />} />
+        <Route path="reports/employee-report" element={<EmployeeReport />} />
         <Route
-          path="/reports/employee-report/:employeeId"
+          path="reports/employee-report/:employeeId"
           element={<EmployeeReportDetail />}
         />
-        <Route path="/reports/telecaller-report" element={<TelecallerReport />} />
+        <Route path="reports/telecaller-report" element={<TelecallerReport />} />
         <Route
-          path="/reports/telecaller-report/:telecallerId/date/:date"
+          path="reports/telecaller-report/:telecallerId/date/:date"
           element={<TelecallerReportDateActivities />}
         />
         <Route
-          path="/reports/telecaller-report/:telecallerId"
+          path="reports/telecaller-report/:telecallerId"
           element={<TelecallerReportDetail />}
         />
-        <Route path="/import-lead" element={<ImportLead />} />
-        <Route path="/kyc" element={<KYCtabs />} />
+        <Route path="import-lead" element={<ImportLead />} />
+        <Route path="kyc" element={<KYCtabs />} />
         {/* Employee - Only OA */}
-        <Route path="/add-employee" element={<EmployeeAddForm />} />
+        <Route path="add-employee" element={<EmployeeAddForm />} />
         <Route path="all-employee" element={<EmployeeList/>}/>
-        <Route path="/employee/:id" element={<EmployeeDetails />} />
+        <Route path="employee/:id" element={<EmployeeDetails />} />
         {/* HR Module Routes for OA */}
-        <Route path="/career-enquiry" element={<CareerEnquiry />} />
-        <Route path="/vacancy-notice" element={<VacancyNotice />} />
-        <Route path="/addcandidate" element={<Addcandidate />} />
-        <Route path="/resume-shortlist" element={<ResumesShortlist />} />
-        <Route path="/interview-process" element={<SelectedInterviewTable />} />
-        <Route path="/joining-data" element={<JoiningData />} />
+        <Route path="career-enquiry" element={<CareerEnquiry />} />
+        <Route path="vacancy-notice" element={<VacancyNotice />} />
+        <Route path="addcandidate" element={<Addcandidate />} />
+        <Route path="resume-shortlist" element={<ResumesShortlist />} />
+        <Route path="interview-process" element={<SelectedInterviewTable />} />
+        <Route path="joining-data" element={<JoiningData />} />
         <Route
-          path="/job-profile-target-admin"
+          path="job-profile-target-admin"
           element={<EmployeeList initialRole="oa" lockRole />}
         />
         <Route
-          path="/job-profile-target-telecaller"
+          path="job-profile-target-telecaller"
           element={<EmployeeList initialRole="telecaller" lockRole />}
         />
         <Route
-          path="/job-profile-target-cre"
+          path="job-profile-target-cre"
           element={<EmployeeList initialRole="rm" lockRole />}
         />
         <Route
-          path="/job-profile-target-telemarketer"
+          path="job-profile-target-telemarketer"
           element={<EmployeeList initialRole="telemarketer" lockRole />}
         />
         <Route
-          path="/job-profile-target-office-executive"
+          path="job-profile-target-office-executive"
           element={<EmployeeList initialRole="oe" lockRole />}
         />
         {/* Office - Only OA */}
-        <Route path="/financial-product-list" element={<FinancialProduct />} />
-        <Route path="/company-name" element={<CompanyTabs />} />
-        <Route path="/mutual-fund/registrar" element={<RegistrarTabs />} />
-        <Route path="/mutual-fund/amc" element={<AMCtabs />} />
-        <Route path="/office-diary" element={<OfficeDiaryTabs />} />
-        <Route path="/office-purchase" element={<OfficePurchase />} />
-        <Route path="/important-documents" element={<ImpDocument />} />
+        <Route path="financial-product-list" element={<FinancialProduct />} />
+        <Route path="company-name" element={<CompanyTabs />} />
+        <Route path="mutual-fund/registrar" element={<RegistrarTabs />} />
+        <Route path="mutual-fund/amc" element={<AMCtabs />} />
+        <Route path="office-diary" element={<OfficeDiaryTabs />} />
+        <Route path="office-purchase" element={<OfficePurchase />} />
+        <Route path="important-documents" element={<ImpDocument />} />
         <Route
-          path="/crm-advertisement-activities"
+          path="crm-advertisement-activities"
           element={<CRMAdvertisementActivities />}
         />
         <Route
-          path="/crm-creativity-activities"
+          path="crm-creativity-activities"
           element={<CRMCreativityActivities />}
         />
         <Route
-          path="/crm-relationship-activities"
+          path="crm-relationship-activities"
           element={<CRMRelationshipActivities />}
         />
-        <Route path="/CRE" element={<CREDashboard />} />
+        <Route path="CRE" element={<CREDashboard />} />
         {/* accounts department */}
-        <Route path="/income-head" element={<IncomeHead />} />
-        <Route path="/expenses-head" element={<ExpensesHead />} />
-        <Route path="/banks" element={<AddBank />} />
-        <Route path="/notification-manager" element={<NotificationManager />} />
+        <Route path="income-head" element={<IncomeHead />} />
+        <Route path="expenses-head" element={<ExpensesHead />} />
+        <Route path="banks" element={<AddBank />} />
+        <Route path="notification-manager" element={<NotificationManager />} />
       </Route>
 
       {/* 🏦 RM Dashboard Routes - Only RM can access */}

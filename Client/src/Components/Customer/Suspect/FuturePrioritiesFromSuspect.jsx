@@ -21,7 +21,7 @@ const futurePriorityOptions = [
   ],
 ];
 
-const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreated }) => {
+const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreated, onDataUpdate }) => {
   const dispatch = useDispatch();
   const [futurePriorities, setFuturePriorities] = useState([]);
   const [futurePriorityForms, setFuturePriorityForms] = useState({});
@@ -41,6 +41,62 @@ const FuturePrioritiesFormForSuspect = ({ suspectId, suspectData, onSuspectCreat
     anyCorrection: "",
     anyUpdation: "",
   });
+
+  // Load from draft
+  React.useEffect(() => {
+    if (suspectData) {
+      const draftPriorities = suspectData.futurePriorities || [];
+      const priorityMap = {};
+      draftPriorities.forEach((item) => {
+        if (item.priorityName) {
+          priorityMap[item.priorityName] = item;
+        }
+      });
+      setSavedFuturePriorityForms(priorityMap);
+      setNeeds(suspectData.needs || {
+        createdDate: new Date(),
+        memberName: "",
+        financialProduct: "",
+        financialCompany: "",
+        planName: "",
+        documents: [],
+        financialCalculation: false,
+        assesmentOfNeed: false,
+        portfolioManagement: false,
+        doorStepServices: false,
+        purchaseNewProducts: false,
+        anyCorrection: "",
+        anyUpdation: "",
+      });
+    } else {
+      setSavedFuturePriorityForms({});
+      setNeeds({
+        createdDate: new Date(),
+        memberName: "",
+        financialProduct: "",
+        financialCompany: "",
+        planName: "",
+        documents: [],
+        financialCalculation: false,
+        assesmentOfNeed: false,
+        portfolioManagement: false,
+        doorStepServices: false,
+        purchaseNewProducts: false,
+        anyCorrection: "",
+        anyUpdation: "",
+      });
+    }
+  }, [suspectData]);
+
+  // Sync back to parent
+  React.useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        futurePriorities: Object.values(savedFuturePriorityForms),
+        needs,
+      });
+    }
+  }, [savedFuturePriorityForms, needs, onDataUpdate]);
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;

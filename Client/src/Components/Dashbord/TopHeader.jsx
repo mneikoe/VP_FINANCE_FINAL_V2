@@ -237,13 +237,14 @@ const TopHeader = () => {
       {
         key: "/",
         icon: <DashboardOutlined />,
-        label: <Link to="/">Dashboard</Link>,
+        label: "Dashboard",
+        onClick: () => navigate("/"),
       },
     ];
 
-    Object.entries(menuConfig).forEach(([key, config]) => {
+    Object.entries(menuConfig).forEach(([configKey, config]) => {
       items.push({
-        key,
+        key: configKey,
         icon: config.icon,
         label: config.label,
         children: config.sections.map((section) => ({
@@ -256,7 +257,8 @@ const TopHeader = () => {
           children: section.items.map((item) => ({
             key: item.to,
             icon: <ThunderboltOutlined style={{ fontSize: "12px", color: "#ea580c" }} />,
-            label: <Link to={item.to} style={{ fontWeight: 500, color: "#1e293b" }}>{item.name}</Link>,
+            label: item.name,
+            onClick: () => navigate(item.to),
           })),
         })),
       });
@@ -264,6 +266,7 @@ const TopHeader = () => {
 
     return items;
   };
+
 
   return (
     <Header
@@ -317,6 +320,7 @@ const TopHeader = () => {
         <Menu
           mode="horizontal"
           selectedKeys={[location.pathname]}
+          disabledOverflow
           items={getMenuItems()}
           style={{
             flex: 1,
@@ -328,6 +332,7 @@ const TopHeader = () => {
           className="topbar-menu"
         />
       </div>
+
 
       <Space size={20}>
 

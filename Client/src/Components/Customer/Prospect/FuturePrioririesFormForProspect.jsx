@@ -46,7 +46,7 @@ const initialNeeds = {
   anyUpdation: "",
 };
 
-const FuturePrioritiesFormForProspect= ({ clientId }) => {
+const FuturePrioritiesFormForProspect= ({ clientId, clientData, onDataUpdate }) => {
   const dispatch = useDispatch();
   const { client, loading, error } = useSelector((state) => state.client || {});
 
@@ -57,6 +57,30 @@ const FuturePrioritiesFormForProspect= ({ clientId }) => {
   const [priorityFiles, setPriorityFiles] = useState({});
   const [familyMembers, setFamilyMembers] = useState([]);
   const [customerName, setCustomerName] = useState("");
+
+  // Load draft or clientData
+  useEffect(() => {
+    if (clientData) {
+      setSavedFuturePriorityForms(clientData.futurePriorities || []);
+      setNeeds({
+        ...initialNeeds,
+        ...(clientData.needs || {}),
+      });
+    } else {
+      setSavedFuturePriorityForms([]);
+      setNeeds(initialNeeds);
+    }
+  }, [clientData]);
+
+  // Sync state back to parent
+  useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        futurePriorities: savedFuturePriorityForms,
+        needs,
+      });
+    }
+  }, [savedFuturePriorityForms, needs, onDataUpdate]);
 
   const getMemberList = () => {
     if (familyMembers && familyMembers.length > 0) {

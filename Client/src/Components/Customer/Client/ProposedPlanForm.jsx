@@ -8,7 +8,7 @@ import { fetchCompanyName } from "../../../redux/feature/ComapnyName/CompanyThun
 import {fetchFinancialProduct} from '../../../redux/feature/FinancialProduct/FinancialThunx'
 import { toast } from "react-toastify";
 
-const ProposedPlanForm = ({ clientId, clientData }) => {
+const ProposedPlanForm = ({ clientId, clientData, onDataUpdate }) => {
 
  const companies = useSelector((state) => state.CompanyName.CompanyNames);
     console.log("comapnies",companies)
@@ -32,6 +32,25 @@ const ProposedPlanForm = ({ clientId, clientData }) => {
   ]);
   const [savedPlans, setSavedPlans] = useState([]);
   const [familyMembers, setFamilyMembers] = useState([]);
+
+  // Load from draft or clientData
+  useEffect(() => {
+    if (clientData?.proposedPlan) {
+      setSavedPlans(clientData.proposedPlan || []);
+    } else {
+      setSavedPlans([]);
+    }
+    if (clientData?.familyMembers) {
+      setFamilyMembers(clientData.familyMembers);
+    }
+  }, [clientData]);
+
+  // Sync back to parent
+  useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate(savedPlans);
+    }
+  }, [savedPlans, onDataUpdate]);
 
   useEffect(() => {
       dispatch(fetchCompanyName());
